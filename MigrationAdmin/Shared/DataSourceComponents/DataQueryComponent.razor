@@ -1,0 +1,51 @@
+﻿@using MigrationAdmin.Models
+<div class="card card-info">
+    <div class="card-header">
+        <h3 class="card-title">Configure your source: </h3>
+        <div class="card-tools">
+            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                <i class="fas fa-minus"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body" style="display: block;">
+        <div class="row">
+            <div class="col-sm-2">
+                <div class="form-group">
+                    <label>Select what type of mapping do you want to apply to the destination</label>
+                    <select class="form-control" id="dataqueryMappingType" data-keeper-edited="yes" @onchange="ChangeDataQueryMappingType">
+                        @foreach (var type in _dataQueryMappingType)
+                        {
+                            <option value="@type.Value">@type.Key</option>
+                        }
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public EventCallback<DataQueryMappingType> DataQueryMappingTypeChangedCallback { get; set; }
+
+    [Parameter]
+    public DataQueryMappingType DataQueryType { get; set; }
+
+
+    private Dictionary<string, DataQueryMappingType> _dataQueryMappingType = new()
+    {
+    {"Update the same collection", DataQueryMappingType.UpdateSameCollection},
+    {"Update another collection", DataQueryMappingType.UpdateAnotherCollection}
+    };
+
+    public async Task ChangeDataQueryMappingType(ChangeEventArgs e)
+    {
+        if (e.Value == null) return;
+
+        if (Enum.TryParse<DataQueryMappingType>(e.Value.ToString(), out var value))
+            DataQueryType = value;
+
+        await DataQueryMappingTypeChangedCallback.InvokeAsync(DataQueryType);
+    }
+}

@@ -1,0 +1,87 @@
+﻿@using Migration.Repository
+@inject IStorage<DBSettings> _storageDbSettings;
+
+<div class="row">
+    <div class="col-sm-6">
+        <div class="form-group">
+            <label>Select the Connection </label>
+            <select class="form-control" id="connectionString" data-keeper-edited="yes" @onchange="ChangeConnectionString">
+                @if (_connectionStrings != null)
+                {
+                    foreach (var connectionString in _connectionStrings.Where(w => !string.IsNullOrEmpty(w.Value)))
+                    {
+                        <option value="@connectionString.Value">@connectionString.Key</option>
+                    }
+                }
+            </select>
+        </div>
+    </div>
+    <div class="col-sm-6">
+        <div class="form-group">
+            <label>Select the Container</label>
+            <select class="form-control" id="container" data-keeper-edited="yes" @onchange="ChangeContainer">
+                @if (DBSettings != null)
+                {
+                    <option selected="selected" value="@DBSettings.ListOfContainer.FirstOrDefault()"> @DBSettings.ListOfContainer.FirstOrDefault()</option>
+                    @foreach (var container in DBSettings.ListOfContainer.Skip(1))
+                    {
+                        <option value="@container">@container</option>
+                    }
+                }
+            </select>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    [Parameter]
+    public EventCallback<DBSettings> OnDbSettingsChanged { get; set; }
+
+    [Parameter]
+    public DBSettings DBSettings { get; set; } = new();
+
+    public string DatabaseName { get; set; }
+
+    private Dictionary<string, string?> _connectionStrings;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var data = await _storageDbSettings.GetAll();
+
+        if (data != null && data.Any())
+        {
+            _connectionStrings = data.ToDictionary(k => k.Name + "-" + k.Database, v => v.Database);
+            DBSettings = data.FirstOrDefault();
+            DatabaseName = DBSettings.Database;
+        }
+    }
+
+    public async Task ChangeConnectionString(ChangeEventArgs e)
+    {
+        if (e.Value == null) return;
+
+        DatabaseName = e.Value.ToString();
+
+        if (string.IsNullOrEmpty(DatabaseName)) return;
+
+        var settings = await _storageDbSettings.Get(w => w.Database == DatabaseName);
+
+        DBSettings.ListOfContainer = settings.ListOfContainer;
+
+        await OnDbSettingsChanged.InvokeAsync(settings);
+    }
+
+    public async Task ChangeContainer(ChangeEventArgs e)
+    {
+        if (e.Value == null) return;
+
+        var settings = await _storageDbSettings.Get(w => w.Database == DatabaseName);
+
+        if (settings == null) return;
+
+        settings.Container = e.Value.ToString();
+
+        await OnDbSettingsChanged.InvokeAsync(settings);
+    }
+}

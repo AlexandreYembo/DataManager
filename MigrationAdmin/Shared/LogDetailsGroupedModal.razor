@@ -1,0 +1,123 @@
+﻿@using Migration.Services.LogModels
+<div class="modal fade show" id="logDetailsGroupedModal" style="display:block" aria-modal="true" role="dialog">
+    <div class="modal-dialog" style="max-width:100%;">
+        <div class="modal-content">
+
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <h4 class="modal-title">@ModalTitle</h4>
+            </div>
+
+            <!-- Modal body -->
+            <div class="modal-body" style="height: 900px; overflow: scroll">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title">Log Details</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <table id="logsGrouped" class="table table-bordered table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 250px">Description</th>
+                                            <th style="width: 50px">Total</th>
+                                            <th style="width: 250px">Records</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (LogDetails.Any(a => a.Details.Any()))
+                                        {
+                                            foreach (var logDetailsGrouped in LogDetails.SelectMany(log => log.Details.Select(detail => new { Detail = detail, Log = log }))
+                                            .GroupBy(o => o.Detail))
+                                            {
+                                                <tr>
+                                                    <td style="width:50%">
+                                                        @logDetailsGrouped.Key
+                                                    </td>
+                                                    <td >
+                                                        @logDetailsGrouped.Count()
+                                                    </td>
+                                                    <td class="row" style="overflow-y:scroll; height: 300px;">
+                                                        <table id="logsGrouped_values_success" class="table table-bordered table-striped">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th></th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                @foreach (var logDetails in logDetailsGrouped)
+                                                                {
+                                                                    <tr>
+                                                                        <td style="width:50%">
+                                                                            @logDetails.Log.Title
+                                                                        </td>
+                                                                    </tr>
+                                                                }
+                                                            </tbody>
+                                                        </table>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        }
+                                        @if(LogDetails.Any(a => a.Errors.Any()))
+                                        {
+                                            foreach (var logDetailsGrouped in LogDetails.SelectMany(detail => detail.Errors.Select(error => new { Error = error, Detail = detail }))
+                                            .GroupBy(o => o.Error))
+                                            {
+                                                <tr>
+                                                    <td style="width:50%">
+                                                        @logDetailsGrouped.Key
+                                                    </td>
+                                                    <td >
+                                                        @logDetailsGrouped.Count()
+                                                    </td>
+                                                    <td class="row" style="overflow-y:scroll; height: 300px;">
+                                                        <table id="logsGrouped_values_errors" class="table table-bordered table-striped">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th></th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                @foreach (var logDetails in logDetailsGrouped)
+                                                                {
+                                                                    <tr>
+                                                                        <td style="width:50%">
+                                                                            @logDetails.Detail.Title
+                                                                        </td>
+                                                                    </tr>
+                                                                }
+                                                            </tbody>
+                                                        </table>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal footer -->
+            <div class="modal-footer">
+                <button type="button" style="margin-top:15px;" class="btn btn-close" @onclick=ModalOk>Ok</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public List<LogDetails> LogDetails { get; set; }
+    [Parameter]
+    public string ModalTitle { get; set; }
+    [Parameter]
+    public bool ShowModalScroll { get; set; }
+    [Parameter]
+    public EventCallback ModalOk { get; set; }
+}

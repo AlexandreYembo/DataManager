@@ -1,0 +1,36 @@
+﻿@using Microsoft.AspNetCore.Components
+@using Migration.Infrastructure.CosmosDb
+@using Migration.Repository
+@inherits CustomComponents
+
+<div class="row">
+    <div class="col-sm-1">
+        <div class="form-group">
+            <label>Connection Name</label>
+            <input class="form-control" id="url" data-keeper-edited="yes" @bind="@DBSettings.Name" />
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="form-group">
+            <label>Endpoint</label>
+            <input class="form-control" id="url" data-keeper-edited="yes" @bind="@DBSettings.Endpoint" />
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="form-group">
+            <label>Primary Key</label>
+            <input class="form-control" id="primaryKey" data-keeper-edited="yes" @bind="@DBSettings.AuthKey" />
+        </div>
+    </div>
+    <div class="col-sm-2">
+        <div class="form-group">
+            <label>Database</label>
+            <input class="form-control" id="container" data-keeper-edited="yes" @bind="@DBSettings.Database" />
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public DBSettings DBSettings { get; set; } = new();
+}

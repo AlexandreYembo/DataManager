@@ -1,0 +1,91 @@
+﻿@using Migration.Repository.Models
+<div class="modal fade show" id="restoreDataModal" style="display:block" aria-modal="true" role="dialog">
+    <div class="modal-dialog" style="max-width:100%;">
+        <div class="modal-content">
+
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <h4 class="modal-title">Do you want to restore the data?</h4>
+            </div>
+
+            <!-- Modal body -->
+            <div class="modal-body" style="height: 900px; overflow: scroll">
+                @if (IsLoading)
+                {
+                    <div class="col-sm-12">
+                        <Loading />
+                    </div>
+                }
+                @if (DataDifferences != null)
+                {
+                    foreach (var differences in DataDifferences)
+                    {
+                        <div class="card">
+                            <div class="card-header">
+                                <h4 class="card-title">@differences.Key</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <table class="table table-bordered table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>Properties</th>
+                                                    <th>New values</th>
+                                                    <th>Original Values</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var difference in differences.Value)
+                                                {
+                                                    <tr>
+                                                        <td>
+                                                            @difference.PropertyName
+                                                        </td>
+                                                        <td>
+                                                            @((MarkupString)difference.Object2Value)
+                                                        </td>
+                                                        <td>
+                                                            @((MarkupString)difference.Object1Value)
+                                                        </td>
+                                                      
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+
+            <!-- Modal footer -->
+            <div class="modal-footer">
+                <button type="button" style="margin-top:15px;" class="btn btn-warning" @onclick=ModalConfirm>Yes</button>
+                <button type="button" style="margin-top:15px;" class="btn btn-close" @onclick=ModalOk>No</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public bool IsLoading { get; set; }
+
+    [Parameter]
+    public bool ShowModalScroll { get; set; }
+
+    [Parameter]
+    public Dictionary<string, List<Difference>> DataDifferences { get; set; }
+
+    [Parameter]
+    public EventCallback ModalOk { get; set; }
+
+    [Parameter]
+    public string Id { get; set; }
+
+    [Parameter]
+    public EventCallback ModalConfirm { get; set; }
+}  

@@ -1,0 +1,108 @@
+﻿@using MigrationAdmin.Helpers
+@using System.Reflection
+@using Migration.Services.LogModels
+<div class="modal fade show" id="logDetailsModal" style="display:block" aria-modal="true" role="dialog">
+    <div class="modal-dialog" style="max-width:100%;">
+        <div class="modal-content">
+
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <h4 class="modal-title">@ModalTitle</h4>
+            </div>
+            <!-- Modal body -->
+            <div class="modal-body" style="height: 900px; overflow: scroll">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title">Log Details</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <table id="logs_details" class="table table-bordered table-striped">
+                                        <thead>
+                                        <tr>
+                                            <th>Details</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        @if (LogDetails != null)
+                                        {
+                                            foreach (var logDetails in LogDetails.Details)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        @logDetails
+                                                    </td>
+                                                </tr>
+                                            }
+                                        }
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <table id="logs_details_errors" class="table table-bordered table-striped">
+                                            <thead>
+                                            <tr>
+                                                <th>Errors</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            @if (LogDetails != null)
+                                            {
+                                                foreach (var error in LogDetails.Errors)
+                                                {
+                                                    <tr>
+                                                        <td>
+                                                            @error
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            @if (!string.IsNullOrEmpty(LogDetails.Actions))
+                            {
+                                <button class="btn btn-success" @onclick="() => Fix(LogDetails.Actions)">Fix</button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Modal footer -->
+            <div class="modal-footer">
+                <button type="button" style="margin-top:15px;" class="btn btn-close" @onclick=ModalOk>Ok</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public LogDetails LogDetails { get; set; }
+    [Parameter]
+    public string ModalTitle { get; set; }
+    [Parameter]
+    public bool ShowModalScroll { get; set; }
+    [Parameter]
+    public EventCallback ModalOk { get; set; }
+
+    public void Fix(string actions)
+    {
+        DataFixHelper dataHelper = new();
+        Type dataFixerType = dataHelper.GetType();
+
+        var actionName = actions.Split(":").FirstOrDefault();
+        var par = actions.Split(":").LastOrDefault().Split(",");
+
+        MethodInfo methodInfo = dataFixerType.GetMethod(actionName);
+        methodInfo.Invoke(dataHelper, par);
+    }
+}

@@ -1,0 +1,81 @@
+﻿@page "/migrate"
+@using MigrationAdmin.Models
+@using Migration.Repository
+@using Migration.Repository.Models
+@using Newtonsoft.Json
+
+<DBConfiguration OnConnectionSuccessfully="(dbSettings) =>_dbSettings = dbSettings">
+</DBConfiguration>
+<div class="card card-info">
+    <div class="card-header">
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <table id="dataResult" class="table table-bordered table-striped">
+                <thead>
+                <tr>
+                    <th>Mapping</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var mapping in DataMappings)
+                {
+                    <tr>
+                        <td>
+                            <DataQueryComponent DataQueryMappingTypeChangedCallback="(dataType)=> _dataQueryType = dataType"></DataQueryComponent>
+
+                            @if (_dataQueryType == DataQueryMappingType.UpdateAnotherCollection)
+                            {
+                                <DataMappingDestinationComponent 
+                                    DataMapping="mapping" 
+                                    OnDataMappingChanged="(mappingResult) => _ = mappingResult"></DataMappingDestinationComponent>
+                            }
+                            else
+                            {
+                                <DataMappingSameTable CommandsModel="mapping.Commands"></DataMappingSameTable>
+                            }
+
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12">
+        <div class="form-group">
+            <button class="btn btn-default" @onclick="() => SaveProfile()"> Save Profile</button>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    private DBSettings _dbSettings;
+
+    private DataQueryMappingType _dataQueryType { get; set; }
+
+    public List<DataMapping> DataMappings { get; set; } = new();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        DataMappings.Add(new DataMapping()
+            {
+                Id = 1,
+                FieldsMapping = new ()
+                {
+                    new ()
+                }
+            });
+    }
+
+    private async Task SaveProfile()
+    {
+        var json = JsonConvert.SerializeObject(DataMappings);
+        await File.WriteAllTextAsync("profile.json", json);
+    }
+}

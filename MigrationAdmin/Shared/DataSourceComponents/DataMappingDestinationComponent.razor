@@ -1,0 +1,116 @@
+﻿@using Migration.Repository.Models
+@using Migration.Repository
+<div class="card card-default">
+    <div class="card-header">
+        <h3 class="card-title">Select your Source</h3>
+    </div>
+    <div class="card-body">
+        <DatabaseSelectorComponent OnDbSettingsChanged="(sourceDbSettings) => AddSourceDbSettings(sourceDbSettings)">
+        </DatabaseSelectorComponent>
+        <QueryFieldComponent OnQueryAdded="(query) => AddSourceQuery(query)">
+        </QueryFieldComponent>
+    </div>
+</div>
+<div class="card card-default">
+    <div class="card-header">
+        <h3 class="card-title">Select your Destination</h3>
+    </div>
+    <div class="card-body">
+        <DatabaseSelectorComponent OnDbSettingsChanged="(destinationDbSettings) => AddDestinationDbSettings(destinationDbSettings)">
+        </DatabaseSelectorComponent>
+        <QueryFieldComponent OnQueryAdded="(query) => AddDestinationQuery(query)">
+        </QueryFieldComponent>
+    </div>
+</div>
+
+<table id="dataMap" class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>Source</th>
+            <th>Destination</th>
+            <th>
+                <button class="btn btn-success" @onclick="() => AddCommand()">+</button>
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var destMap in DataMapping.FieldsMapping)
+        {
+            <tr>
+                <td>
+                    <input class="form-control" id="command" data-keeper-edited="yes" @bind="@destMap.SourceField" />
+                </td>
+                <td>
+                    <input class="form-control" id="command" data-keeper-edited="yes" @bind="@destMap.DestinationField" />
+                </td>
+                <td>
+                    <button class="btn btn-danger" @onclick="() => RemoveCommand(destMap)">-</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<div class="row">
+    <div class="col-sm-12">
+        <div class="form-group">
+            <button class="btn btn-default" @onclick="() => AddMapping()"> Add Mapping</button>
+        </div>
+    </div>
+</div>
+
+@code
+{
+    [Parameter]
+    public DataMapping DataMapping { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<DataMapping>OnDataMappingChanged { get; set; }
+
+
+    private string _querySource;
+    private string _queryDestination;
+
+    public void AddCommand()
+    {
+        DataMapping.FieldsMapping.Add(new DataFieldsMapping());
+    }
+
+    private void RemoveCommand(DataFieldsMapping destMap)
+    {
+        DataMapping.FieldsMapping.Remove(destMap);
+    }
+
+    private void AddSourceDbSettings(DBSettings sourceDbSettings)
+    {
+        if (DataMapping.Source == null) DataMapping.Source = new();
+
+        DataMapping.Source.DBSettings = sourceDbSettings;
+    }
+
+    private void AddDestinationDbSettings(DBSettings destinationDbSettings)
+    {
+        if (DataMapping.Destination == null) DataMapping.Destination = new();
+
+        DataMapping.Destination.DBSettings = destinationDbSettings;
+    }
+
+    private void AddSourceQuery(string query)
+    {
+        if (DataMapping.Source == null) DataMapping.Source = new();
+
+        DataMapping.Source.Query = query;
+    }
+
+    private void AddDestinationQuery(string query)
+    {
+        if (DataMapping.Destination == null) DataMapping.Destination = new();
+
+        DataMapping.Destination.Query = query;
+    }
+
+    private async Task AddMapping()
+    {
+        await OnDataMappingChanged.InvokeAsync(DataMapping);
+    }
+}

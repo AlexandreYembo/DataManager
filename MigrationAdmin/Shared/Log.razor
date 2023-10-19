@@ -1,0 +1,188 @@
+﻿@using Migration.Services.LogModels
+
+@if (IsLoading)
+{
+    <div class="col-sm-12">
+        <Loading />
+    </div>
+}
+
+<div class="card card-warning collapsed-card">
+
+    <div class="card-header">
+        <h4 class="card-title">Logs</h4>
+        <div class="card-tools">
+            <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
+                <i class="fas fa-plus"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="card card-info">
+                    <div class="card-header">
+                        <h4 class="card-title">Summary</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-sm-4">
+                                Entity Name: <label> @LogResult?.EntityName</label>
+                            </div>
+                            <div class="col-sm-3">
+                                Started In: <label> @LogResult?.StartedIn</label>
+                            </div>
+                            <div class="col-sm-3">
+                                Finished In: <label> @LogResult?.FinishedIn</label>
+                            </div>
+                            <div class="col-sm-2">
+                                Time consumed: <label> @LogResult?.ConsumeTime</label>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-4">
+                                Total Success: <label> @LogResult?.TotalSuccess </label>
+                                <div class="progress-bar bg-success" style="width: @GetProgressSuccess()%"> @LogResult?.TotalSuccess </div>
+                            </div>
+                            <div class="col-sm-4">
+                                Total Warning:<label> @LogResult?.TotalWarns </label>
+                                <div class="progress-bar bg-warning" style="width: @GetProgressWarns()%"> @LogResult?.TotalWarns </div>
+                            </div>
+                            <div class="col-sm-4">
+                                Total Failed:<label> @LogResult?.TotalFailed </label>
+                                <div class="progress-bar bg-danger" style="width: @GetProgressFailed()%"> @LogResult?.TotalFailed </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-12">
+                                Description: <label> @LogResult?.Description</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button class="btn btn-success" @onclick="() => ShowLogsGrouped()">Show grouped logs</button>
+                    </div>
+                </div>
+
+                <div class="card card-info">
+                    <div class="card-header">
+                        <h4 class="card-title">Logs Details</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row" style="overflow-y: scroll; height: 600px;">
+                            <table id="logs" class="table table-bordered table-striped">
+                                <thead>
+                                <tr>
+                                    <th>Details</th>
+                                    <th>Processed</th>
+                                    <th>To Review</th>
+                                    <th></th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                @if (LogResult != null && LogResult.Details != null)
+                                {
+                                    foreach (var logDetails in LogResult.Details.Where(w => w.Display))
+                                    {
+                                        <tr>
+                                            <td>
+                                                @logDetails.Title
+                                            </td>
+                                            @if (logDetails.Type == LogType.Success)
+                                            {
+                                                <td><span class="badge bg-success"> Success</span></td>
+                                                <td> </td>
+                                            }
+                                            else if (logDetails.Type == LogType.Warn)
+                                            {
+                                                <td><span class="badge bg-warning"> Warn</span></td>
+                                                <td><span class="badge bg-warning">Nothing to review</span></td>
+                                            }
+                                            else
+                                            {
+                                                <td><span class="badge bg-danger"> Failed</span></td>
+                                                <td><span class="badge bg-danger"> To Review</span></td>
+                                            }
+                                            <td>
+                                                <button class="btn btn-success" @onclick="() => GetLogDetails(logDetails)">Details</button>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- /.card-body -->
+@if (ShowModal)
+{
+    <LogDetailsModal LogDetails="@LogDetails" ShowModalScroll="true" ModalOk="ModalOk"></LogDetailsModal>
+}
+
+@if (ShowModalGrouped)
+{
+    <LogDetailsGroupedModal LogDetails="@LogResult.Details" ShowModalScroll="true" ModalOk="ModalOk"></LogDetailsGroupedModal>
+}
+
+@code {
+    [Parameter]
+    public LogResult LogResult { get; set; }
+
+    [Parameter]
+    public bool IsLoading { get; set; }
+
+    public bool ShowModal { get; set; }
+    public bool ShowModalGrouped { get; set; }
+
+    public LogDetails LogDetails { get; set; }
+
+    public void GetLogDetails(LogDetails logDetails)
+    {
+        LogDetails = logDetails;
+        ShowModal = true;
+    }
+
+    public double GetProgressSuccess()
+    {
+        if (LogResult == null || LogResult.TotalRecords == 0 || LogResult.TotalSuccess == 0)
+            return 0;
+
+        var result = Convert.ToDouble(LogResult.TotalSuccess) / Convert.ToDouble(LogResult.TotalRecords) * 100;
+        return result;
+    }
+
+    public double GetProgressWarns()
+    {
+        if (LogResult == null || LogResult.TotalRecords == 0 || LogResult.TotalWarns == 0)
+            return 0;
+
+        var result = Convert.ToDouble(LogResult.TotalWarns) / Convert.ToDouble(LogResult.TotalRecords) * 100;
+        return result;
+    }
+
+    public double GetProgressFailed()
+    {
+        if (LogResult == null || LogResult.TotalRecords == 0 || LogResult.TotalFailed == 0)
+            return 0;
+
+        var result = Convert.ToDouble(LogResult.TotalFailed) / Convert.ToDouble(LogResult.TotalRecords) * 100;
+        return result;
+    }
+
+    public void ModalOk()
+    {
+        ShowModal = false;
+        ShowModalGrouped = false;
+    }
+
+    public void ShowLogsGrouped()
+    {
+        ShowModalGrouped = true;
+    }
+}
