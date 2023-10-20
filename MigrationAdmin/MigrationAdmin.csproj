@@ -10,15 +10,19 @@
 	  <Compile Remove="Backup\**" />
 	  <Compile Remove="DataProcess\**" />
 	  <Compile Remove="DataSource\**" />
+	  <Compile Remove="Settings\**" />
 	  <Content Remove="Backup\**" />
 	  <Content Remove="DataProcess\**" />
 	  <Content Remove="DataSource\**" />
+	  <Content Remove="Settings\**" />
 	  <EmbeddedResource Remove="Backup\**" />
 	  <EmbeddedResource Remove="DataProcess\**" />
 	  <EmbeddedResource Remove="DataSource\**" />
+	  <EmbeddedResource Remove="Settings\**" />
 	  <None Remove="Backup\**" />
 	  <None Remove="DataProcess\**" />
 	  <None Remove="DataSource\**" />
+	  <None Remove="Settings\**" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -44,10 +48,6 @@
 	  <ProjectReference Include="..\Migration.Infrastructure.CosmosDb\Migration.Infrastructure.CosmosDb.csproj" />
 	  <ProjectReference Include="..\Migration.Repository\Migration.Repository.csproj" />
 	  <ProjectReference Include="..\Migration.Services\Migration.Services.csproj" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="Settings\" />
 	</ItemGroup>
 
 </Project>

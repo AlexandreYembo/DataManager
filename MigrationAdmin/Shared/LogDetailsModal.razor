@@ -1,5 +1,4 @@
-﻿@using MigrationAdmin.Helpers
-@using System.Reflection
+﻿@using System.Reflection
 @using Migration.Services.LogModels
 <div class="modal fade show" id="logDetailsModal" style="display:block" aria-modal="true" role="dialog">
     <div class="modal-dialog" style="max-width:100%;">
@@ -66,12 +65,6 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="card-footer">
-                            @if (!string.IsNullOrEmpty(LogDetails.Actions))
-                            {
-                                <button class="btn btn-success" @onclick="() => Fix(LogDetails.Actions)">Fix</button>
-                            }
-                        </div>
                     </div>
                 </div>
             </div>
@@ -93,16 +86,4 @@
     public bool ShowModalScroll { get; set; }
     [Parameter]
     public EventCallback ModalOk { get; set; }
-
-    public void Fix(string actions)
-    {
-        DataFixHelper dataHelper = new();
-        Type dataFixerType = dataHelper.GetType();
-
-        var actionName = actions.Split(":").FirstOrDefault();
-        var par = actions.Split(":").LastOrDefault().Split(",");
-
-        MethodInfo methodInfo = dataFixerType.GetMethod(actionName);
-        methodInfo.Invoke(dataHelper, par);
-    }
 }
