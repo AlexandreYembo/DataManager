@@ -4,8 +4,8 @@ namespace Migration.Repository.Models
 {
     public class DataMapping
     {
-        public AggregateSource Source { get; set; }
-        public AggregateDestination Destination { get; set; }
+        public AggregateData Source { get; set; }
+        public AggregateData Destination { get; set; }
         public List<CommandModel> Commands { get; set; } = new();
         public List<DataFieldsMapping> FieldsMapping { get; set; } = new();
         public OperationType OperationType { get; set; }
@@ -16,23 +16,16 @@ namespace Migration.Repository.Models
     /// <summary>
     /// Has configuration for the Source of Data (Query)
     /// </summary>
-    public class AggregateSource
+    public class AggregateData
     {
-        public DBSettings DBSettings { get; set; }
-        public string Query { get; set; }
-    }
-
-    /// <summary>
-    /// Has configuration for the Destination of Data (Insert/Update)
-    /// </summary>
-    public class AggregateDestination
-    {
-        public DBSettings DBSettings { get; set; }
+        public DataSettings Settings { get; set; } = new();
         public string Query { get; set; }
     }
 
     public class DataFieldsMapping
     {
+        public MappingType MappingType { get; set; }
+        public OperatorType? OperatorType { get; set; }
         public string SourceField { get; set; }
         public string DestinationField { get; set; }
     }
@@ -41,5 +34,18 @@ namespace Migration.Repository.Models
     {
         Insert,
         Update
+    }
+
+    public enum MappingType
+    {
+        tableJoin,
+        valueMerge
+    }
+
+    public enum OperatorType
+    {
+        ArrayContains,
+        In,
+        Eq,
     }
 }

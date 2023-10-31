@@ -230,21 +230,33 @@
         IsLoading = true;
         try
         {
-            DBSettings result = new();
+            DataSettings result = new();
 
             //if (settings.DbTpe == DbType.Cosmos)
             //{
             settings.Database = Database;
-            result = await new CosmosDbConnection(settings).Test();
+            var dataSettings = new DataSettings() // TODO:move to the Data Settings
+            {
+                Parameters = new List<CustomAttributes>()
+                {
+                    new() { Key = "Endpoint", Value = settings.Endpoint },
+                    new() { Key = "AuthKey", Value = settings.AuthKey },
+                    new() { Key = "Database", Value = settings.Database }
+                },
+                Name = settings.Name
+            };
+
+            result = await new CosmosDbConnection(dataSettings).Test();
+
             //}
             //else
             //{
             //    //  result = await new CosmosDbConnection().TestTableStorage(settings);
             //}
 
-            if (result.ListOfContainer.Any())
+            if (result.Entities.Any())
             {
-                result.Container = result.ListOfContainer.FirstOrDefault();
+                settings.Container = result.Entities.FirstOrDefault();
 
                 ConnectionsSettings = await LocalStorageDbSettings.GetAll();
 
@@ -252,15 +264,15 @@
 
                 ConnectionsSettings.RemoveAll(s => s.Database == Database);
 
-                ConnectionsSettings.Add(result);
+                ConnectionsSettings.Add(settings);
 
                 DBSettingsModel = new();
 
-                DBSettingsModel.ListOfContainer = result.ListOfContainer;
+                DBSettingsModel.ListOfContainer = settings.ListOfContainer;
 
                 await LocalStorageDbSettings.Add(ConnectionsSettings);
 
-                await OnDbSettingsChanged.InvokeAsync(result);
+                await OnDbSettingsChanged.InvokeAsync(settings);
 
                 Error = false;
                 Message = $"Connected to {ConnectionType}";

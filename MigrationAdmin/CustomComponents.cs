@@ -14,11 +14,23 @@ namespace MigrationAdmin
        
         public bool ShowModal { get; set; }
 
+        public bool ShowModalSaveFiles { get; set; }
+
         public List<DynamicData> Data { get; set; } = new();
 
         public void ModalOk()
         {
             ShowModal = false;
+        }
+
+        public void SaveFile()
+        {
+            ShowModalSaveFiles = true;
+        }
+
+        public void FileSaved()
+        {
+            ShowModalSaveFiles = false;
         }
     }
 }

@@ -1,0 +1,67 @@
+﻿@inject IJSRuntime jsRuntime
+@using Newtonsoft.Json
+<div class="modal fade show" id="logDetailsModal" style="display:block" aria-modal="true" role="dialog">
+    <div class="modal-dialog" style="max-width: 500px;">
+        <div class="modal-content">
+
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <h4 class="modal-title">@ModalTitle</h4>
+            </div>
+
+            <!-- Modal body -->
+            <div class="modal-body" style="overflow:scroll;max-height:100px">
+                <div class="row">
+                    <div class="col-sm-12">
+                        <div class="form-group">
+                            <label>Provide the file name for @TypeOfFile</label>
+                            <input class="form-control" id="url" data-keeper-edited="yes" @bind="@_fileName" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal footer -->
+            <div class="modal-footer">
+                <button type="button" style="margin-top:15px;" class="btn btn-close" @onclick=SaveOk>Save</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string TypeOfFile { get; set; }
+
+    [Parameter]
+    public string Folder { get; set; }
+
+    [Parameter]
+    public string ModalTitle { get; set; }
+
+    [Parameter]
+    public object Data { get; set; }
+    
+    [Parameter]
+    public EventCallback OnConfirmation { get; set; }
+    
+    private string _fileName;
+
+    public async Task SaveOk()
+    {
+        if (!Directory.Exists(Folder))
+            Directory.CreateDirectory(Folder);
+
+        var json = JsonConvert.SerializeObject(Data);
+        await File.WriteAllTextAsync($"{Folder}/{_fileName}.json", json);
+        await ShowSuccessAlert();
+        
+        await OnConfirmation.InvokeAsync();
+    }
+
+    public async Task ShowSuccessAlert()
+    {
+        await jsRuntime.InvokeAsync<object>("ShowSuccessAlert", $"{TypeOfFile} saved");
+    }
+}

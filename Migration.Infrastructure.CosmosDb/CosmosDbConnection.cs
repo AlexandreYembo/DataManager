@@ -5,16 +5,16 @@ namespace Migration.Infrastructure.CosmosDb
 {
     public class CosmosDbConnection : ITestConnection
     {
-        private readonly DBSettings _settings;
-        public CosmosDbConnection(DBSettings settings)
+        private readonly DataSettings _settings;
+        public CosmosDbConnection(DataSettings settings)
         {
             _settings = settings;
         }
-        public async Task<DBSettings> Test()
+        public async Task<DataSettings> Test()
         {
-            _settings.ListOfContainer = new();
-            using CosmosClient client = new(_settings.Endpoint, _settings.AuthKey);
-            var database = client.GetDatabase(_settings.Database);
+            _settings.Entities = new();
+            using CosmosClient client = new(_settings.GetEndpoint(), _settings.GetAuthKey());
+            var database = client.GetDatabase(_settings.GetDataBase());
 
             // Get a reference to the container
             // var container = database.GetContainer(settings.Container);
@@ -24,7 +24,7 @@ namespace Migration.Infrastructure.CosmosDb
             foreach (var container in containers)
             {
                 // do what you want with the container
-                _settings.ListOfContainer.Add(container.Id);
+                _settings.Entities.Add(container.Id);
             }
 
             return _settings;

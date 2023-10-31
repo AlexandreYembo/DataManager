@@ -1,0 +1,118 @@
+﻿@page "/dataMigration"
+@using Newtonsoft.Json
+@using Migration.Repository.Models
+@using Migration.Services
+@inherits CustomComponents;
+@inject IQueryService _queryService;
+
+<div class="content">
+    <div class="container-fluid">
+        <div class="card card-info">
+            <div class="card-header">
+                <h3 class="card-title">Select the profile you want to perform the migration</h3>
+            </div>
+            <div class="card-body">
+
+                <FileSelectorComponent Description="List of Profiles"
+                                       Path="Profiles"
+                                       OnFileSelected="(file) => WhenFileHasbeenChoosen(file)"></FileSelectorComponent>
+            </div>
+        </div>
+        <div class="card card-info">
+            <div class="card-header">
+                <h3 class="card-title">Review the Profile before migration</h3>
+            </div>
+            <div class="card-body">
+                <table id="dataGeneral" class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>Source</th>
+                            <th>Destination</th>
+                            <th>
+                                Fields
+                            </th>
+                            <th>
+
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var dataMapping in _dataMappings)
+                        {
+                            <tr>
+                                <td>
+                                    <p>Database Name: <b> @dataMapping.Source.Settings.Name</b></p>
+                                </td>
+                                <td>
+                                    <p>Database Name: <b> @dataMapping.Destination.Settings.Name</b></p>
+                                </td>
+                                <td>
+                                    <table id="dataFields" class="table table-bordered table-striped">
+                                        <thead>
+                                        <tr>
+                                            <th>Source</th>
+                                            <th>Destination</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        @foreach (var fieldMapping in @dataMapping.FieldsMapping)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    dataMapping.Source.DBSettings.Container.@fieldMapping.SourceField
+                                                </td>
+                                                <td>
+                                                    @dataMapping.Destination.Settings.Parameters.FirstOrDefault(f => f.Key == "Container").Value.@fieldMapping.DestinationField
+                                                </td>
+                                            </tr>
+                                        }
+                                        </tbody>
+                                    </table>
+                                </td>
+                                <div>
+                                    <button class="btn btn-success" @onclick="() => PreviewChanges(dataMapping)">Preview 5 records displayed</button>
+                                    @*<button class="btn btn-warning" @onclick="() => InsertOrUpdate()">Insert / Update</button>*@
+                                </div>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+@code {
+
+    private List<DataMapping> _dataMappings = new();
+    private bool _showModalDataDifference { get; set; }
+
+    private async Task WhenFileHasbeenChoosen(string file)
+    {
+        if (string.IsNullOrEmpty(file)) return;
+
+        var json = await File.ReadAllTextAsync($"Profiles\\{file}");
+
+        if (string.IsNullOrEmpty(json)) return;
+
+        _dataMappings = JsonConvert.DeserializeObject<List<DataMapping>>(json);
+    }
+
+    public async Task PreviewChanges(DataMapping dataMapping)
+    {
+        _showModalDataDifference = true;
+        Loading = true;
+
+       // await _queryService.Get(dataMapping);
+
+        //var dataList = _service.Preview(CommandsModel, Data);
+
+        //DataDifference = new();
+
+        //foreach (var data in dataList)
+        //{
+        //    DataDifference.Add(data.Key, DifferenceHelper.FindDifferences(data.Value));
+        //}
+
+        Loading = false;
+    }
+}

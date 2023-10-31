@@ -3,6 +3,7 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.EntityFrameworkCore;
 using Migration.Repository;
 using Migration.Repository.Exceptions;
+using Migration.Repository.Models;
 using Newtonsoft.Json.Linq;
 
 namespace Migration.Infrastructure.CosmosDb
@@ -11,21 +12,19 @@ namespace Migration.Infrastructure.CosmosDb
     {
         private readonly Container container;
 
-        private readonly DBSettings _settings;
-
-        public CosmosDbGenericRepository(DBSettings settings)
+        public CosmosDbGenericRepository(DataSettings settings)
         {
-            _settings = settings;
+            var db = settings.GetDataBase();
 
             var dbContextOptionsBuilder = new DbContextOptionsBuilder<DbContext>();
             dbContextOptionsBuilder.UseCosmos(
-                accountEndpoint: settings.Endpoint,
-                accountKey: settings.AuthKey,
-                databaseName: settings.Database);
+                accountEndpoint: settings.GetEndpoint(),
+                accountKey: settings.GetAuthKey(),
+                databaseName: db);
 
             var context = new DbContext(dbContextOptionsBuilder.Options);
             container = context.Database.GetCosmosClient()
-                .GetContainer(settings.Database, settings.Container);
+                .GetContainer(db, settings.CurrentEntity);
         }
 
         public async Task<Dictionary<string, string>> GetByListIds(string[] ids)
@@ -64,6 +63,67 @@ namespace Migration.Infrastructure.CosmosDb
 
             return dictionary;
         }
+
+        public async Task<Dictionary<string, string>> Get(string rawQuery, List<DataFieldsMapping> fieldMappings, IEnumerable<string> values, int take)
+        {
+            var query = QueryBuilder.Build(rawQuery, fieldMappings, values, take);
+
+            Dictionary<string, string> dictionary = new();
+
+            using FeedIterator<dynamic> feedIterator = container.GetItemQueryIterator<dynamic>(query);
+
+            var nextResult = true;
+            while (nextResult)
+            {
+                var responseRecord = await feedIterator.ReadNextAsync();
+
+                nextResult = responseRecord.Count > 0;
+
+                if (nextResult)
+                {
+                    foreach (var record in responseRecord.ToList())
+                    {
+                        JToken jToken = JToken.FromObject(record);
+
+                        var value = ((JValue)jToken["id"]).Value;
+                        dictionary[value.ToString()] = jToken.ToString(); ;
+                    }
+                }
+            }
+
+            return dictionary;
+        }
+
+        public async Task<Dictionary<string, string>> GetTop5(string rawQuery)
+        {
+            var query = QueryBuilder.BuildTop(rawQuery, 5);
+
+            Dictionary<string, string> dictionary = new();
+
+            using FeedIterator<dynamic> feedIterator = container.GetItemQueryIterator<dynamic>(query);
+
+            var nextResult = true;
+            while (nextResult)
+            {
+                var responseRecord = await feedIterator.ReadNextAsync();
+
+                nextResult = responseRecord.Count > 0;
+
+                if (nextResult)
+                {
+                    foreach (var record in responseRecord.ToList())
+                    {
+                        JToken jToken = JToken.FromObject(record);
+
+                        var value = ((JValue)jToken["id"]).Value;
+                        dictionary[value.ToString()] = jToken.ToString(); ;
+                    }
+                }
+            }
+
+            return dictionary;
+        }
+
 
         public async Task Update(JObject entity)
         {

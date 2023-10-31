@@ -2,6 +2,6 @@
 {
     public interface ITestConnection
     {
-        Task<DBSettings> Test();
+        Task<DataSettings> Test();
     }
 }

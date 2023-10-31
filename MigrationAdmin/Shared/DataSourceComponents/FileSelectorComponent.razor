@@ -1,0 +1,43 @@
+﻿
+<div class="row">
+    <div class="col-sm-2">
+        <div class="form-group">
+            <label>@Description</label>
+            <select class="form-control" id="dataqueryMappingType" data-keeper-edited="yes" @onchange="SelectFile">>
+                @foreach (var file in _files)
+                {
+                    <option value="@file">@file</option>
+                }
+            </select>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    [Parameter]
+    public string Path { get; set; }
+
+    [Parameter]
+    public string Description { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnFileSelected { get; set; }
+
+
+    private IEnumerable<string> _files = new List<string>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _files = Directory.EnumerateFiles(Path, "*.json").Select(w => w.Replace($"{Path}\\", string.Empty));
+
+        await OnFileSelected.InvokeAsync(_files.FirstOrDefault());
+    }
+
+    public async Task SelectFile(ChangeEventArgs e)
+    {
+        if (e.Value == null) return;
+
+        await OnFileSelected.InvokeAsync(e.Value.ToString());
+    }
+}

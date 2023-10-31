@@ -1,5 +1,7 @@
 ﻿@using Migration.Repository.Models
 @using Migration.Repository
+@inject IJSRuntime jsRuntime
+
 <div class="card card-default">
     <div class="card-header">
         <h3 class="card-title">Select your Source</h3>
@@ -7,7 +9,7 @@
     <div class="card-body">
         <DatabaseSelectorComponent OnDbSettingsChanged="(sourceDbSettings) => AddSourceDbSettings(sourceDbSettings)">
         </DatabaseSelectorComponent>
-        <QueryFieldComponent OnQueryAdded="(query) => AddSourceQuery(query)">
+        <QueryFieldComponent OnQueryAdded="async (query) => await AddSourceQuery(query)">
         </QueryFieldComponent>
     </div>
 </div>
@@ -18,7 +20,7 @@
     <div class="card-body">
         <DatabaseSelectorComponent OnDbSettingsChanged="(destinationDbSettings) => AddDestinationDbSettings(destinationDbSettings)">
         </DatabaseSelectorComponent>
-        <QueryFieldComponent OnQueryAdded="(query) => AddDestinationQuery(query)">
+        <QueryFieldComponent OnQueryAdded="async (query) => await AddDestinationQuery(query)">
         </QueryFieldComponent>
     </div>
 </div>
@@ -26,6 +28,8 @@
 <table id="dataMap" class="table table-bordered table-striped">
     <thead>
         <tr>
+            <th>Mapping Type</th>
+            <th>Operator Type</th>
             <th>Source</th>
             <th>Destination</th>
             <th>
@@ -37,6 +41,22 @@
         @foreach (var destMap in DataMapping.FieldsMapping)
         {
             <tr>
+                <td>
+                    <select class="form-control" id="container" data-keeper-edited="yes" @bind="destMap.MappingType">
+                        @foreach (var mappingType in Enum.GetValues<MappingType>())
+                        {
+                            <option value="@mappingType">@mappingType</option>
+                        }
+                    </select>
+                </td>
+                <td>
+                    <select class="form-control" id="container" data-keeper-edited="yes" @bind="destMap.OperatorType">
+                        @foreach (var operatorType in Enum.GetValues<OperatorType>())
+                        {
+                            <option value="@operatorType">@operatorType</option>
+                        }
+                    </select>
+                </td>
                 <td>
                     <input class="form-control" id="command" data-keeper-edited="yes" @bind="@destMap.SourceField" />
                 </td>
@@ -54,7 +74,7 @@
 <div class="row">
     <div class="col-sm-12">
         <div class="form-group">
-            <button class="btn btn-default" @onclick="() => AddMapping()"> Add Mapping</button>
+            <button class="btn btn-default" @onclick="async () => await AddMapping()"> Add Mapping</button>
         </div>
     </div>
 </div>
@@ -65,8 +85,7 @@
     public DataMapping DataMapping { get; set; } = new();
 
     [Parameter]
-    public EventCallback<DataMapping>OnDataMappingChanged { get; set; }
-
+    public EventCallback<DataMapping> OnDataMappingChanged { get; set; }
 
     private string _querySource;
     private string _queryDestination;
@@ -81,29 +100,33 @@
         DataMapping.FieldsMapping.Remove(destMap);
     }
 
-    private void AddSourceDbSettings(DBSettings sourceDbSettings)
+    private void AddSourceDbSettings(DataSettings sourceSettings)
     {
         if (DataMapping.Source == null) DataMapping.Source = new();
 
-        DataMapping.Source.DBSettings = sourceDbSettings;
+        DataMapping.Source.Settings = sourceSettings;
     }
 
-    private void AddDestinationDbSettings(DBSettings destinationDbSettings)
+    private void AddDestinationDbSettings(DataSettings destinationSettings)
     {
         if (DataMapping.Destination == null) DataMapping.Destination = new();
 
-        DataMapping.Destination.DBSettings = destinationDbSettings;
+        DataMapping.Destination.Settings = destinationSettings;
     }
 
-    private void AddSourceQuery(string query)
+    private async Task AddSourceQuery(string query)
     {
+        await ShowSuccessAlert("Source Query added");
+
         if (DataMapping.Source == null) DataMapping.Source = new();
 
         DataMapping.Source.Query = query;
     }
 
-    private void AddDestinationQuery(string query)
+    private async Task AddDestinationQuery(string query)
     {
+        await ShowSuccessAlert("Destination Query added");
+
         if (DataMapping.Destination == null) DataMapping.Destination = new();
 
         DataMapping.Destination.Query = query;
@@ -111,6 +134,13 @@
 
     private async Task AddMapping()
     {
+        await ShowSuccessAlert("Mapping added");
+
         await OnDataMappingChanged.InvokeAsync(DataMapping);
+    }
+
+    public async Task ShowSuccessAlert(string message)
+    {
+        await jsRuntime.InvokeAsync<object>("ShowSuccessAlert", message);
     }
 }

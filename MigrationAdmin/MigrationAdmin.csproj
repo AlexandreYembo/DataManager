@@ -50,4 +50,8 @@
 	  <ProjectReference Include="..\Migration.Services\Migration.Services.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="Profiles\" />
+	</ItemGroup>
+
 </Project>

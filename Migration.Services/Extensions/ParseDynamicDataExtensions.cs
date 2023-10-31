@@ -1,4 +1,5 @@
 ﻿using Migration.Services.Models;
+using Newtonsoft.Json.Linq;
 
 namespace Migration.Services.Extensions
 {
@@ -10,6 +11,15 @@ namespace Migration.Services.Extensions
             {
                 Id = s.Key,
                 Data = s.Value
+            }).ToList();
+        }
+
+        public static List<DynamicData> ToDynamicDataList(this IEnumerable<JObject> listJObject)
+        {
+            return listJObject.Select(s => new DynamicData()
+            {
+                Id = s["id"].ToString(),
+                Data = s.ToString()
             }).ToList();
         }
     }
