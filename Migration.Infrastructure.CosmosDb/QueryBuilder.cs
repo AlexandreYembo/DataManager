@@ -25,7 +25,7 @@ namespace Migration.Infrastructure.CosmosDb
 
             if (joins != null && joins.Any() && !string.IsNullOrEmpty(data))
             {
-                if (!query.Contains("where")) //need to create where if does not exist because there are joins to ve considered in the query
+                if (!query.Contains("where")) //need to create where if does not exist because there are joins to be considered in the query
                 {
                     query = query.Replace("from c".ToLower(), "from c where ");
                 }
@@ -62,8 +62,12 @@ namespace Migration.Infrastructure.CosmosDb
             }
             else if (JObject.Parse(relationshipData.ToString())[dataFieldsMapping.SourceField].Type == JTokenType.Array)
             {
-                //Todo
-                throw new NotImplementedException("Method not implemented yet");
+                for (int i = 0; i < JObject.Parse(relationshipData.ToString())[dataFieldsMapping.SourceField].Count(); i++)
+                {
+                    value += ",'" + JObject.Parse(relationshipData.ToString())[dataFieldsMapping.SourceField][i] + "'";
+                }
+
+                value = value.Substring(1);
             }
             else if (JObject.Parse(relationshipData.ToString())[dataFieldsMapping.SourceField].Type == JTokenType.Object)
             {
