@@ -1,0 +1,62 @@
+﻿@using Microsoft.AspNetCore.Components
+@using Migration.Repository.Models
+<div class="card card-default">
+    <div class="card-header">
+        <h3 class="card-title">Configure the Joins</h3>
+    </div>
+    <div class="card-body">
+        <table id="joinMapping" class="table table-bordered table-striped">
+            <thead>
+            <tr>
+                <th>Operator Type</th>
+                <th>Source</th>
+                <th>Destination</th>
+                <th>
+                    <button class="btn btn-success" @onclick="() => AddCommand()">+</button>
+                </th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var destMap in DataMapping.FieldsMapping.Where(w => w.MappingType == MappingType.tableJoin))
+            {
+                <tr>
+                    <td>
+                        <select class="form-control" id="container" data-keeper-edited="yes" @bind="destMap.OperatorType">
+                            @foreach (var operatorType in Enum.GetValues<OperatorType>())
+                            {
+                                <option value="@operatorType">@operatorType</option>
+                            }
+                        </select>
+                    </td>
+                    <td>
+                        <input class="form-control" id="command" data-keeper-edited="yes" @bind="@destMap.SourceField" />
+                    </td>
+                    <td>
+                        <input class="form-control" id="command" data-keeper-edited="yes" @bind="@destMap.DestinationField" />
+                    </td>
+                    <td>
+                        <button class="btn btn-danger" @onclick="() => RemoveCommand(destMap)">-</button>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public DataMapping DataMapping { get; set; } = new();
+
+    public void AddCommand()
+    {
+        DataMapping.FieldsMapping.Add(new DataFieldsMapping() {
+            MappingType = MappingType.tableJoin
+        });
+    }
+
+    private void RemoveCommand(DataFieldsMapping destMap)
+    {
+        DataMapping.FieldsMapping.Remove(destMap);
+    }
+}
