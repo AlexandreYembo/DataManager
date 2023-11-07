@@ -64,9 +64,9 @@ namespace Migration.Infrastructure.CosmosDb
             return dictionary;
         }
 
-        public async Task<Dictionary<string, string>> Get(string rawQuery, List<DataFieldsMapping> fieldMappings, IEnumerable<string> values, int take)
+        public async Task<Dictionary<string, string>> Get(string rawQuery, List<DataFieldsMapping> fieldMappings, string data, int take)
         {
-            var query = QueryBuilder.Build(rawQuery, fieldMappings, values, take);
+            var query = QueryBuilder.Build(rawQuery, fieldMappings, data, take);
 
             Dictionary<string, string> dictionary = new();
 

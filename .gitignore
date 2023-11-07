@@ -1,0 +1,9 @@
+.vscode/tasks.json
+.vscode/settings.json
+.vscode/launch.json
+.vscode/extensions.json
+.vscode
+.vs
+Profiles/
+bin/
+obj/

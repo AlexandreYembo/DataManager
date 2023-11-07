@@ -5,7 +5,7 @@ namespace Migration.Infrastructure.CosmosDb
 {
     public class QueryBuilder
     {
-        public static string Build(string rawQuery, List<DataFieldsMapping>? fieldMappings = null, IEnumerable<string>? values = null, int? take = null)
+        public static string Build(string rawQuery, List<DataFieldsMapping>? fieldMappings = null, string? data = null, int? take = null)
         {
             var joins = fieldMappings?.Where(w => w.MappingType == MappingType.tableJoin).ToList();
 
@@ -23,7 +23,7 @@ namespace Migration.Infrastructure.CosmosDb
                 query = query.Replace("select ", $"select top {take}");
             }
 
-            if (joins != null && joins.Any() && values != null && values.Any())
+            if (joins != null && joins.Any() && !string.IsNullOrEmpty(data))
             {
                 if (!query.Contains("where")) //need to create where if does not exist because there are joins to ve considered in the query
                 {
@@ -35,7 +35,7 @@ namespace Migration.Infrastructure.CosmosDb
                     query = query.Replace(whereValueRecovered, $"and {whereValueRecovered}");
                 }
 
-                var relationshipData = JArray.FromObject(values);
+                var relationshipData = JObject.Parse(data);
 
                 query = query.Replace("where", $"where {ConvertOperator(joins[0], relationshipData)} #joins# ");
 
@@ -52,30 +52,34 @@ namespace Migration.Infrastructure.CosmosDb
         }
 
         //Convert operator to make dynamic queries
-        private static string ConvertOperator(DataFieldsMapping dataFieldsMapping, JArray relationshipData)
+        private static string ConvertOperator(DataFieldsMapping dataFieldsMapping, JObject relationshipData)
         {
-            var values = string.Join(",", relationshipData.Select(s =>
-            {
-                try
-                {
-                    if (JObject.Parse(s.ToString())[dataFieldsMapping.SourceField].Type == JTokenType.String)
-                    {
-                        return $"'{JObject.Parse(s.ToString())[dataFieldsMapping.SourceField]}'";
-                    }
+            var value = string.Empty;
 
-                    return $"{JObject.Parse(s.ToString())[dataFieldsMapping.SourceField]}";
-                }
-                catch
-                {
-                    return string.Empty;
-                }
-            }));
+            if (JObject.Parse(relationshipData.ToString())[dataFieldsMapping.SourceField].Type == JTokenType.String)
+            {
+                value = $"'{JObject.Parse(relationshipData.ToString())[dataFieldsMapping.SourceField]}'";
+            }
+            else if (JObject.Parse(relationshipData.ToString())[dataFieldsMapping.SourceField].Type == JTokenType.Array)
+            {
+                //Todo
+                throw new NotImplementedException("Method not implemented yet");
+            }
+            else if (JObject.Parse(relationshipData.ToString())[dataFieldsMapping.SourceField].Type == JTokenType.Object)
+            {
+                //Todo
+                throw new NotImplementedException("Method not implemented yet");
+            }
+            else
+            {
+                value = $"{JObject.Parse(relationshipData.ToString())[dataFieldsMapping.SourceField]}";
+            }
 
             switch (dataFieldsMapping.OperatorType)
             {
-                case OperatorType.ArrayContains: return $"ARRAY_CONTAINS(c.{dataFieldsMapping.DestinationField},{values})";
-                case OperatorType.Eq: return $"c.{dataFieldsMapping.DestinationField} = {values}";
-                case OperatorType.In: return $"c.{dataFieldsMapping.DestinationField} in({values})";
+                case OperatorType.ArrayContains: return $"ARRAY_CONTAINS(c.{dataFieldsMapping.DestinationField},{value})";
+                case OperatorType.Eq: return $"c.{dataFieldsMapping.DestinationField} = {value}";
+                case OperatorType.In: return $"c.{dataFieldsMapping.DestinationField} in({value})";
                 default: return string.Empty;
             }
         }
