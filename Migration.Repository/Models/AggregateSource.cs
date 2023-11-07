@@ -2,6 +2,13 @@
 
 namespace Migration.Repository.Models
 {
+    public class Profile
+    {
+        public string Name{ get; set; }
+        public string Description { get; set; }
+        public List<DataMapping> DataMappings { get; set; } = new();
+    }
+
     public class DataMapping
     {
         public AggregateData Source { get; set; }

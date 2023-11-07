@@ -1,6 +1,5 @@
 ﻿@page "/profileConfiguration"
 @using MigrationAdmin.Models
-@using Migration.Repository
 @using Migration.Repository.Models
 @using Migration.Services
 @using Migration.Services.Models
@@ -14,6 +13,20 @@
     </div>
     <div class="card-body">
         <div class="row">
+            <div class="col-sm-2">
+                <div class="form-group">
+                    <label>Profile Name</label>
+                    <input class="form-control" id="profileName" data-keeper-edited="yes" @bind="@Profile.Name" />
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <label>Profile Description</label>
+                    <input class="form-control" id="profileDescription" data-keeper-edited="yes" @bind="@Profile.Description"/>
+                </div>
+            </div>
+        </div>
+        <div class="row">
             <div class="col-lg-3">
                 <ConnectionConfigurationComponent>
                 </ConnectionConfigurationComponent>
@@ -21,29 +34,29 @@
             <div class="col-lg-9">
                 <table id="dataResult" class="table table-bordered table-striped">
                     <thead>
-                        <tr>
-                            <th></th>
-                        </tr>
+                    <tr>
+                        <th></th>
+                    </tr>
                     </thead>
                     <tbody>
-                        @foreach (var mapping in DataMappings)
-                        {
-                            <tr>
-                                <td>
-                                    <DataQueryComponent DataQueryMappingTypeChangedCallback="(dataType) => _dataQueryType = dataType"></DataQueryComponent>
+                    @foreach (var mapping in Profile.DataMappings)
+                    {
+                        <tr>
+                            <td>
+                                <DataQueryComponent DataQueryMappingTypeChangedCallback="(dataType) => _dataQueryType = dataType"></DataQueryComponent>
 
-                                    @if (_dataQueryType == DataQueryMappingType.UpdateAnotherCollection)
-                                    {
-                                        <DataMappingDestinationComponent DataMapping="mapping"
-                                                                 OnDataMappingChanged="(mappingResult) => _ = mappingResult"></DataMappingDestinationComponent>
-                                    }
-                                    else
-                                    {
-                                        <DataMappingSameTableComponent CommandsModel="mapping.Commands"></DataMappingSameTableComponent>
-                                    }
-                                </td>
-                            </tr>
-                        }
+                                @if (_dataQueryType == DataQueryMappingType.UpdateAnotherCollection)
+                                {
+                                    <DataMappingDestinationComponent DataMapping="mapping"
+                                                                     OnDataMappingChanged="(mappingResult) => _ = mappingResult"></DataMappingDestinationComponent>
+                                }
+                                else
+                                {
+                                    <DataMappingSameTableComponent CommandsModel="mapping.Commands"></DataMappingSameTableComponent>
+                                }
+                            </td>
+                        </tr>
+                    }
                     </tbody>
                 </table>
             </div>
@@ -123,7 +136,7 @@
 
 @if (ShowModalSaveFiles)
 {
-    <SaveFileConfirmationComponent Data="DataMappings"
+    <SaveFileConfirmationComponent Data="Profile"
                                Folder="Profiles"
                                ModalTitle="Save / Edit the Profile"
                                TypeOfFile="Profile"
@@ -146,13 +159,13 @@
 
     private DataQueryMappingType _dataQueryType { get; set; }
 
-    public List<DataMapping> DataMappings { get; set; } = new();
+    public Profile Profile { get; set; } = new();
 
     private Dictionary<string, List<DynamicData>> _resultDataFromConfiguration;
 
     protected override async Task OnInitializedAsync()
     {
-        DataMappings.Add(new DataMapping()
+        Profile.DataMappings.Add(new DataMapping()
             {
                 Id = 1,
                 FieldsMapping = new()
@@ -166,7 +179,7 @@
     {
         Loading = true;
 
-        _resultDataFromConfiguration = await _queryService.Get(DataMappings[0], take: 10); //TODO: DataMappings[0] will be a list in the future
+        _resultDataFromConfiguration = await _queryService.Get(Profile.DataMappings[0], take: 10); //TODO: DataMappings[0] will be a list in the future
 
         Loading = false;
     }
@@ -180,7 +193,7 @@
 
         foreach (var data in _resultDataFromConfiguration)
         {
-            var differences = DifferencesMultipleDestinationsHelper.FindDifferences(DataMappings, data.Value);
+            var differences = DifferencesMultipleDestinationsHelper.FindDifferences(Profile.DataMappings, data.Value);
 
             if (differences.Any())
             {
