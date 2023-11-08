@@ -13,7 +13,7 @@ namespace Migration.Services.Helpers
 
             var mappingMergeFields = dataMappings
                 .SelectMany(s => s.FieldsMapping)
-                .Where(w => w.MappingType == MappingType.valueMerge).ToList();
+                .Where(w => w.MappingType == MappingType.ValueMerge).ToList();
 
             if (!mappingMergeFields.Any()) return new();
 

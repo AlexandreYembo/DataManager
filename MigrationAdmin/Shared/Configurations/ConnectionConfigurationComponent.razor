@@ -1,5 +1,6 @@
 ﻿@using Microsoft.AspNetCore.Components
 @using Migration.Repository
+@using InputFile = Microsoft.AspNetCore.Components.Forms.InputFile
 @inherits CustomComponents
 @inject Func<DataSettings, ITestConnection> _testConnection;
 @inject IStorage<DataSettings> _storageDbSettings;
@@ -61,21 +62,51 @@
         }
         else
         {
-            foreach (var par in DataSettings.Parameters)
+            if (DataSettings.ConnectionType == ConnectionType.File)
             {
                 <div class="row">
                     <div class="col-sm-12">
-                        <div class="form-group">
-                            <label>@par.Key</label>
-                            <input class="form-control" id="parValue" data-keeper-edited="yes" @bind="@par.Value" />
+                        <label for="exampleInputFile">File input</label>
+                        <div class="input-group">
+                            <div class="custom-file">
+                                <InputFile type="file" class="custom-file-input" OnChange="OnFileInput"></InputFile>
+                                @if (_uploadedFile != null && !string.IsNullOrEmpty(_uploadedFile.Name))
+                                {
+                                    <label class="custom-file-label">@_uploadedFile.Name</label>
+                                }
+                                else
+                                {
+                                    <label class="custom-file-label">Choose file</label>
+                                }
+                                </div>
+                                <div class="input-group-append">
+                                    <button class="btn btn-default" @onclick="HandleFileUpload">Upload</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
+            }
+            else
+            {
+                foreach (var par in DataSettings.Parameters)
+                {
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div class="form-group">
+                                <label>@par.Key</label>
+                                <input class="form-control" id="parValue" data-keeper-edited="yes" @bind="@par.Value" />
+                            </div>
+                        </div>
+                    </div>
+                }
             }
         }
-        <div class="card-footer">
-            <button class="btn btn-success" @onclick="() => TestConnection()">Test and Save Connection</button>
-        </div>
+        @if (DataSettings.ConnectionType != ConnectionType.File)
+        {
+            <div class="card-footer">
+                <button class="btn btn-success" @onclick="() => TestConnection()">Test and Save Connection</button>
+            </div>
+        }
     </div>
 </div>
 
@@ -101,6 +132,8 @@
     private bool _error;
 
     private string _message;
+
+    private IBrowserFile _uploadedFile;
 
     private void AddParameter()
     {
@@ -128,7 +161,7 @@
 
             settings ??= new();
 
-            settings.RemoveAll(s => s.Name == DataSettings.Name);
+            settings.RemoveAll(s => s.FullName == DataSettings.FullName);
 
             settings.Add(DataSettings);
 
@@ -146,5 +179,51 @@
 
         Loading = false;
         ShowModal = true;
+    }
+
+    private void OnFileInput(InputFileChangeEventArgs e)
+    {
+        _uploadedFile = e.File;
+    }
+
+    private async Task HandleFileUpload()
+    {
+        {
+            Directory.CreateDirectory("wwwroot/uploads");
+        }
+
+        var filePath = Path.Combine("wwwroot/uploads", _uploadedFile.Name); // Set the desired upload path
+
+        try
+        {
+            var settings = await _storageDbSettings.GetAll();
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await _uploadedFile.OpenReadStream().CopyToAsync(stream);
+            }
+
+            DataSettings.Parameters.Add(new()
+                {
+                    Key = "FileName",
+                    Value = filePath
+                });
+
+            settings ??= new();
+
+            settings.RemoveAll(s => s.FullName == DataSettings.FullName);
+
+            settings.Add(DataSettings);
+
+            await _storageDbSettings.Add(settings);
+
+            await OnConnectionSuccessfully.InvokeAsync(DataSettings);
+
+            StateHasChanged();
+        }
+        catch
+        {
+
+        }
     }
 }

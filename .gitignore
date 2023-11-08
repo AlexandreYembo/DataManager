@@ -7,3 +7,7 @@
 Profiles/
 bin/
 obj/
+*/obj/*
+.vs
+.bin
+.suo

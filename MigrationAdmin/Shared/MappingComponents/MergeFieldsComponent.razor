@@ -16,7 +16,7 @@
             </tr>
             </thead>
             <tbody>
-            @foreach (var destMap in DataMapping.FieldsMapping.Where(w => w.MappingType == MappingType.valueMerge))
+            @foreach (var destMap in DataMapping.FieldsMapping.Where(w => w.MappingType == MappingType.ValueMerge))
             {
                 <tr>
                     <td>
@@ -43,7 +43,7 @@
     {
         DataMapping.FieldsMapping.Add(new DataFieldsMapping()
         {
-            MappingType = MappingType.valueMerge
+            MappingType = MappingType.ValueMerge
         });
     }
 

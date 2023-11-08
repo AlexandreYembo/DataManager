@@ -17,7 +17,7 @@ namespace Migration.Repository.Extensions
         {
             Func<JObject, JObject, bool> comparisonFunc = (d, s) =>
             {
-                foreach (var property in propertiesMap.Where(w => w.MappingType == MappingType.tableJoin))
+                foreach (var property in propertiesMap.Where(w => w.MappingType == MappingType.TableJoin))
                 {
                     var value1 = s[property.SourceField]?.ToString();
 

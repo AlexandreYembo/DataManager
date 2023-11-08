@@ -4,8 +4,21 @@
 @using Migration.Services
 @using Migration.Services.Models
 @using Migration.Services.Helpers
+@using Newtonsoft.Json
 @inherits CustomComponents;
 @inject IQueryService _queryService;
+
+<div class="card card-info">
+    <div class="card-header">
+        <h3 class="card-title">Select the profile you want to edit</h3>
+    </div>
+    <div class="card-body">
+
+        <FileSelectorComponent Description="List of Profiles"
+                               Path="Profiles"
+                               OnFileSelected="(file) => WhenFileHasbeenChoosen(file)"></FileSelectorComponent>
+    </div>
+</div>
 
 <div class="card card-info">
     <div class="card-header">
@@ -63,8 +76,6 @@
         </div>
     </div>
 </div>
-
-<Log LogResult="LogResult" IsLoading="Loading"></Log>
 
 <div class="row">
     <div class="col-sm-3">
@@ -209,6 +220,18 @@
         return mergedDictionary;
     }
 
+    private async Task WhenFileHasbeenChoosen(string file)
+    {
+        if (string.IsNullOrEmpty(file)) return;
+
+        var json = await File.ReadAllTextAsync($"Profiles\\{file}");
+
+        if (string.IsNullOrEmpty(json)) return;
+
+        Profile = JsonConvert.DeserializeObject<Profile>(json);
+
+        await InvokeAsync(StateHasChanged);
+    }
     
     public void ModalOk()
     {

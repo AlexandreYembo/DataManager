@@ -7,7 +7,7 @@ namespace Migration.Infrastructure.CosmosDb
     {
         public static string Build(string rawQuery, List<DataFieldsMapping>? fieldMappings = null, string? data = null, int? take = null)
         {
-            var joins = fieldMappings?.Where(w => w.MappingType == MappingType.tableJoin).ToList();
+            var joins = fieldMappings?.Where(w => w.MappingType == MappingType.TableJoin).ToList();
 
             string query;
 

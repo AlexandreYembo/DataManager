@@ -36,6 +36,7 @@ builder.Services.AddTransient<Func<DataSettings, IGenericRepository>>(_ => setti
      settings?.ConnectionType switch
 {
     ConnectionType.CosmosDb => new CosmosDbGenericRepository(settings),
+    ConnectionType.File => new FileRepository(settings),
     //   DbType.TableStorage => new CosmosDbGenericRepository(settings), TODO: To add the repository for Table Storage
     _ => throw new ArgumentException(string.Empty, "Invalid Db Type")
 });

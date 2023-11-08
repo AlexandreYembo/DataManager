@@ -38,22 +38,31 @@
                         Key = "Database"
                     });
                     break;
-                case ConnectionType.TableStorage:
+                case ConnectionType.File:
+                    Parameters.Add(new CustomAttributes());
                     AllowAddCustomParameters = false;
-                    Parameters.Add(new CustomAttributes());
                     break;
-                case ConnectionType.Api:
-                    AllowAddCustomParameters = true;
-                    Parameters.Add(new CustomAttributes());
-                    break;
+                //case ConnectionType.TableStorage:
+                //    AllowAddCustomParameters = false;
+                //    Parameters.Add(new CustomAttributes());
+                //    break;
+                //case ConnectionType.Api:
+                //    AllowAddCustomParameters = true;
+                //    Parameters.Add(new CustomAttributes());
+                //    break;
             }
         }
+
+        public string FullName => $"{ConnectionType}-{Name}";
 
         public string GetEndpoint() => Parameters?.FirstOrDefault(f => f.Key == "Endpoint")?.Value ?? string.Empty;
 
         public string GetAuthKey() => Parameters?.FirstOrDefault(f => f.Key == "AuthKey")?.Value ?? string.Empty;
 
         public string GetDataBase() => Parameters?.FirstOrDefault(f => f.Key == "Database")?.Value ?? string.Empty;
+        public string GetContainer() => Parameters?.FirstOrDefault(f => f.Key == "Container")?.Value ?? string.Empty;
+
+        public string GetFileName() => Parameters?.FirstOrDefault(f => f.Key == "FileName")?.Value ?? string.Empty;
 
     }
 
@@ -66,8 +75,9 @@
     public enum ConnectionType
     {
         CosmosDb,
-        TableStorage,
-        Api
+        File,
+        //TableStorage, //TODO
+        //Api,//TODO
     }
 
     //To Be replaced

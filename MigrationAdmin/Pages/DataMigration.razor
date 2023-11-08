@@ -62,7 +62,7 @@
                                                     dataMapping.Source.DBSettings.Container.@fieldMapping.SourceField
                                                 </td>
                                                 <td>
-                                                    @dataMapping.Destination.Settings.Parameters.FirstOrDefault(f => f.Key == "Container").Value.@fieldMapping.DestinationField
+                                                    @dataMapping.Destination.Settings.GetContainer().@fieldMapping.DestinationField
                                                 </td>
                                             </tr>
                                         }

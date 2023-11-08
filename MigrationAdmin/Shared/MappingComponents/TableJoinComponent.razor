@@ -17,7 +17,7 @@
             </tr>
             </thead>
             <tbody>
-            @foreach (var destMap in DataMapping.FieldsMapping.Where(w => w.MappingType == MappingType.tableJoin))
+            @foreach (var destMap in DataMapping.FieldsMapping.Where(w => w.MappingType == MappingType.TableJoin))
             {
                 <tr>
                     <td>
@@ -51,7 +51,7 @@
     public void AddCommand()
     {
         DataMapping.FieldsMapping.Add(new DataFieldsMapping() {
-            MappingType = MappingType.tableJoin
+            MappingType = MappingType.TableJoin
         });
     }
 

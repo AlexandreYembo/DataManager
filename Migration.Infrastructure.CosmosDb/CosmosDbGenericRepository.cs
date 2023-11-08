@@ -124,7 +124,6 @@ namespace Migration.Infrastructure.CosmosDb
             return dictionary;
         }
 
-
         public async Task Update(JObject entity)
         {
             var response = await container.UpsertItemAsync(entity);
@@ -133,18 +132,5 @@ namespace Migration.Infrastructure.CosmosDb
                 throw new DbOperationException(response.StatusCode.ToString(), entity.ToString());
             }
         }
-    
-
-        //public static class ObjectExtensions
-        //{
-        //    public static IDictionary<string, object> ToDictionary(this object obj)
-        //    {
-        //        return obj
-        //            .GetType()
-        //            .GetProperties()
-        //            .ToDictionary(propertyInfo => propertyInfo.Name, propertyInfo => propertyInfo.GetValue(obj));
-        //    }
-
-        //}
     }
 }

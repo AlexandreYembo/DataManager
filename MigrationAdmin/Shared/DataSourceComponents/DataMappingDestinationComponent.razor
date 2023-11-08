@@ -7,9 +7,9 @@
         <h3 class="card-title">Select your Source</h3>
     </div>
     <div class="card-body">
-        <DatabaseSelectorComponent OnDbSettingsChanged="(sourceDbSettings) => AddSourceDbSettings(sourceDbSettings)">
+        <DatabaseSelectorComponent DataSettings="DataMapping.Source.Settings" OnDbSettingsChanged="(sourceDbSettings) => AddSourceDbSettings(sourceDbSettings)">
         </DatabaseSelectorComponent>
-        <QueryFieldComponent OnQueryAdded="async (query) => await AddSourceQuery(query)">
+        <QueryFieldComponent Query="@DataMapping.Source.Query" OnQueryAdded="async (query) => await AddSourceQuery(query)">
         </QueryFieldComponent>
     </div>
 </div>
@@ -18,9 +18,9 @@
         <h3 class="card-title">Select your Destination</h3>
     </div>
     <div class="card-body">
-        <DatabaseSelectorComponent OnDbSettingsChanged="(destinationDbSettings) => AddDestinationDbSettings(destinationDbSettings)">
+        <DatabaseSelectorComponent DataSettings="DataMapping.Destination.Settings" OnDbSettingsChanged="(destinationDbSettings) => AddDestinationDbSettings(destinationDbSettings)">
         </DatabaseSelectorComponent>
-        <QueryFieldComponent OnQueryAdded="async (query) => await AddDestinationQuery(query)">
+        <QueryFieldComponent Query="@DataMapping.Destination.Query"  OnQueryAdded="async (query) => await AddDestinationQuery(query)">
         </QueryFieldComponent>
     </div>
 </div>

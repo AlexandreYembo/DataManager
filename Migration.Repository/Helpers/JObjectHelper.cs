@@ -23,7 +23,7 @@ namespace Migration.Repository.Helpers
 
             int? index = 0;
 
-            if (firstProp == null) return json;
+            if (string.IsNullOrEmpty(firstProp)) return json;
 
             if (firstProp.Contains("[") && firstProp.Contains("]"))
             {
@@ -61,8 +61,15 @@ namespace Migration.Repository.Helpers
 
                             if (jtoken.Type == JTokenType.Object)
                             {
-                                JObject obj = JObject.FromObject(jtoken);
-                                arr[index] = GetObject(obj, fieldArr, value);
+                                if (fieldArr.Count == 0)
+                                {
+                                    arr[index] = value;
+                                }
+                                else
+                                {
+                                    JObject obj = JObject.FromObject(jtoken);
+                                    arr[index] = GetObject(obj, fieldArr, value);
+                                }
                             }
                             else
                             {
@@ -88,13 +95,16 @@ namespace Migration.Repository.Helpers
         public static dynamic? GetValueFromObject(JObject json, List<string> fieldArr)
         {
             var firstProp = fieldArr.FirstOrDefault();
-            fieldArr.RemoveAt(0);
+
+            if (fieldArr.Count > 0)
+                fieldArr.RemoveAt(0);
+
             dynamic? value = null;
             // Check if the token is an object (JObject)
 
             int? index = 0;
 
-            if (firstProp == null) return value;
+            if (string.IsNullOrEmpty(firstProp)) return value;
 
             if (firstProp.Contains("[") && firstProp.Contains("]"))
             {
@@ -131,7 +141,15 @@ namespace Migration.Repository.Helpers
                             if (jtoken.Type == JTokenType.Object)
                             {
                                 JObject obj = JObject.FromObject(jtoken);
-                                arr[index] = GetValueFromObject(obj, fieldArr);
+
+                                if (fieldArr.Count == 0)
+                                {
+                                    value = obj;
+                                }
+                                else
+                                {
+                                    arr[index] = GetValueFromObject(obj, fieldArr);
+                                }
                             }
                             else
                             {
