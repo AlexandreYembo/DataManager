@@ -25,40 +25,32 @@ namespace Migration.Services
         public async Task<Dictionary<string, List<DynamicData>>> Get(DataMapping dataMapping, int take)
         {
             Dictionary<string, List<DynamicData>> result = new();
+            var source = await _genericRepository(dataMapping.Source.Settings)
+                .Get(dataMapping.Source.Query);
 
-            try
+            if (!source.Any())
+                return new();
+
+            foreach (var sourceData in source)
             {
-                var source = await _genericRepository(dataMapping.Source.Settings)
-                    .Get(dataMapping.Source.Query);
+                var destination = await _genericRepository(dataMapping.Destination.Settings)
+             .Get(dataMapping.Destination.Query, dataMapping.FieldsMapping, sourceData.Value, take);
 
-                if (!source.Any())
-                    return new();
-
-                foreach (var sourceData in source)
+                if (destination.Any())
                 {
-                    var destination = await _genericRepository(dataMapping.Destination.Settings)
-                 .Get(dataMapping.Destination.Query, dataMapping.FieldsMapping, sourceData.Value, take);
+                    //To avoid add duplicated record
+                    if (!result.Values.Any(a => a.Any(a1 => destination.ContainsValue(a1.Data))))
 
-                    if (destination.Any())
-                    {
-                        //To avoid add duplicated record
-                        if (!result.Values.Any(a => a.Any(a1 => destination.ContainsValue(a1.Data))))
-
-                        result.Add($"{dataMapping.Destination.Settings.CurrentEntity}:{sourceData.Key}", 
+                        result.Add($"{dataMapping.Destination.Settings.CurrentEntity}:{sourceData.Key}",
                             destination.ApplyJoin(source, dataMapping.FieldsMapping).ToDynamicDataList(JObject.Parse(sourceData.Value)));
-                    }
-                    else
-                    {
-                        result.Add(sourceData.Key, sourceData.ToDynamicDataList(DataType.Source));
-                    }
                 }
+                else
+                {
+                    result.Add(sourceData.Key, sourceData.ToDynamicDataList(DataType.Source));
+                }
+            }
 
-                return result;
-            }
-            catch
-            {
-                return result;
-            }
+            return result;
         }
     }
 }

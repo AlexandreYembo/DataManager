@@ -2,10 +2,10 @@
 {
     public class DataSettings
     {
-        public DataSettings()
-        {
-            ChangeType();
-        }
+        //public DataSettings()
+        //{
+        //    ChangeType();
+        //}
 
         public string Name { get; set; }
         public ConnectionType ConnectionType { get; set; }

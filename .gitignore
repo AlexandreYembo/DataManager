@@ -3,7 +3,7 @@
 .vscode/launch.json
 .vscode/extensions.json
 .vscode
-.vs
+.vs/
 Profiles/
 bin/
 obj/
@@ -11,3 +11,5 @@ obj/
 .vs
 .bin
 .suo
+*/obj/Debug/net6.0/*
+*.cache

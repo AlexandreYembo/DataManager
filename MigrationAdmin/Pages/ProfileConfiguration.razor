@@ -6,6 +6,7 @@
 @using Migration.Services.Helpers
 @using Newtonsoft.Json
 @inherits CustomComponents;
+@inject IJSRuntime jsRuntime
 @inject IQueryService _queryService;
 
 <div class="card card-info">
@@ -16,7 +17,7 @@
 
         <FileSelectorComponent Description="List of Profiles"
                                Path="Profiles"
-                               OnFileSelected="(file) => WhenFileHasbeenChoosen(file)"></FileSelectorComponent>
+                               OnFileLoadCallback="(json) => FileLoad(json)"></FileSelectorComponent>
     </div>
 </div>
 
@@ -161,7 +162,6 @@
                          IsLoading="Loading"></DataDifferenceModal>
 }
 
-
 @code {
 
     private bool _showModalDataDifference;
@@ -171,6 +171,8 @@
     public Profile Profile { get; set; } = new();
 
     private Dictionary<string, List<DynamicData>> _resultDataFromConfiguration;
+
+    private string _message;
 
     protected override async Task OnInitializedAsync()
     {
@@ -188,7 +190,14 @@
     {
         Loading = true;
 
-        _resultDataFromConfiguration = await _queryService.Get(Profile.DataMappings[0], take: 10); //TODO: DataMappings[0] will be a list in the future
+        try
+        {
+            _resultDataFromConfiguration = await _queryService.Get(Profile.DataMappings[0], take: 10); //TODO: DataMappings[0] will be a list in the future
+        }
+        catch (Exception e)
+        {
+            await ShowErrorAlert(e.Message);
+        }
 
         Loading = false;
     }
@@ -220,12 +229,8 @@
         return mergedDictionary;
     }
 
-    private async Task WhenFileHasbeenChoosen(string file)
+    private async Task FileLoad(string json)
     {
-        if (string.IsNullOrEmpty(file)) return;
-
-        var json = await File.ReadAllTextAsync($"Profiles\\{file}");
-
         if (string.IsNullOrEmpty(json)) return;
 
         Profile = JsonConvert.DeserializeObject<Profile>(json);
@@ -236,5 +241,11 @@
     public void ModalOk()
     {
         _showModalDataDifference = false;
+    }
+
+    
+    public async Task ShowErrorAlert(string message)
+    {
+        await jsRuntime.InvokeAsync<object>("ShowErrorAlert", message);
     }
 }

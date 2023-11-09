@@ -60,11 +60,19 @@ namespace Migration.Services.Helpers
 
                         if (arr1.Count > arr2.Count || arr1.Count < arr2.Count)
                         {
+                            string v = string.Empty;
+                            if (arr1.Count < arr2.Count)
+                            {
+                                for (int i = arr1.Count; i < arr2.Count; i++)
+                                {
+                                    v += $"<div>New index for {propertyName} : <span style='color:red'> " + arr2[i] + "</span> </div>";
+                                }
+                            }
                             differences.Add(new Difference()
                             {
                                 PropertyName = propertyName,
                                 Object1Value = arr1.ToString(),
-                                Object2Value = arr2.ToString()
+                                Object2Value = arr2 + v
                             });
 
                             return differences;

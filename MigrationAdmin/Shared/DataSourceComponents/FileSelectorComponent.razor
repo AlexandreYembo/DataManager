@@ -13,6 +13,14 @@
     </div>
 </div>
 
+<div class="row">
+<div class="col-sm-3">
+    <div class="form-group">
+        <button class="btn btn-success" @onclick="() => LoadTemplate()"> Preview Data Result</button>
+    </div>
+</div>
+</div>
+
 @code {
 
     [Parameter]
@@ -22,7 +30,9 @@
     public string Description { get; set; }
 
     [Parameter]
-    public EventCallback<string> OnFileSelected { get; set; }
+    public EventCallback<string> OnFileLoadCallback { get; set; }
+
+    private string _selectedFile;
 
 
     private IEnumerable<string> _files = new List<string>();
@@ -30,14 +40,19 @@
     protected override async Task OnInitializedAsync()
     {
         _files = Directory.EnumerateFiles(Path, "*.json").Select(w => w.Replace($"{Path}\\", string.Empty));
-
-        await OnFileSelected.InvokeAsync(_files.FirstOrDefault());
     }
 
-    public async Task SelectFile(ChangeEventArgs e)
+    public void SelectFile(ChangeEventArgs e)
     {
         if (e.Value == null) return;
 
-        await OnFileSelected.InvokeAsync(e.Value.ToString());
+        _selectedFile = e.Value.ToString();
+    }
+
+    public async Task LoadTemplate()
+    {
+        var json = await File.ReadAllTextAsync($"{Path}\\{_selectedFile}");
+
+        await OnFileLoadCallback.InvokeAsync(json);
     }
 }

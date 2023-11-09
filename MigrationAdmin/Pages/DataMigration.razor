@@ -15,7 +15,7 @@
 
                 <FileSelectorComponent Description="List of Profiles"
                                        Path="Profiles"
-                                       OnFileSelected="(file) => WhenFileHasbeenChoosen(file)"></FileSelectorComponent>
+                                       OnFileLoadCallback="(json) => FileLoad(json)"></FileSelectorComponent>
             </div>
         </div>
         <div class="card card-info">
@@ -86,15 +86,14 @@
     private List<DataMapping> _dataMappings = new();
     private bool _showModalDataDifference { get; set; }
 
-    private async Task WhenFileHasbeenChoosen(string file)
+    private async Task FileLoad(string json)
     {
-        if (string.IsNullOrEmpty(file)) return;
-
-        var json = await File.ReadAllTextAsync($"Profiles\\{file}");
-
         if (string.IsNullOrEmpty(json)) return;
 
-        _dataMappings = JsonConvert.DeserializeObject<List<DataMapping>>(json);
+        var result = JsonConvert.DeserializeObject<Profile>(json);
+        _dataMappings = result.DataMappings;
+
+        await InvokeAsync(StateHasChanged);
     }
 
     public async Task PreviewChanges(DataMapping dataMapping)

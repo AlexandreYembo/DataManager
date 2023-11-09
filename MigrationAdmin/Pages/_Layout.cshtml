@@ -66,6 +66,19 @@
             });
         }
 
+        function ShowErrorAlert(message) {
+            var Toast = Swal.mixin({
+                toast: true,
+                position: 'center',
+                showConfirmButton: false,
+                timer: 3000
+            });
+
+            Toast.fire({
+                icon: 'error',
+                title: message
+            });
+        }
 
         function UpdatePopEvent(title, html) {
             Swal.fire({
