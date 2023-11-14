@@ -5,6 +5,7 @@
 @using Migration.Services.Models
 @using Migration.Services.Helpers
 @using Newtonsoft.Json
+@using Newtonsoft.Json.Linq
 @inherits CustomComponents;
 @inject IJSRuntime jsRuntime
 @inject IQueryService _queryService;
@@ -36,7 +37,7 @@
             <div class="col-sm-6">
                 <div class="form-group">
                     <label>Profile Description</label>
-                    <input class="form-control" id="profileDescription" data-keeper-edited="yes" @bind="@Profile.Description"/>
+                    <input class="form-control" id="profileDescription" data-keeper-edited="yes" @bind="@Profile.Description" />
                 </div>
             </div>
         </div>
@@ -48,29 +49,29 @@
             <div class="col-lg-9">
                 <table id="dataResult" class="table table-bordered table-striped">
                     <thead>
-                    <tr>
-                        <th></th>
-                    </tr>
+                        <tr>
+                            <th></th>
+                        </tr>
                     </thead>
                     <tbody>
-                    @foreach (var mapping in Profile.DataMappings)
-                    {
-                        <tr>
-                            <td>
-                                <DataQueryComponent DataQueryMappingTypeChangedCallback="(dataType) => _dataQueryType = dataType"></DataQueryComponent>
+                        @foreach (var mapping in Profile.DataMappings)
+                        {
+                            <tr>
+                                <td>
+                                    <DataQueryComponent DataQueryMappingTypeChangedCallback="(dataType) => _dataQueryType = dataType"></DataQueryComponent>
 
-                                @if (_dataQueryType == DataQueryMappingType.UpdateAnotherCollection)
-                                {
-                                    <DataMappingDestinationComponent DataMapping="mapping"
-                                                                     OnDataMappingChanged="(mappingResult) => _ = mappingResult"></DataMappingDestinationComponent>
-                                }
-                                else
-                                {
-                                    <DataMappingSameTableComponent CommandsModel="mapping.Commands"></DataMappingSameTableComponent>
-                                }
-                            </td>
-                        </tr>
-                    }
+                                    @if (_dataQueryType == DataQueryMappingType.UpdateAnotherCollection)
+                                    {
+                                        <DataMappingDestinationComponent DataMapping="mapping"
+                                                                 OnDataMappingChanged="(mappingResult) => _ = mappingResult"></DataMappingDestinationComponent>
+                                    }
+                                    else
+                                    {
+                                        <DataMappingSameTableComponent CommandsModel="mapping.Commands"></DataMappingSameTableComponent>
+                                    }
+                                </td>
+                            </tr>
+                        }
                     </tbody>
                 </table>
             </div>
@@ -105,8 +106,7 @@
             <table id="dataConfigurationResult" class="table">
                 <thead>
                     <tr>
-                        <th>Container</th>
-                        <th>Data</th>
+                        <th>Source Id</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -116,24 +116,44 @@
                         {
                             <tr>
                                 <td>
-                                    @data.Key
-                                </td>
-                                <td>
-                                    <table id="data" class="table">
-                                        <thead>
-                                        <th></th>
-                                        </thead>
-                                        <tbody>
-                                            @foreach (var values in data.Value)
-                                            {
-                                                <tr>
-                                                    <td>
-                                                        @values.Data
-                                                    </td>
-                                                </tr>
-                                            }
-                                        </tbody>
-                                    </table>
+                                    <div class="card collapsed-card">
+                                        <div class="card-header">
+                                            <h3 class="card-title">  @data.Key</h3>
+                                            <div class="card-tools">
+                                                <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            <table id="data" class="table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Entity</th>
+                                                        <th></th>
+                                                        <th>Data</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var values in data.Value)
+                                                    {
+                                                        <tr>
+                                                            <td>
+                                                                @values.Entity
+                                                            </td>
+                                                            <td>
+                                                                @values.DataType
+                                                            </td>
+                                                            <td>
+                                                                <pre>
+                                                                    @JValue.Parse(values.Data).ToString(Formatting.Indented) </pre>
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
                                 </td>
                             </tr>
                         }
@@ -157,9 +177,9 @@
 @if (_showModalDataDifference)
 {
     <DataDifferenceModal ShowModalScroll="true"
-                         Id="RecordId"
-                         ModalOk="ModalOk" DataDifferences="@DataDifference"
-                         IsLoading="Loading"></DataDifferenceModal>
+                     Id="RecordId"
+                     ModalOk="ModalOk" DataDifferences="@DataDifference"
+                     IsLoading="Loading"></DataDifferenceModal>
 }
 
 @code {
@@ -202,22 +222,31 @@
         Loading = false;
     }
 
-    public void CompareChanges()
+    public async Task CompareChanges()
     {
         _showModalDataDifference = true;
 
         Loading = true;
-        DataDifference = new();
 
-        foreach (var data in _resultDataFromConfiguration)
+        try
         {
-            var differences = DifferencesMultipleDestinationsHelper.FindDifferences(Profile.DataMappings, data.Value);
+            DataDifference = new();
 
-            if (differences.Any())
+            foreach (var data in _resultDataFromConfiguration)
             {
-                DataDifference = ConcatMethod(DataDifference, differences);
+                var differences = DifferencesMultipleDestinationsHelper.FindDifferences(Profile.DataMappings, data.Value);
+
+                if (differences.Any())
+                {
+                    DataDifference = ConcatMethod(DataDifference, differences);
+                }
             }
         }
+        catch (Exception e)
+        {
+            await ShowErrorAlert(e.Message);
+        }
+
         Loading = false;
     }
 
@@ -237,13 +266,13 @@
 
         await InvokeAsync(StateHasChanged);
     }
-    
+
     public void ModalOk()
     {
         _showModalDataDifference = false;
     }
 
-    
+
     public async Task ShowErrorAlert(string message)
     {
         await jsRuntime.InvokeAsync<object>("ShowErrorAlert", message);

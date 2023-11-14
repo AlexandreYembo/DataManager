@@ -28,21 +28,24 @@ namespace Migration.Services.Extensions
             };
         }
 
-        public static List<DynamicData> ToDynamicDataList(this IEnumerable<JObject> destination, JObject source)
+        public static List<DynamicData> ToDynamicDataList(this Dictionary<string, IEnumerable<JObject>> destination, Dictionary<string, JObject> source)
         {
-            var result = destination.Select(s => new DynamicData()
-            {
-                Id = s["id"].ToString(),
-                Data = s.ToString(),
-                DataType = DataType.Destination
-            }).ToList();
-
+            List<DynamicData> result = new();
             result.Add(new DynamicData()
             {
-                Id = source["id"].ToString(),
-                Data = source.ToString(),
-                DataType = DataType.Source
+                Id = source.Values.FirstOrDefault()["id"].ToString(),
+                Data = source.Values.FirstOrDefault().ToString(),
+                DataType = DataType.Source,
+                Entity = source.Keys.FirstOrDefault()
             });
+
+            result.AddRange(destination.SelectMany(s => s.Value.Select((v => new DynamicData()
+            {
+                Id = v["id"].ToString(),
+                Data = v.ToString(),
+                DataType = DataType.Destination,
+                Entity = s.Key
+            }))).ToList());
 
             return result;
         }

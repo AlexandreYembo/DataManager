@@ -34,6 +34,15 @@
             </div>
         </div>
     }
+    else
+    {
+        <div class="col-sm-2">
+            <div class="form-group">
+                <label>Entity</label>
+                <input class="form-control" id="profileName" data-keeper-edited="yes" @bind="@DataSettings.CurrentEntity" />
+            </div>
+        </div>
+    }
 </div>
 
 @code {
@@ -42,7 +51,7 @@
     public EventCallback<DataSettings> OnDbSettingsChanged { get; set; }
 
     [Parameter]
-    public DataSettings DataSettings{ get; set; } = new();
+    public DataSettings DataSettings { get; set; } = new();
 
     private string _connectionName { get; set; }
 

@@ -31,18 +31,24 @@ namespace Migration.Services
             if (!source.Any())
                 return new();
 
+            Dictionary<string, JObject> dataSource = new();
+
             foreach (var sourceData in source)
             {
+                dataSource.Add(dataMapping.Source.Settings.CurrentEntity, JObject.Parse(sourceData.Value));
+
                 var destination = await _genericRepository(dataMapping.Destination.Settings)
              .Get(dataMapping.Destination.Query, dataMapping.FieldsMapping, sourceData.Value, take);
 
+                Dictionary<string, IEnumerable<JObject>> dataDestination = new();
                 if (destination.Any())
                 {
                     //To avoid add duplicated record
                     if (!result.Values.Any(a => a.Any(a1 => destination.ContainsValue(a1.Data))))
 
-                        result.Add($"{dataMapping.Destination.Settings.CurrentEntity}:{sourceData.Key}",
-                            destination.ApplyJoin(source, dataMapping.FieldsMapping).ToDynamicDataList(JObject.Parse(sourceData.Value)));
+                        dataDestination.Add(dataMapping.Destination.Settings.CurrentEntity, destination.ApplyJoin(source, dataMapping.FieldsMapping));
+
+                        result.Add($"{dataMapping.Source.Settings.CurrentEntity} - {sourceData.Key}", dataDestination.ToDynamicDataList(dataSource));
                 }
                 else
                 {

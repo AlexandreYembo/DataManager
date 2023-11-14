@@ -15,15 +15,29 @@ namespace Migration.Services.Helpers
             return differences;
         }
 
-        public static List<Difference> FindDifferences(JObject objLeft, JObject objRight)
+        /// <summary>
+        ///
+        /// invertedObject means that I am inverting the object that I want to compare but I want to show as the change not the original value
+        /// </summary>
+        /// <param name="objLeft"></param>
+        /// <param name="objRight"></param>
+        /// <param name="invertedObject"></param>
+        /// <returns></returns>
+        public static List<Difference> FindDifferences(JObject objLeft, JObject objRight, bool invertedObject = false)
         {
             List<Difference> differences = new List<Difference>();
+
+            if (objLeft.Properties().Count() < objRight.Properties().Count())
+            {
+                return FindDifferences(objRight, objLeft, true);
+            }
 
             foreach (var property in objLeft.Properties())
             {
                 var propertyName = property.Name;
-                var value1 = property.Value;
-                var value2 = objRight.GetValue(propertyName);
+                
+                var value1 = invertedObject ? objRight.GetValue(propertyName) : property.Value;
+                var value2 = invertedObject ? property.Value : objRight.GetValue(propertyName);
 
                 if ((value1 != null && value2 == null) || (value1 == null && value2 != null))
                 {
@@ -36,7 +50,6 @@ namespace Migration.Services.Helpers
                 }
                 else
                 {
-
                     if (value1.Type == JTokenType.Object && value2.Type == JTokenType.Object)
                     {
                         var d = FindDifferences(JObject.Parse(value1.ToString()), JObject.Parse(value2.ToString()));
