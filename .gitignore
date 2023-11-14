@@ -5,6 +5,7 @@
 .vscode
 .vs/
 Profiles/
+Uploads/
 bin/
 obj/
 */obj/*

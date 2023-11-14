@@ -22,61 +22,73 @@
             <div class="card-header">
                 <h3 class="card-title">Review the Profile before migration</h3>
             </div>
+            @if (Loading)
+            {
+                <div class="col-sm-12">
+                    <Loading />
+                </div>
+            }
             <div class="card-body">
                 <table id="dataGeneral" class="table table-bordered table-striped">
                     <thead>
-                        <tr>
-                            <th>Source</th>
-                            <th>Destination</th>
-                            <th>
-                                Fields
-                            </th>
-                            <th>
+                    <tr>
+                        <th>Source</th>
+                        <th>Destination</th>
+                        <th>
+                            Fields
+                        </th>
+                        <th>
 
-                            </th>
-                        </tr>
+                        </th>
+                    </tr>
                     </thead>
                     <tbody>
-                        @foreach (var dataMapping in _dataMappings)
-                        {
-                            <tr>
-                                <td>
-                                    <p>Database Name: <b> @dataMapping.Source.Settings.Name</b></p>
-                                </td>
-                                <td>
-                                    <p>Database Name: <b> @dataMapping.Destination.Settings.Name</b></p>
-                                </td>
-                                <td>
-                                    <table id="dataFields" class="table table-bordered table-striped">
-                                        <thead>
+                    @foreach (var dataMapping in _dataMappings)
+                    {
+                        <tr>
+                            <td>
+                                <p>Database Name: <b> @dataMapping.Source.Settings.Name</b></p>
+                            </td>
+                            <td>
+                                <p>Database Name: <b> @dataMapping.Destination.Settings.Name</b></p>
+                            </td>
+                            <td>
+                                <table id="dataFields" class="table table-bordered table-striped">
+                                    <thead>
+                                    <tr>
+                                        <th>Mapping Type</th>
+                                        <th>Source</th>
+                                        <th>Destination</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    @foreach (var fieldMapping in @dataMapping.FieldsMapping.OrderBy(s => s.MappingType))
+                                    {
                                         <tr>
-                                            <th>Source</th>
-                                            <th>Destination</th>
+                                            <td>
+                                                @fieldMapping.MappingType
+                                            </td>
+                                            <td>
+                                                @dataMapping.Source.Settings.CurrentEntity.@fieldMapping.SourceField
+                                            </td>
+                                            <td>
+                                                @dataMapping.Destination.Settings.CurrentEntity.@fieldMapping.DestinationField
+                                            </td>
                                         </tr>
-                                        </thead>
-                                        <tbody>
-                                        @foreach (var fieldMapping in @dataMapping.FieldsMapping)
-                                        {
-                                            <tr>
-                                                <td>
-                                                    dataMapping.Source.DBSettings.Container.@fieldMapping.SourceField
-                                                </td>
-                                                <td>
-                                                    @dataMapping.Destination.Settings.GetContainer().@fieldMapping.DestinationField
-                                                </td>
-                                            </tr>
-                                        }
-                                        </tbody>
-                                    </table>
-                                </td>
-                                <div>
+                                    }
+                                    </tbody>
+                                </table>
+                            </td>
+                            @* <div>
                                     <button class="btn btn-success" @onclick="() => PreviewChanges(dataMapping)">Preview 5 records displayed</button>
-                                    @*<button class="btn btn-warning" @onclick="() => InsertOrUpdate()">Insert / Update</button>*@
-                                </div>
-                            </tr>
-                        }
+                                </div>*@
+                        </tr>
+                    }
                     </tbody>
                 </table>
+            </div>
+            <div class="card-footer">
+                <button class="btn btn-warning" @onclick="() => Migrate()">Migrate</button>
             </div>
         </div>
     </div>
@@ -111,6 +123,13 @@
         //{
         //    DataDifference.Add(data.Key, DifferenceHelper.FindDifferences(data.Value));
         //}
+
+        Loading = false;
+    }
+
+    public async Task Migrate()
+    {
+        Loading = true;
 
         Loading = false;
     }

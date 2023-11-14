@@ -188,11 +188,12 @@
 
     private async Task HandleFileUpload()
     {
+        if(Directory.Exists("uploads"))
         {
-            Directory.CreateDirectory("wwwroot/uploads");
+            Directory.CreateDirectory("uploads");
         }
 
-        var filePath = Path.Combine("wwwroot/uploads", _uploadedFile.Name); // Set the desired upload path
+        var filePath = Path.Combine("uploads", _uploadedFile.Name); // Set the desired upload path
 
         try
         {

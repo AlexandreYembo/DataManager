@@ -22,6 +22,7 @@ namespace Migration.Services
         {
             _genericRepository = genericRepository;
         }
+
         public async Task<Dictionary<string, List<DynamicData>>> Get(DataMapping dataMapping, int take)
         {
             Dictionary<string, List<DynamicData>> result = new();
