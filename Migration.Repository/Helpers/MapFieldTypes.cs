@@ -1,4 +1,5 @@
 ﻿using Migration.Repository.DbOperations;
+using Migration.Repository.Models;
 
 namespace Migration.Repository.Helpers
 {
@@ -27,8 +28,22 @@ namespace Migration.Repository.Helpers
                     dic.Add(s.Field, s.Value);
                     break;
             }
-
             return dic;
+        }
+
+        public static dynamic GetType(DataFieldsMapping s)
+        {
+            switch (s.ValueType)
+            {
+                case FieldValueType.Integer:
+                    return int.Parse(s.ValueField);
+                case FieldValueType.Guid:
+                    return  Guid.Parse(s.ValueField);
+                case FieldValueType.Boolean:
+                    return bool.Parse(s.ValueField);
+                default:
+                    return s.ValueField;
+            }
         }
     }
 }

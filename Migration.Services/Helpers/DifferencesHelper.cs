@@ -35,7 +35,7 @@ namespace Migration.Services.Helpers
             foreach (var property in objLeft.Properties())
             {
                 var propertyName = property.Name;
-                
+
                 var value1 = invertedObject ? objRight.GetValue(propertyName) : property.Value;
                 var value2 = invertedObject ? property.Value : objRight.GetValue(propertyName);
 
@@ -88,50 +88,50 @@ namespace Migration.Services.Helpers
                                 Object2Value = arr2 + v
                             });
 
-                            return differences;
                         }
-
-                        for (int i = 0; i < arr1.Count; i++)
+                        else
                         {
-                            try
+                            for (int i = 0; i < arr1.Count; i++)
                             {
-                                var jtoken1 = arr1[i];
-                                var jtoken2 = arr2[i];
-
-                                if (jtoken1.Type == JTokenType.Object && jtoken2.Type == JTokenType.Object)
+                                try
                                 {
-                                    var d = FindDifferences(JObject.Parse(jtoken1.ToString()), JObject.Parse(jtoken2.ToString()));
+                                    var jtoken1 = arr1[i];
+                                    var jtoken2 = arr2[i];
 
-                                    if (d.Any())
+                                    if (jtoken1.Type == JTokenType.Object && jtoken2.Type == JTokenType.Object)
                                     {
-                                        var v2 = string.Join("\n", d.Select(s => $"<div>{s.PropertyName} : <span style='color:red'> " + s.Object2Value + "</span> </div>"));
+                                        var d = FindDifferences(JObject.Parse(jtoken1.ToString()), JObject.Parse(jtoken2.ToString()));
 
-                                        differences.Add(new Difference()
+                                        if (d.Any())
                                         {
-                                            PropertyName = propertyName,
-                                            Object1Value = arr1[i].ToString(),
-                                            Object2Value = arr2[i] + v2
-                                        });
+                                            var v2 = string.Join("\n", d.Select(s => $"<div>{s.PropertyName} : <span style='color:red'> " + s.Object2Value + "</span> </div>"));
+
+                                            differences.Add(new Difference()
+                                            {
+                                                PropertyName = propertyName,
+                                                Object1Value = arr1[i].ToString(),
+                                                Object2Value = arr2[i] + v2
+                                            });
+                                        }
+                                    }
+                                    else
+                                    {
+                                        if (!JToken.DeepEquals(jtoken1.ToString(), jtoken2.ToString()))
+                                        {
+                                            differences.Add(new Difference()
+                                            {
+                                                PropertyName = propertyName,
+                                                Object1Value = value1.ToString(),
+                                                Object2Value = value2.ToString()
+                                            });
+                                        }
                                     }
                                 }
-                                else
+                                catch
                                 {
-                                    if (!JToken.DeepEquals(jtoken1.ToString(), jtoken2.ToString()))
-                                    {
-                                        differences.Add(new Difference()
-                                        {
-                                            PropertyName = propertyName,
-                                            Object1Value = value1.ToString(),
-                                            Object2Value = value2.ToString()
-                                        });
-                                    }
                                 }
-                            }
-                            catch
-                            {
                             }
                         }
-
                     }
                     else if (!JToken.DeepEquals(value1, value2))
                     {

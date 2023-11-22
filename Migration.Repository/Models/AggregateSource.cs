@@ -15,7 +15,6 @@ namespace Migration.Repository.Models
         public AggregateData Destination { get; set; } = new();
         public List<CommandModel> Commands { get; set; } = new();
         public List<DataFieldsMapping> FieldsMapping { get; set; } = new();
-        public OperationType OperationType { get; set; }
 
         public int Id { get; set; }
     }
@@ -35,18 +34,33 @@ namespace Migration.Repository.Models
         public OperatorType? OperatorType { get; set; }
         public string? SourceField { get; set; }
         public string? DestinationField { get; set; }
+        public FieldValueType? ValueType { get; set; }
+        public List<SearchCondition> SourceCondition { get; set; } = new();
+        public string? ValueField { get; set; }
     }
 
-    public enum OperationType
+    public class SearchCondition
     {
-        Insert,
-        Update
+        public SearchConditionType? Type { get; set; }
+        public string Query { get; set; }
+    }
+
+
+    public enum FieldValueType
+    {
+        String,
+        Integer,
+        Boolean,
+        Guid,
+        DateTime
     }
 
     public enum MappingType
     {
         TableJoin,
         ValueMerge,
+        ValueWithCondition,
+        ValueMergeWithCondition
     }
 
     public enum OperatorType
@@ -54,5 +68,11 @@ namespace Migration.Repository.Models
         ArrayContains,
         In,
         Eq,
+    }
+
+    public enum SearchConditionType
+    {
+        And,
+        Or
     }
 }
