@@ -32,7 +32,7 @@ namespace Migration.Services
                 return;
 
             var mappingMergeFields = dataMapping.FieldsMapping
-                .Where(w => w.MappingType == MappingType.ValueMerge).ToList();
+                .Where(w => w.MappingType == MappingType.FieldValueMerge).ToList();
 
             foreach (var sourceData in source)
             {

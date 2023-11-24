@@ -58,9 +58,9 @@ namespace Migration.Repository.Models
     public enum MappingType
     {
         TableJoin,
-        ValueMerge,
+        FieldValueMerge,
         ValueWithCondition,
-        ValueMergeWithCondition
+        FieldValueMergeWithCondition
     }
 
     public enum OperatorType

@@ -34,7 +34,7 @@ namespace Migration.Services.Helpers
 
                     foreach (var mappingMergeField in mappingMergeFields)
                     {
-                        if (mappingMergeField.MappingType == MappingType.ValueMergeWithCondition || mappingMergeField.MappingType == MappingType.ValueWithCondition)
+                        if (mappingMergeField.MappingType == MappingType.FieldValueMergeWithCondition || mappingMergeField.MappingType == MappingType.ValueWithCondition)
                         {
                             var meetCriteria = sourceObj.MeetCriteriaSearch(mappingMergeField.SourceCondition.Select(s => s));
 

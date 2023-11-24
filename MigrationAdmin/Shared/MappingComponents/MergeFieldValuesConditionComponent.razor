@@ -55,22 +55,22 @@
         <div class="row">
             <div class="col-sm-12">
                 <div class="form-group">
-                    <label>Destination Field</label>
-                    <input class="form-control" data-keeper-edited="yes" @bind="_dataFieldsMapping.DestinationField" />
+                    <label>Source</label>
+                    <input class="form-control" data-keeper-edited="yes" @bind="_dataFieldsMapping.SourceField" />
                 </div>
             </div>
         </div>
         <div class="row">
             <div class="col-sm-12">
                 <div class="form-group">
-                    <label>Destination Value</label>
-                    <input class="form-control" data-keeper-edited="yes" @bind="_dataFieldsMapping.ValueField" />
+                    <label>Destination</label>
+                    <input class="form-control" data-keeper-edited="yes" @bind="_dataFieldsMapping.DestinationField" />
                 </div>
             </div>
         </div>
     </div>
     <div class="card-footer">
-        <button class="btn btn-default" @onclick="async () =>_dataFieldsMapping = await AddDataFieldsMapping(_dataFieldsMapping, MappingType.FieldValueMergeWithCondition)">Add</button>
+        <button class="btn btn-default" @onclick="async () => _dataFieldsMapping = await AddDataFieldsMapping(_dataFieldsMapping, MappingType.FieldValueMergeWithCondition)">Add</button>
     </div>
 </div>
 
@@ -85,9 +85,9 @@
     private void AddCondition(List<SearchCondition> searchConditions)
     {
         searchConditions.Add(new SearchCondition()
-        {
-            Type = SearchConditionType.And
-        });
+            {
+                Type = SearchConditionType.And
+            });
     }
 
     private void RemoveCondition(List<SearchCondition> searchConditions, SearchCondition searchCondition)

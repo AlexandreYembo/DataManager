@@ -1,54 +1,34 @@
 ﻿@using Microsoft.AspNetCore.Components
 @using Migration.Repository.Models
+@inherits MigrationAdmin.CustomComponents
+
 <div class="card card-default">
     <div class="card-header">
         <h3 class="card-title">Configure the Fields you want to merge the value</h3>
     </div>
     <div class="card-body">
-        <table id="mergeMapping" class="table table-bordered table-striped">
-            <thead>
-            <tr>
-                <th>Source</th>
-                <th>Destination</th>
-                <th>
-                    <button class="btn btn-success" @onclick="() => AddCommand()">+</button>
-                </th>
-            </tr>
-            </thead>
-            <tbody>
-            @foreach (var destMap in DataMapping.FieldsMapping.Where(w => w.MappingType == MappingType.ValueMerge))
-            {
-                <tr>
-                    <td>
-                        <input class="form-control" id="command" data-keeper-edited="yes" @bind="@destMap.SourceField" />
-                    </td>
-                    <td>
-                        <input class="form-control" id="command" data-keeper-edited="yes" @bind="@destMap.DestinationField" />
-                    </td>
-                    <td>
-                        <button class="btn btn-danger" @onclick="() => RemoveCommand(destMap)">-</button>
-                    </td>
-                </tr>
-            }
-            </tbody>
-        </table>
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="form-group">
+                    <label>Source</label>
+                    <input class="form-control" data-keeper-edited="yes" @bind="_dataFieldsMapping.SourceField" />
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="form-group">
+                    <label>Destination</label>
+                    <input class="form-control" data-keeper-edited="yes" @bind="_dataFieldsMapping.DestinationField" />
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-footer">
+        <button class="btn btn-default" @onclick="async () => _dataFieldsMapping = await AddDataFieldsMapping(_dataFieldsMapping, MappingType.FieldValueMerge)">Add</button>
     </div>
 </div>
 
 @code {
-    [Parameter]
-    public DataMapping DataMapping { get; set; } = new();
-
-    public void AddCommand()
-    {
-        DataMapping.FieldsMapping.Add(new DataFieldsMapping()
-        {
-            MappingType = MappingType.ValueMerge
-        });
-    }
-
-    private void RemoveCommand(DataFieldsMapping destMap)
-    {
-        DataMapping.FieldsMapping.Remove(destMap);
-    }
+    private DataFieldsMapping _dataFieldsMapping = new();
 }

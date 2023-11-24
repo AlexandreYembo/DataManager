@@ -20,15 +20,52 @@
     <div class="card-body">
         <DatabaseSelectorComponent DataSettings="DataMapping.Destination.Settings" OnDbSettingsChanged="(destinationDbSettings) => AddDestinationDbSettings(destinationDbSettings)">
         </DatabaseSelectorComponent>
-        <QueryFieldComponent Query="@DataMapping.Destination.Query"  OnQueryAdded="async (query) => await AddDestinationQuery(query)">
+        <QueryFieldComponent Query="@DataMapping.Destination.Query" OnQueryAdded="async (query) => await AddDestinationQuery(query)">
         </QueryFieldComponent>
     </div>
 </div>
-
-<TableJoinComponent DataMapping="DataMapping"></TableJoinComponent>
-<MergeFieldsComponent DataMapping="DataMapping"></MergeFieldsComponent>
-<MergeValuesConditionComponent DataMapping="DataMapping"></MergeValuesConditionComponent>
-<UpdateValueConditionComponent DataMapping="DataMapping"></UpdateValueConditionComponent>
+<div class="card card-default">
+    <div class="card-header">
+        <h3 class="card-title">Mapping configuration</h3>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-lg-1">
+                <label>Operator Type</label>
+                <select class="form-control" data-keeper-edited="yes" value="@_dataFieldsMapping.MappingType" @onchange="ChangeMappingType">
+                    @foreach (var mappingType in Enum.GetValues<MappingType>())
+                    {
+                        <option value="@mappingType">@mappingType</option>
+                    }
+                </select>
+            </div>
+            </div>
+        <div class="row">
+            <div class="col-lg-4">
+                @switch (_dataFieldsMapping.MappingType)
+                {
+                    case MappingType.TableJoin:
+                        <TableJoinComponent OnDataFieldsMappingUpdated="(dataFieldMapping) => AddFieldsMapping(dataFieldMapping)"
+                                            DataFieldsMapping="_dataFieldsMapping"></TableJoinComponent>
+                        break;
+                    case MappingType.FieldValueMerge:
+                        <MergeFieldsComponent OnDataFieldsMappingUpdated="(dataFieldMapping) => AddFieldsMapping(dataFieldMapping)"></MergeFieldsComponent>
+                        break;
+                    case MappingType.FieldValueMergeWithCondition:
+                        <MergeFieldValuesConditionComponent OnDataFieldsMappingUpdated="(dataFieldMapping) =>AddFieldsMapping(dataFieldMapping)"></MergeFieldValuesConditionComponent>
+                        break;
+                    case MappingType.ValueWithCondition:
+                        <UpdateValueConditionComponent OnDataFieldsMappingUpdated="(dataFieldMapping) => AddFieldsMapping(dataFieldMapping)"></UpdateValueConditionComponent>
+                        break;
+                }   
+            </div>
+            <div class="col-lg-8">
+                <MappingListComponent DataMapping="DataMapping"
+                                      OnDataFieldsMappingEditing="(dataFieldsMapping) => _dataFieldsMapping = dataFieldsMapping "></MappingListComponent>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div class="row">
     <div class="col-sm-12">
@@ -43,13 +80,13 @@
     [Parameter]
     public DataMapping DataMapping { get; set; } = new();
 
+    private DataFieldsMapping _dataFieldsMapping = new();
+
     [Parameter]
     public EventCallback<DataMapping> OnDataMappingChanged { get; set; }
 
     private string _querySource;
     private string _queryDestination;
-
-
 
     private void AddSourceDbSettings(DataSettings sourceSettings)
     {
@@ -90,8 +127,21 @@
         await OnDataMappingChanged.InvokeAsync(DataMapping);
     }
 
-    public async Task ShowSuccessAlert(string message)
+    private void ChangeMappingType(ChangeEventArgs e)
+    {
+        _dataFieldsMapping = new();
+        _dataFieldsMapping.MappingType = Enum.Parse<MappingType>(e.Value.ToString());
+    }
+
+    private async Task ShowSuccessAlert(string message)
     {
         await jsRuntime.InvokeAsync<object>("ShowSuccessAlert", message);
+    }
+
+    private void AddFieldsMapping(DataFieldsMapping dataFieldMapping)
+    {
+        DataMapping.FieldsMapping.Remove(dataFieldMapping);
+        DataMapping.FieldsMapping.Add(dataFieldMapping);
+        _dataFieldsMapping = new DataFieldsMapping();
     }
 }
