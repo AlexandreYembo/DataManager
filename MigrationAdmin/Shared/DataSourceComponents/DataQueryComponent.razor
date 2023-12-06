@@ -1,7 +1,10 @@
 ﻿@using MigrationAdmin.Models
-<div class="card card-info">
+@using Migration.Repository
+@using Migration.Repository.Models
+@inject IJSRuntime jsRuntime
+<div class="card card-default">
     <div class="card-header">
-        <h3 class="card-title">Configure your source: </h3>
+        <h3 class="card-title">Select the profile type </h3>
         <div class="card-tools">
             <button type="button" class="btn btn-tool" data-card-widget="collapse">
                 <i class="fas fa-minus"></i>
@@ -12,7 +15,7 @@
         <div class="row">
             <div class="col-sm-2">
                 <div class="form-group">
-                    <label>Select what type of mapping do you want to apply to the destination</label>
+                    <label>Select what type of mapping do you want to apply</label>
                     <select class="form-control" id="dataqueryMappingType" data-keeper-edited="yes" @onchange="ChangeDataQueryMappingType">
                         @foreach (var type in _dataQueryMappingType)
                         {
@@ -20,6 +23,34 @@
                         }
                     </select>
                 </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-12">
+                @if (DataQueryType == DataQueryMappingType.UpdateAnotherCollection)
+                {
+                    <DatabaseSelectorComponent Title="Select the source"
+                                               DataSettings="DataMapping.Source.Settings"
+                                               OnDbSettingsChanged="(sourceDbSettings) => AddSourceDbSettings(sourceDbSettings)"
+                                               Query="@DataMapping.Source.Query"
+                                               OnQueryAdded="async (query) => await AddSourceQuery(query)">
+                    </DatabaseSelectorComponent>
+                    <DatabaseSelectorComponent Title="Select the destination"
+                                               DataSettings="DataMapping.Destination.Settings"
+                                               OnDbSettingsChanged="(sourceDbSettings) => AddDestinationDbSettings(sourceDbSettings)"
+                                               Query="@DataMapping.Destination.Query"
+                                               OnQueryAdded="async (query) => await AddDestinationQuery(query)">
+                    </DatabaseSelectorComponent>
+                }
+                else
+                {
+                    <DatabaseSelectorComponent Title="Select data"
+                                               DataSettings="DataMapping.Source.Settings" 
+                                               OnDbSettingsChanged="(sourceDbSettings) => AddSourceDbSettings(sourceDbSettings)"
+                                               Query="@DataMapping.Source.Query" 
+                                               OnQueryAdded="async (query) => await AddSourceQuery(query)">
+                    </DatabaseSelectorComponent>
+                }
             </div>
         </div>
     </div>
@@ -31,6 +62,9 @@
 
     [Parameter]
     public DataQueryMappingType DataQueryType { get; set; }
+
+    [Parameter]
+    public DataMapping DataMapping { get; set; }
 
     private Dictionary<string, DataQueryMappingType> _dataQueryMappingType = new()
     {
@@ -46,5 +80,47 @@
             DataQueryType = value;
 
         await DataQueryMappingTypeChangedCallback.InvokeAsync(DataQueryType);
+    }
+
+    private void AddSourceDbSettings(DataSettings sourceSettings)
+    {
+        if (DataMapping.Source == null) DataMapping.Source = new();
+
+        DataMapping.Source.Settings = sourceSettings;
+    }
+
+    private void AddDestinationDbSettings(DataSettings destinationSettings)
+    {
+        if (DataMapping.Destination == null) DataMapping.Destination = new();
+
+        DataMapping.Destination.Settings = destinationSettings;
+    }
+
+    private async Task AddSourceQuery(string query)
+    {
+        await ShowSuccessAlert("Source Query added");
+
+        if (DataMapping.Source == null) DataMapping.Source = new();
+
+        DataMapping.Source.Query = query;
+    }
+
+    private async Task AddDestinationQuery(string query)
+    {
+        await ShowSuccessAlert("Destination Query added");
+
+        if (DataMapping.Destination == null) DataMapping.Destination = new();
+
+        DataMapping.Destination.Query = query;
+    }
+
+    private async Task ShowSuccessAlert(string message)
+    {
+        await jsRuntime.InvokeAsync<object>("ShowSuccessAlert", message);
+    }
+
+    private async Task ShowErrorAlert(string message)
+    {
+        await jsRuntime.InvokeAsync<object>("ShowErrorAlert", message);
     }
 }

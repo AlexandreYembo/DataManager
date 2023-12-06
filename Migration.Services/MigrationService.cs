@@ -47,37 +47,37 @@ namespace Migration.Services
 
         private async Task ProcessDestinationRecordsAsync(DataMapping dataMapping, KeyValuePair<string, string> sourceData, Dictionary<string, string> source, List<DataFieldsMapping> mappingMergeFields)
         {
-            var destination = await _genericRepository(dataMapping.Destination.Settings)
-                .Get(dataMapping.Destination.Query, dataMapping.FieldsMapping, sourceData.Value, 15);
+            //var destination = await _genericRepository(dataMapping.Destination.Settings)
+            //    .Get(dataMapping.Destination.Query, dataMapping.FieldsMapping, sourceData.Value, 15);
 
-            var listDestination = destination.ApplyJoin(source, dataMapping.FieldsMapping);
+            //var listDestination = destination.ApplyJoin(source, dataMapping.FieldsMapping);
 
-            if (!listDestination.Any()) return;
+            //if (!listDestination.Any()) return;
 
-            var sourceObj = JObject.Parse(sourceData.Value);
+            //var sourceObj = JObject.Parse(sourceData.Value);
 
-            foreach (var d in listDestination)
-            {
-                bool hasChange = false;
+            //foreach (var d in listDestination)
+            //{
+            //    bool hasChange = false;
 
-                var originalData = d;
-                var objectToBeUpdated = d;
+            //    var originalData = d;
+            //    var objectToBeUpdated = d;
 
-                foreach (var mappingMergeField in mappingMergeFields)
-                {
-                    var fieldsFromSourceArr = mappingMergeField.SourceField.Split(".").ToList();
+            //    foreach (var mappingMergeField in mappingMergeFields)
+            //    {
+            //        var fieldsFromSourceArr = mappingMergeField.SourceField.Split(".").ToList();
 
-                    var valueFromSource = JObjectHelper.GetValueFromObject(sourceObj, fieldsFromSourceArr);
+            //        var valueFromSource = JObjectHelper.GetValueFromObject(sourceObj, fieldsFromSourceArr);
 
-                    var fieldsFromDestinationArr = mappingMergeField.DestinationField.Split(".").ToList();
+            //        var fieldsFromDestinationArr = mappingMergeField.DestinationField.Split(".").ToList();
 
-                    objectToBeUpdated = JObjectHelper.GetObject(objectToBeUpdated, fieldsFromDestinationArr,
-                        valueFromSource);
-                    hasChange = true;
-                }
+            //        objectToBeUpdated = JObjectHelper.GetObject(objectToBeUpdated, fieldsFromDestinationArr,
+            //            valueFromSource);
+            //        hasChange = true;
+            //    }
 
-                if (!hasChange) return;
-            }
+            //    if (!hasChange) return;
+            //}
 
         }
     }

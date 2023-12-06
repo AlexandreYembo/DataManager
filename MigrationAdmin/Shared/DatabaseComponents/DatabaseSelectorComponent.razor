@@ -1,50 +1,75 @@
 ﻿@using Migration.Repository
 @inject IStorage<DataSettings> _storageDataSettings;
-
-<div class="row">
-    <div class="col-sm-6">
-        <div class="form-group">
-            <label>Select the Connection </label>
-            <select class="form-control" id="connectionString" data-keeper-edited="yes" @onchange="ChangeConnectionString">
-                @if (_connectionStrings != null)
-                {
-                    foreach (var connectionString in _connectionStrings.Where(w => !string.IsNullOrEmpty(w.Value)))
-                    {
-                        <option value="@connectionString.Value">@connectionString.Key</option>
-                    }
-                }
-            </select>
+<div class="card card-default">
+    <div class="card-header">
+        <h3 class="card-title">@Title</h3>
+        <div class="card-tools">
+            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                <i class="fas fa-minus"></i>
+            </button>
         </div>
     </div>
-    @if (DataSettings.ConnectionType != ConnectionType.File)
-    {
-        <div class="col-sm-6">
-            <div class="form-group">
-                <label>Select the Container</label>
-                <select class="form-control" id="entities" data-keeper-edited="yes" @onchange="ChangeEntity">
-                    @if (DataSettings != null)
-                    {
-                        <option selected="selected" value="@DataSettings.Entities.FirstOrDefault()"> @DataSettings.Entities.FirstOrDefault()</option>
-                        @foreach (var container in DataSettings.Entities.Skip(1))
+    <div class="card-body" style="display: block;">
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <label>Select the Connection </label>
+                    <select class="form-control" id="connectionString" data-keeper-edited="yes" @onchange="ChangeConnectionString">
+                        @if (_connectionStrings != null)
                         {
-                            <option value="@container">@container</option>
+                            foreach (var connectionString in _connectionStrings.Where(w => !string.IsNullOrEmpty(w.Value)))
+                            {
+                                <option value="@connectionString.Value">@connectionString.Key</option>
+                            }
                         }
-                    }
-                </select>
+                    </select>
+                </div>
+            </div>
+            @if (DataSettings.ConnectionType != ConnectionType.File)
+            {
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label>Select the Container</label>
+                        <select class="form-control" id="entities" data-keeper-edited="yes" @onchange="ChangeEntity">
+                            @if (DataSettings != null)
+                            {
+                                <option selected="selected" value="@DataSettings.Entities.FirstOrDefault()"> @DataSettings.Entities.FirstOrDefault()</option>
+                                @foreach (var container in DataSettings.Entities.Skip(1))
+                                {
+                                    <option value="@container">@container</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="col-sm-2">
+                    <div class="form-group">
+                        <label>Entity</label>
+                        <input class="form-control" id="profileName" data-keeper-edited="yes" @bind="@DataSettings.CurrentEntity" />
+                    </div>
+                </div>
+            }
+        </div>
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="form-group">
+                    <label>Query (Format: select c.Field1,c.Field2,c.Field3,c.Field4 from c where c.Field1 = value) or (select * from c where c.Field1 = value)</label>
+                    <input class="form-control" id="query" data-keeper-edited="yes" @bind="@Query" />
+                </div>
             </div>
         </div>
-    }
-    else
-    {
-        <div class="col-sm-2">
-            <div class="form-group">
-                <label>Entity</label>
-                <input class="form-control" id="profileName" data-keeper-edited="yes" @bind="@DataSettings.CurrentEntity" />
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="form-group">
+                    <button class="btn btn-default" @onclick="() => AddQuery()"> Add Query</button>
+                </div>
             </div>
         </div>
-    }
+    </div>
 </div>
-
 @code {
 
     [Parameter]
@@ -52,6 +77,15 @@
 
     [Parameter]
     public DataSettings DataSettings { get; set; } = new();
+
+    [Parameter]
+    public string Title { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnQueryAdded { get; set; }
+
+    [Parameter]
+    public string Query { get; set; }
 
     private string _connectionName { get; set; }
 
@@ -65,7 +99,11 @@
         {
             _connectionStrings = data.ToDictionary(k => k.FullName, v => v.FullName);
             DataSettings = data.FirstOrDefault();
-            _connectionName = DataSettings.Name;
+            _connectionName = DataSettings.FullName;
+
+            DataSettings.CurrentEntity = DataSettings.Entities.FirstOrDefault();
+
+            await OnDbSettingsChanged.InvokeAsync(DataSettings);
         }
     }
 
@@ -95,5 +133,10 @@
         settings.CurrentEntity = e.Value.ToString();
 
         await OnDbSettingsChanged.InvokeAsync(settings);
+    }
+
+    public async Task AddQuery()
+    {
+        await OnQueryAdded.InvokeAsync(Query);
     }
 }
