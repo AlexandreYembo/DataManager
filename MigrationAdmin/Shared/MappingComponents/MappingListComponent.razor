@@ -84,7 +84,12 @@
                                     @destMap.DestinationField
                                 </td>
                                 <td>
-                                    <button class="btn btn-default" @onclick="() => Remove(destMap)">-</button>
+                                    <a class="btn btn-app" @onclick="() => Edit(destMap)">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a class="btn btn-app" @onclick="() => Remove(destMap)">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
                                 </td>
                             </tr>
                         }
@@ -145,7 +150,12 @@
                                     @destMap.DestinationField
                                 </td>
                                 <td>
-                                    <button class="btn btn-default" @onclick="() => Remove(destMap)">-</button>
+                                    <a class="btn btn-app" @onclick="() => Edit(destMap)">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a class="btn btn-app" @onclick="() => Remove(destMap)">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
                                 </td>
                             </tr>
                         }
@@ -206,7 +216,12 @@
                                     @destMap.ValueField
                                 </td>
                                 <td>
-                                    <button class="btn btn-default" @onclick="() => Remove(destMap)">-</button>
+                                    <a class="btn btn-app" @onclick="() => Edit(destMap)">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a class="btn btn-app" @onclick="() => Remove(destMap)">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
                                 </td>
                             </tr>
                         }

@@ -13,7 +13,7 @@ namespace Migration.Repository.Extensions
         /// <param name="source"></param>
         /// <param name="propertiesMap"></param>
         /// <returns></returns>
-        public static List<JObject> ApplyJoin(this Dictionary<string, string> destination, Dictionary<string, string> source, List<DataFieldsMapping> propertiesMap)
+        public static List<JObject> ApplyJoin(this Dictionary<string, string> destination, KeyValuePair<string, string> source, List<DataFieldsMapping> propertiesMap)
         {
             Func<JObject, JObject, bool> comparisonFunc = (d, s) =>
             {
@@ -48,7 +48,8 @@ namespace Migration.Repository.Extensions
                 return true;
             };
 
-            var listSource = source.Select(s => JObject.Parse(s.Value)).ToList();
+            var listSource = new List<JObject>() { JObject.Parse(source.Value) };
+
             var listDestination = destination.Select(s => JObject.Parse(s.Value)).ToList();
 
             return listDestination.Where(d => listSource.Any(s => comparisonFunc(d, s))).ToList();

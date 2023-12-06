@@ -54,5 +54,18 @@ namespace MigrationAdmin
         {
             await OnDataFieldsMappingEditing.InvokeAsync(dataFieldsMapping);
         }
+
+        public void AddCondition(List<SearchCondition> searchConditions)
+        {
+            searchConditions.Add(new SearchCondition()
+            {
+                Type = SearchConditionType.And
+            });
+        }
+
+        public void RemoveCondition(List<SearchCondition> searchConditions, SearchCondition searchCondition)
+        {
+            searchConditions.Remove(searchCondition);
+        }
     }
 }

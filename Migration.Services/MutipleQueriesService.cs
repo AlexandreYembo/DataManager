@@ -36,7 +36,8 @@ namespace Migration.Services
 
             foreach (var sourceData in source)
             {
-                dataSource.Add(dataMapping.Source.Settings.CurrentEntity, JObject.Parse(sourceData.Value));
+                var jsonObject = JObject.Parse(sourceData.Value);
+                dataSource.Add($"{dataMapping.Source.Settings.CurrentEntity}:{jsonObject["id"]}" , jsonObject);
 
                 var destination = await _genericRepository(dataMapping.Destination.Settings)
              .Get(dataMapping.Destination.Query, dataMapping.FieldsMapping, sourceData.Value, take);
@@ -47,13 +48,13 @@ namespace Migration.Services
                     //To avoid add duplicated record
                     if (!result.Values.Any(a => a.Any(a1 => destination.ContainsValue(a1.Data))))
 
-                        dataDestination.Add(dataMapping.Destination.Settings.CurrentEntity, destination.ApplyJoin(source, dataMapping.FieldsMapping));
+                        dataDestination.Add(dataMapping.Destination.Settings.CurrentEntity, destination.ApplyJoin(sourceData, dataMapping.FieldsMapping));
 
-                        result.Add($"{dataMapping.Source.Settings.CurrentEntity} - {sourceData.Key}", dataDestination.ToDynamicDataList(dataSource));
+                        result.Add($"{dataMapping.Source.Settings.CurrentEntity}:{sourceData.Key}", dataDestination.ToDynamicDataList(sourceData));
                 }
                 else
                 {
-                    result.Add(sourceData.Key, sourceData.ToDynamicDataList(DataType.Source));
+                    result.Add($"{dataMapping.Source.Settings.CurrentEntity}:{sourceData.Key}", dataSource.LastOrDefault().ToDynamicDataList(DataType.Source));
                 }
             }
 

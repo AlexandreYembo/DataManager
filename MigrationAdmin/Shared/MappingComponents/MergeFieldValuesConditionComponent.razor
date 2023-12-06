@@ -17,12 +17,12 @@
                             <th>Value Type</th>
                             <th>Source Condition</th>
                             <th>
-                                <button class="btn btn-success" @onclick="() => AddCondition(_dataFieldsMapping.SourceCondition)">+</button>
+                                    <button class="btn btn-success" @onclick="() => AddCondition(DataFieldsMapping.SourceCondition)">+</button>
                             </th>
                         </tr>
                         </thead>
                         <tbody>
-                        @foreach (var sourceCondition in _dataFieldsMapping.SourceCondition)
+                            @foreach (var sourceCondition in DataFieldsMapping.SourceCondition)
                         {
                             <tr>
                                 <td>
@@ -42,7 +42,7 @@
                                 <td>
                                     @if (sourceCondition.Type != null)
                                     {
-                                        <button class="btn btn-danger" @onclick="() => RemoveCondition(_dataFieldsMapping.SourceCondition, sourceCondition)">-</button>
+                                            <button class="btn btn-danger" @onclick="() => RemoveCondition(DataFieldsMapping.SourceCondition, sourceCondition)">-</button>
                                     }
                                 </td>
                             </tr>
@@ -55,43 +55,21 @@
         <div class="row">
             <div class="col-sm-12">
                 <div class="form-group">
-                    <label>Source</label>
-                    <input class="form-control" data-keeper-edited="yes" @bind="_dataFieldsMapping.SourceField" />
+                    <label>Source Field</label>
+                    <input class="form-control" data-keeper-edited="yes" @bind="DataFieldsMapping.SourceField" />
                 </div>
             </div>
         </div>
         <div class="row">
             <div class="col-sm-12">
                 <div class="form-group">
-                    <label>Destination</label>
-                    <input class="form-control" data-keeper-edited="yes" @bind="_dataFieldsMapping.DestinationField" />
+                    <label>Destination Field</label>
+                    <input class="form-control" data-keeper-edited="yes" @bind="DataFieldsMapping.DestinationField" />
                 </div>
             </div>
         </div>
     </div>
     <div class="card-footer">
-        <button class="btn btn-default" @onclick="async () => _dataFieldsMapping = await AddDataFieldsMapping(_dataFieldsMapping, MappingType.FieldValueMergeWithCondition)">Add</button>
+        <button class="btn btn-default" @onclick="async () => await AddDataFieldsMapping(DataFieldsMapping, MappingType.FieldValueMergeWithCondition)">Add</button>
     </div>
 </div>
-
-@code {
-    private DataFieldsMapping _dataFieldsMapping = new();
-
-    protected override void OnInitialized()
-    {
-        _dataFieldsMapping.SourceCondition.Add(new SearchCondition());
-    }
-
-    private void AddCondition(List<SearchCondition> searchConditions)
-    {
-        searchConditions.Add(new SearchCondition()
-            {
-                Type = SearchConditionType.And
-            });
-    }
-
-    private void RemoveCondition(List<SearchCondition> searchConditions, SearchCondition searchCondition)
-    {
-        searchConditions.Remove(searchCondition);
-    }
-}

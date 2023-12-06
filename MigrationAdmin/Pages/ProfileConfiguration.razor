@@ -9,183 +9,173 @@
 @inherits CustomComponents;
 @inject IJSRuntime jsRuntime
 @inject IQueryService _queryService;
-
-<div class="card card-info">
-    <div class="card-header">
-        <h3 class="card-title">Select the profile you want to edit</h3>
+<div class="card card-default card-tabs">
+    <div class="card-header p-0 pt-1">
+        <ul class="nav nav-tabs" id="custom-tabs-one-tab" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link @GetStep("active", 1)" id="custom-tabs-one-database-tab" role="tab" aria-controls="custom-tabs-one-database" aria-selected="true"><i class="nav-icon fas fa-database"></i> Database</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link  @GetStep("active", 2)" id="custom-tabs-one-sourceData-tab" role="tab" aria-controls="custom-tabs-one-sourceData" aria-selected="false"><i class="nav-icon fas fa-query"></i> Queries</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link  @GetStep("active", 3)" id="custom-tabs-one-mapping-tab" role="tab" aria-controls="custom-tabs-one-mapping" aria-selected="false"><i class="nav-icon fas fa-map"></i> Mapping</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link  @GetStep("active", 4)" id="custom-tabs-one-preview-tab" role="tab" aria-controls="custom-tabs-one-preview" aria-selected="false"><i class="nav-icon fas fa-list"></i> Summary</a>
+            </li>
+        </ul>
     </div>
     <div class="card-body">
-
-        <FileSelectorComponent Description="List of Profiles"
-                               Path="Profiles"
-                               OnFileLoadCallback="(json) => FileLoad(json)"></FileSelectorComponent>
-    </div>
-</div>
-
-<div class="card card-default">
-    <div class="card-header">
-        <h3 class="card-title">Configure your migration profile</h3>
-    </div>
-    <div class="card-body">
-        <div class="row">
-            <div class="col-sm-2">
-                <div class="form-group">
-                    <label>Profile Name</label>
-                    <input class="form-control" id="profileName" data-keeper-edited="yes" @bind="@Profile.Name" />
-                </div>
+        <div class="tab-content" id="custom-tabs-one-tabContent">
+            <div class="tab-pane fade  @GetStep("show active", 1)" id="custom-tabs-one-database" role="tabpanel" aria-labelledby="custom-tabs-one-database-tab">
+                <ConnectionConfigurationComponent>
+                </ConnectionConfigurationComponent>
             </div>
-            <div class="col-sm-6">
-                <div class="form-group">
-                    <label>Profile Description</label>
-                    <input class="form-control" id="profileDescription" data-keeper-edited="yes" @bind="@Profile.Description" />
-                </div>
+
+            <div class="tab-pane fade @GetStep("show active", 2)" id="custom-tabs-one-sourceData" role="tabpanel" aria-labelledby="custom-tabs-one-sourceData-tab">
+                <DataQueryComponent DataMapping="Profile.DataMappings[0]"
+                                    DataQueryMappingTypeChangedCallback="(dataType) => _dataQueryType = dataType"></DataQueryComponent>
             </div>
-        </div>
-        <div class="row">
-            <div class="col-sm-12">
-                <table id="dataResult" class="table table-bordered table-striped">
-                    <thead>
-                        <tr>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var mapping in Profile.DataMappings)
+
+            <div class="tab-pane fade @GetStep("show active", 3)" id="custom-tabs-one-mapping" role="tabpanel" aria-labelledby="custom-tabs-one-mapping-tab">
+                @if (_dataQueryType == DataQueryMappingType.UpdateAnotherCollection)
+                {
+                    <DataMappingDestinationComponent DataMapping="Profile.DataMappings[0]"
+                                                     OnDataMappingChanged="(mappingResult) => _ = mappingResult"></DataMappingDestinationComponent>
+                }
+                else
+                {
+                    <DataMappingSameTableComponent CommandsModel="Profile.DataMappings[0].Commands"></DataMappingSameTableComponent>
+                }
+            </div>
+            <div class="tab-pane fade @GetStep("show active", 4)" id="custom-tabs-one-preview" role="tabpanel" aria-labelledby="custom-tabs-one-preview-tab">
+                <div class="card card-default">
+                    <div class="card-header">
+                        <h3 class="card-title">Fields to Update</h3>
+                    </div>
+                    <div class="card-body">
+                        @if (_resultDataFromConfiguration != null)
                         {
-                            <tr>
-                                <td>
-                                    <DataQueryComponent DataQueryMappingTypeChangedCallback="(dataType) => _dataQueryType = dataType"></DataQueryComponent>
-
-                                    @if (_dataQueryType == DataQueryMappingType.UpdateAnotherCollection)
-                                    {
-                                        <DataMappingDestinationComponent DataMapping="mapping"
-                                                                 OnDataMappingChanged="(mappingResult) => _ = mappingResult"></DataMappingDestinationComponent>
-                                    }
-                                    else
-                                    {
-                                        <DataMappingSameTableComponent CommandsModel="mapping.Commands"></DataMappingSameTableComponent>
-                                    }
-                                </td>
-                            </tr>
+                            foreach (var data in _resultDataFromConfiguration)
+                            {
+                                <div class="row">
+                                    <div class="col-sm-1">
+                                        <button class="btn btn-default" @onclick="() => CompareChanges(data.Key)"> <i class="nav-icon fas fa-check-circle"></i> Compare Changes</button>
+                                    </div>
+                                    <div class="col-sm-11">
+                                        <div class="card collapsed-card">
+                                            <div class="card-header">
+                                                <h3 class="card-title"> @data.Key.Split(":").LastOrDefault()</h3>
+                                                <div class="card-tools">
+                                                    <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
+                                                        <i class="fas fa-plus"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                @foreach (var values in data.Value)
+                                                {
+                                                    <div class="row">
+                                                        <div class="col-sm-12">
+                                                            <div class="card collapsed-card">
+                                                                <div class="card-header">
+                                                                    <h3 class="card-title"> @values.Entity</h3>
+                                                                    <div class="card-tools">
+                                                                        <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
+                                                                            <i class="fas fa-plus"></i>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="card-body">
+                                                                    <div class="row">
+                                                                        <div class="col-sm-12">
+                                                                            @values.DataType
+                                                                        </div>
+                                                                        <div class="col-sm-10">
+                                                                            <pre>
+                                                                                @JValue.Parse(values.Data).ToString(Formatting.Indented) </pre>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
                         }
-                    </tbody>
-                </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+    <div class="card-footer">
+        <div class="row">
+            @if (_step > 1)
+            {
+                <div class="col-sm-1">
+                    <button class="btn btn-default" @onclick="() => Previous()"><i class="nav-icon fas fa-step-backward"></i> Previous</button>
+                </div>
+            }
+
+            @if (_step < 3)
+            {
+                <div class="col-sm-1">
+                    <button class="btn btn-default" @onclick="() => Next()"> <i class="nav-icon fas fa-step-forward"></i> Next</button>
+                </div>
+            }
+            else if (_step < 4)
+            {
+                <div class="col-sm-1">
+                    <button class="btn btn-default" @onclick="() => PreviewDataResult()"> <i class="nav-icon fas fa-forward"></i> Next</button>
+                </div>
+            }
+            else
+            {
+                <div class="col-sm-1">
+                    <button class="btn btn-default" @onclick="() => SaveFile()"> <i class="nav-icon fas fa-save"></i> Save Profile</button>
+                </div>
+            }
+        </div>
+    </div>
 </div>
+
+
 @if (Loading)
 {
     <div class="col-sm-12">
         <Loading />
     </div>
 }
-<div class="row">
-    <div class="col-sm-3">
-        <div class="form-group">
-            <button class="btn btn-success" @onclick="() => PreviewDataResult()"> Preview Data Result</button>
-        </div>
-    </div>
-    <div class="col-sm-3">
-        <div class="form-group">
-            <button class="btn btn-success" @onclick="() => CompareChanges()"> Compare the Changes</button>
-        </div>
-    </div>
-    <div class="col-sm-3">
-        <div class="form-group">
-            <button class="btn btn-warning" @onclick="() => SaveFile()"> Save Profile</button>
-        </div>
-    </div>
-</div>
 
-<div class="card card-default">
-    <div class="card-header">
-        <h3 class="card-title">Fields to Update</h3>
-    </div>
-    <div class="card-body">
-        <div class="row">
-            <table id="dataConfigurationResult" class="table">
-                <thead>
-                    <tr>
-                        <th>Source Id</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (_resultDataFromConfiguration != null)
-                    {
-                        foreach (var data in _resultDataFromConfiguration)
-                        {
-                            <tr>
-                                <td>
-                                    <div class="card collapsed-card">
-                                        <div class="card-header">
-                                            <h3 class="card-title">  @data.Key</h3>
-                                            <div class="card-tools">
-                                                <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
-                                                    <i class="fas fa-plus"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <div class="card-body">
-                                            <table id="data" class="table">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Entity</th>
-                                                        <th></th>
-                                                        <th>Data</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    @foreach (var values in data.Value)
-                                                    {
-                                                        <tr>
-                                                            <td>
-                                                                @values.Entity
-                                                            </td>
-                                                            <td>
-                                                                @values.DataType
-                                                            </td>
-                                                            <td>
-                                                                <pre>
-                                                                    @JValue.Parse(values.Data).ToString(Formatting.Indented) </pre>
-                                                            </td>
-                                                        </tr>
-                                                    }
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        }
-                    }
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
 
 @if (ShowModalSaveFiles)
 {
     <SaveFileConfirmationComponent Data="Profile"
-                               Folder="Profiles"
-                               ModalTitle="Save / Edit the Profile"
-                               TypeOfFile="Profile"
-                               OnConfirmation="() => FileSaved()">
+                                   Folder="Profiles"
+                                   ModalTitle="Save / Edit the Profile"
+                                   TypeOfFile="Profile"
+                                   OnConfirmation="() => FileSaved()">
     </SaveFileConfirmationComponent>
 }
 
 @if (_showModalDataDifference)
 {
     <DataDifferenceModal ShowModalScroll="true"
-                     Id="RecordId"
-                     ModalOk="ModalOk" DataDifferences="@DataDifference"
-                     IsLoading="Loading"></DataDifferenceModal>
+                         Id="RecordId"
+                         ModalOk="ModalOk" DataDifferences="@DataDifference"
+                         IsLoading="Loading"></DataDifferenceModal>
 }
 
 @code {
 
     private bool _showModalDataDifference;
+
+    private int _step = 1;
 
     private DataQueryMappingType _dataQueryType { get; set; }
 
@@ -201,14 +191,15 @@
             {
                 Id = 1,
                 FieldsMapping = new()
-                {
-                    new ()
-                }
+    {
+    new ()
+    }
             });
     }
 
     public async Task PreviewDataResult()
     {
+        _step++;
         Loading = true;
 
         try
@@ -223,7 +214,7 @@
         Loading = false;
     }
 
-    public async Task CompareChanges()
+    public async Task CompareChanges(string key)
     {
         _showModalDataDifference = true;
 
@@ -233,7 +224,7 @@
         {
             DataDifference = new();
 
-            foreach (var data in _resultDataFromConfiguration)
+            foreach (var data in _resultDataFromConfiguration.Where(w => w.Key == key))
             {
                 var differences = DifferencesMultipleDestinationsHelper.FindDifferences(Profile.DataMappings, data.Value);
 
@@ -254,7 +245,7 @@
     public Dictionary<TKey, TValue> ConcatMethod<TKey, TValue>(params Dictionary<TKey, TValue>[] dictionaries)
     {
         var mergedDictionary = dictionaries.Aggregate((dict1, dict2) =>
-            dict1.Concat(dict2).ToDictionary(kvp => kvp.Key, kvp => kvp.Value));
+        dict1.Concat(dict2).ToDictionary(kvp => kvp.Key, kvp => kvp.Value));
         return mergedDictionary;
     }
 
@@ -276,5 +267,23 @@
     public async Task ShowErrorAlert(string message)
     {
         await jsRuntime.InvokeAsync<object>("ShowErrorAlert", message);
+    }
+
+    private string GetStep(string showActive, int step)
+    {
+        if (_step == step)
+            return showActive;
+
+        return string.Empty;
+    }
+
+    private void Previous()
+    {
+        _step--;
+    }
+
+    private void Next()
+    {
+        _step++;
     }
 }

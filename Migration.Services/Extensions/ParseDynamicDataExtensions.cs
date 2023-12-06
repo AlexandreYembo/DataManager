@@ -15,28 +15,29 @@ namespace Migration.Services.Extensions
             }).ToList();
         }
 
-        public static List<DynamicData> ToDynamicDataList(this KeyValuePair<string, string> keyValue, DataType type = DataType.Source)
+        public static List<DynamicData> ToDynamicDataList(this KeyValuePair<string, JObject> keyValue, DataType type = DataType.Source)
         {
             return new List<DynamicData>()
             {
                 new()
                 {
-                    Id = keyValue.Key,
-                    Data = keyValue.Value,
-                    DataType = type
+                    Id = GetId(keyValue.Key),
+                    Data = keyValue.Value.ToString(),
+                    DataType = type,
+                    Entity = GetEntity(keyValue.Key)
                 }
             };
         }
 
-        public static List<DynamicData> ToDynamicDataList(this Dictionary<string, IEnumerable<JObject>> destination, Dictionary<string, JObject> source)
+        public static List<DynamicData> ToDynamicDataList(this Dictionary<string, IEnumerable<JObject>> destination, KeyValuePair<string, string> source)
         {
             List<DynamicData> result = new();
             result.Add(new DynamicData()
             {
-                Id = source.Values.FirstOrDefault()["id"].ToString(),
-                Data = source.Values.FirstOrDefault().ToString(),
+                Id = JObject.Parse(source.Value)["id"].ToString(),
+                Data = source.Value,
                 DataType = DataType.Source,
-                Entity = source.Keys.FirstOrDefault()
+                Entity = GetEntity(source.Key)
             });
 
             result.AddRange(destination.SelectMany(s => s.Value.Select((v => new DynamicData()
@@ -44,10 +45,19 @@ namespace Migration.Services.Extensions
                 Id = v["id"].ToString(),
                 Data = v.ToString(),
                 DataType = DataType.Destination,
-                Entity = s.Key
+                Entity = GetEntity(s.Key)
             }))).ToList());
 
             return result;
+        }
+        private static string? GetEntity(string key)
+        {
+            return key.Split(":").FirstOrDefault();
+        }
+
+        private static string? GetId(string key)
+        {
+            return key.Split(":").LastOrDefault();
         }
     }
 }
