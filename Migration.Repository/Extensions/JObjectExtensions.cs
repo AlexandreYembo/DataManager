@@ -34,26 +34,26 @@ namespace Migration.Repository.Extensions
 
             var split = condition.Split(new[] { "&&", "||" }, StringSplitOptions.RemoveEmptyEntries);
 
-            var conditionResults = split.Select(s => GetValueByType(data, s.Split("==").FirstOrDefault()) == s.Split("==").LastOrDefault());
+            var conditionResults = split.Select(s => data.GetValueByType(s.Split("==").FirstOrDefault()) == s.Split("==").LastOrDefault());
 
             return condition.Contains("||") ? conditionResults.Any(a => a) : conditionResults.All(a => a);
 
         }
 
-        private static string GetValueByType(JObject data, string value)
+        public static string GetValueByType(this JObject data, string path)
         {
-            switch (data.SelectToken(value).Type)
+            switch (data.SelectToken(path).Type)
             {
                 case JTokenType.Boolean:
-                    return data.SelectToken(value).Value<bool>().ToString().ToLower();
+                    return data.SelectToken(path).Value<bool>().ToString().ToLower();
                 case JTokenType.Float:
-                    return data.SelectToken(value).Value<decimal>().ToString();
+                    return data.SelectToken(path).Value<decimal>().ToString();
                 case JTokenType.Date:
-                    return data.SelectToken(value).Value<DateTime>().ToString();
+                    return data.SelectToken(path).Value<DateTime>().ToString();
                 case JTokenType.Integer:
-                    return data.SelectToken(value).Value<int>().ToString();
+                    return data.SelectToken(path).Value<int>().ToString();
                 default:
-                    return data.SelectToken(value).Value<string>();
+                    return "'" + data.SelectToken(path).Value<string>() + "'";
             }
         }
     }

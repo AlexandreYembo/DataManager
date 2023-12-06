@@ -11,7 +11,7 @@ namespace Migration.Services
     {
         //key is the primary key of the source table
         //values contains the list of Source and Destination tables when it applies
-        Task<Dictionary<string, List<DynamicData>>> Get(DataMapping dataMapping, int take);
+        Task<List<DynamicData>> Get(DataMapping dataMapping, int take);
     }
 
     public class MutipleQueriesService : IQueryService
@@ -23,41 +23,67 @@ namespace Migration.Services
             _genericRepository = genericRepository;
         }
 
-        public async Task<Dictionary<string, List<DynamicData>>> Get(DataMapping dataMapping, int take)
+        public async Task<List<DynamicData>> Get(DataMapping dataMapping, int take)
         {
-            Dictionary<string, List<DynamicData>> result = new();
-            var source = await _genericRepository(dataMapping.Source.Settings)
-                .Get(dataMapping.Source.Query);
+            Dictionary<string, string> listSourceData = new();
+            Dictionary<string, string> listDestinationData = new();
 
-            if (!source.Any())
-                return new();
-
-            Dictionary<string, JObject> dataSource = new();
-
-            foreach (var sourceData in source)
+            foreach (var sourceConfig in dataMapping.Source)
             {
-                dataSource.Add(dataMapping.Source.Settings.CurrentEntity, JObject.Parse(sourceData.Value));
+                var sourceFieldMappings = dataMapping.FieldsMapping.Where(w =>
+                    w.DestinationEntity == sourceConfig.Settings.CurrentEntity
+                    || w.SourceEntity == sourceConfig.Settings.CurrentEntity
+                    && w.JoinType == JoinType.BetweenSource).ToList();
 
-                var destination = await _genericRepository(dataMapping.Destination.Settings)
-             .Get(dataMapping.Destination.Query, dataMapping.FieldsMapping, sourceData.Value, take);
-
-                Dictionary<string, IEnumerable<JObject>> dataDestination = new();
-                if (destination.Any())
+                if (listSourceData.Count == 0)
                 {
-                    //To avoid add duplicated record
-                    if (!result.Values.Any(a => a.Any(a1 => destination.ContainsValue(a1.Data))))
+                    var source = await _genericRepository(sourceConfig.Settings).Get(sourceConfig.Query);
 
-                        dataDestination.Add(dataMapping.Destination.Settings.CurrentEntity, destination.ApplyJoin(source, dataMapping.FieldsMapping));
+                    if (!source.Any()) continue;
 
-                        result.Add($"{dataMapping.Source.Settings.CurrentEntity} - {sourceData.Key}", dataDestination.ToDynamicDataList(dataSource));
+                    listSourceData = ConcatMethod(listSourceData, source);
                 }
-                else
+                else if (sourceFieldMappings.Any() &&
+                         (listSourceData.Any(w => w.Key.Split(":").FirstOrDefault() == sourceFieldMappings.FirstOrDefault().SourceEntity)
+                          || listSourceData.Any(w => w.Key.Split(":").FirstOrDefault() == sourceFieldMappings.FirstOrDefault().DestinationEntity)))
                 {
-                    result.Add(sourceData.Key, sourceData.ToDynamicDataList(DataType.Source));
+                    var repository = _genericRepository(sourceConfig.Settings);
+
+                    foreach (var sourceData in listSourceData.Where(w => w.Key.Split(":").FirstOrDefault() == sourceConfig.Settings.CurrentEntity))
+                    {
+                        var source = await repository.Get(sourceConfig.Query, sourceFieldMappings, sourceData.Value, take);
+
+                        if (!source.Any()) continue;
+
+                        listSourceData = ConcatMethod(listSourceData, source);
+                    }
                 }
             }
 
+            foreach (var destinationConfig in dataMapping.Destination)
+            {
+                var destinationFieldMappings = dataMapping.FieldsMapping.Where(w =>
+                    w.DestinationEntity == destinationConfig.Settings.CurrentEntity
+                    && w.JoinType == JoinType.Destination).ToList();
+
+                if (destinationFieldMappings.Count == 0) continue;
+
+                var destination = await _genericRepository(destinationConfig.Settings)
+                    .Get(destinationConfig.Query, destinationFieldMappings, listSourceData, take);
+
+                listDestinationData = ConcatMethod(listDestinationData, destination);
+            }
+
+            var result = listSourceData.ToDynamicDataList(listDestinationData);
+
             return result;
+        }
+
+        private Dictionary<TKey, TValue> ConcatMethod<TKey, TValue>(params Dictionary<TKey, TValue>[] dictionaries)
+        {
+            var mergedDictionary = dictionaries.Aggregate((dict1, dict2) =>
+                dict1.Concat(dict2).ToDictionary(kvp => kvp.Key, kvp => kvp.Value));
+            return mergedDictionary;
         }
     }
 }

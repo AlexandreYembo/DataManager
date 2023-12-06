@@ -53,21 +53,20 @@
             </div>
         </div>
         <div class="row">
-            <div class="col-sm-12">
+            <div class="col-sm-6">
                 <div class="form-group">
                     <label>Source</label>
                     <input class="form-control" data-keeper-edited="yes" @bind="_dataFieldsMapping.SourceField" />
                 </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col-sm-12">
+            <div class="col-sm-6">
                 <div class="form-group">
                     <label>Destination</label>
                     <input class="form-control" data-keeper-edited="yes" @bind="_dataFieldsMapping.DestinationField" />
                 </div>
             </div>
         </div>
+        
     </div>
     <div class="card-footer">
         <button class="btn btn-default" @onclick="async () => _dataFieldsMapping = await AddDataFieldsMapping(_dataFieldsMapping, MappingType.FieldValueMergeWithCondition)">Add</button>

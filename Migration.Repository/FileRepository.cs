@@ -9,9 +9,12 @@ namespace Migration.Repository
     {
         private readonly string _fileName;
 
+        private readonly DataSettings _settings;
+
         public FileRepository(DataSettings settings)
         {
             _fileName = settings.GetFileName();
+            _settings = settings;
         }
 
         public async Task<Dictionary<string, string>> Get(string query)
@@ -28,7 +31,7 @@ namespace Migration.Repository
                 foreach (var jToken in array.AsQueryable().AsEnumerable().Where(CreateFilterFunction(filterExpression)))
                 {
                     var value = ((JValue)jToken["id"]).Value;
-                    dictionary[value.ToString()] = jToken.ToString(); ;
+                    dictionary[$"{_settings.CurrentEntity}:{value}"] = jToken.ToString(); ;
                 }
             }
             else if (text.StartsWith("{") && text.EndsWith("}")) // Is valid object
@@ -36,7 +39,7 @@ namespace Migration.Repository
                 var jObject = JObject.Parse(text);
 
                 var value = ((JValue)jObject["id"]).Value;
-                dictionary[value.ToString()] = jObject.ToString();
+                dictionary[$"{_settings.CurrentEntity}:{value}"] = jObject.ToString();
             }
 
             return dictionary;
@@ -67,6 +70,11 @@ namespace Migration.Repository
         }
 
         public Task<Dictionary<string, string>> Get(string rawQuery, List<DataFieldsMapping> fieldMappings, string data, int take)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<Dictionary<string, string>> Get(string rawQuery, List<DataFieldsMapping> fieldMappings, Dictionary<string, string> data, int take)
         {
             throw new NotImplementedException();
         }

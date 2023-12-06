@@ -6,17 +6,15 @@ namespace Migration.Repository.Models
     {
         public string? Name { get; set; }
         public string? Description { get; set; }
-        public List<DataMapping> DataMappings { get; set; } = new();
+        public DataMapping DataMapping { get; set; } = new();
     }
 
     public class DataMapping
     {
-        public AggregateData Source { get; set; } = new();
-        public AggregateData Destination { get; set; } = new();
+        public List<AggregateData> Source { get; set; } = new();
+        public List<AggregateData> Destination { get; set; } = new();
         public List<CommandModel> Commands { get; set; } = new();
         public List<DataFieldsMapping> FieldsMapping { get; set; } = new();
-
-        public int Id { get; set; }
     }
 
     /// <summary>
@@ -26,12 +24,16 @@ namespace Migration.Repository.Models
     {
         public DataSettings Settings { get; set; } = new();
         public string? Query { get; set; }
+        public OperationType OperationType { get; set; }
     }
 
     public class DataFieldsMapping
     {
+        public string SourceEntity { get; set; }
+        public string DestinationEntity { get; set; }
         public MappingType MappingType { get; set; }
         public OperatorType? OperatorType { get; set; }
+        public JoinType? JoinType { get; set; }
         public string? SourceField { get; set; }
         public string? DestinationField { get; set; }
         public FieldValueType? ValueType { get; set; }
@@ -63,11 +65,25 @@ namespace Migration.Repository.Models
         FieldValueMergeWithCondition
     }
 
+    public enum OperationType
+    {
+        Insert,
+        Update,
+    }
+
     public enum OperatorType
     {
         ArrayContains,
         In,
         Eq,
+        EqAnd,
+        EqOr,
+    }
+
+    public enum JoinType
+    {
+       BetweenSource,
+       Destination
     }
 
     public enum SearchConditionType

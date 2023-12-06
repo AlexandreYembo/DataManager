@@ -8,12 +8,11 @@ namespace Migration.Services.Helpers
 {
     public static class DifferencesMultipleDestinationsHelper
     {
-        public static Dictionary<string, List<Difference>> FindDifferences(List<DataMapping> dataMappings, List<DynamicData> data)
+        public static Dictionary<string, List<Difference>> FindDifferences(DataMapping dataMapping, List<DynamicData> data)
         {
             Dictionary<string, List<Difference>> result = new();
 
-            var mappingMergeFields = dataMappings
-                .SelectMany(s => s.FieldsMapping)
+            var mappingMergeFields = dataMapping.FieldsMapping
                 .Where(w => w.MappingType != MappingType.TableJoin).ToList();
 
             if (!mappingMergeFields.Any()) return new();
@@ -25,49 +24,74 @@ namespace Migration.Services.Helpers
             {
                 var sourceObj = JObject.Parse(s.Data);
 
-                foreach (var d in destination)
+                if (dataMapping.Destination.Any(f => f.OperationType == OperationType.Insert))
                 {
-                    bool hasChange = false;
+                    string json = "{}";
+                    var jObject = JObject.Parse(json);
 
-                    var originalData = JObject.Parse(d.Data);
-                    var objectToBeUpdated = JObject.Parse(d.Data);
-
-                    foreach (var mappingMergeField in mappingMergeFields)
+                    jObject["id"] = Guid.NewGuid();
+                    var newRecord = new DynamicData()
                     {
-                        if (mappingMergeField.MappingType == MappingType.FieldValueMergeWithCondition || mappingMergeField.MappingType == MappingType.ValueWithCondition)
-                        {
-                            var meetCriteria = sourceObj.MeetCriteriaSearch(mappingMergeField.SourceCondition.Select(s => s));
+                        Data = jObject.ToString()
+                    };
 
-                            if (meetCriteria)
-                            {
-                                var fieldsArr = mappingMergeField.DestinationField.Split(".").ToList();
-
-                                var value = mappingMergeField.MappingType == MappingType.ValueWithCondition
-                                    ? MapFieldTypes.GetType(mappingMergeField)
-                                    : JObjectHelper.GetValueFromObject(sourceObj,  mappingMergeField.SourceField.Split(".").ToList());
-
-                                objectToBeUpdated = JObjectHelper.GetObject(objectToBeUpdated, fieldsArr, value);
-                                hasChange = true;
-                            }
-                        }
-                        else
-                        {
-                            var valueFromSource = JObjectHelper.GetValueFromObject(sourceObj,  mappingMergeField.SourceField.Split(".").ToList());
-
-                            var fieldsFromDestinationArr = mappingMergeField.DestinationField.Split(".").ToList();
-
-                            objectToBeUpdated = JObjectHelper.GetObject(objectToBeUpdated, fieldsFromDestinationArr, valueFromSource);
-                            hasChange = true;
-                        }
-                    }
-
-                    if (!hasChange) continue;
-
+                    if (!UpdatingObject(newRecord, mappingMergeFields, sourceObj, out var originalData, out var objectToBeUpdated)) continue;
                     result.Add(originalData["id"].ToString(), DifferenceHelper.FindDifferences(originalData, objectToBeUpdated));
+                }
+                else
+                {
+                    foreach (var d in destination)
+                    {
+                        if (!UpdatingObject(d, mappingMergeFields, sourceObj, out var originalData, out var objectToBeUpdated)) continue;
+
+                        result.Add(originalData["id"].ToString(), DifferenceHelper.FindDifferences(originalData, objectToBeUpdated));
+                    }
                 }
             }
 
             return result;
+        }
+
+        private static bool UpdatingObject(DynamicData d, List<DataFieldsMapping> mappingMergeFields, JObject sourceObj, out JObject originalData,
+            out JObject objectToBeUpdated)
+        {
+            bool hasChange = false;
+
+            originalData = JObject.Parse(d.Data);
+            objectToBeUpdated = JObject.Parse(d.Data);
+
+            foreach (var mappingMergeField in mappingMergeFields)
+            {
+                if (mappingMergeField.MappingType == MappingType.FieldValueMergeWithCondition ||
+                    mappingMergeField.MappingType == MappingType.ValueWithCondition)
+                {
+                    var meetCriteria = sourceObj.MeetCriteriaSearch(mappingMergeField.SourceCondition.Select(s => s));
+
+                    if (meetCriteria)
+                    {
+                        var fieldsArr = mappingMergeField.DestinationField.Split(".").ToList();
+
+                        var value = mappingMergeField.MappingType == MappingType.ValueWithCondition
+                            ? MapFieldTypes.GetType(mappingMergeField)
+                            : JObjectHelper.GetValueFromObject(sourceObj, mappingMergeField.SourceField.Split(".").ToList());
+
+                        objectToBeUpdated = JObjectHelper.GetObject(objectToBeUpdated, fieldsArr, value);
+                        hasChange = true;
+                    }
+                }
+                else
+                {
+                    var valueFromSource =
+                        JObjectHelper.GetValueFromObject(sourceObj, mappingMergeField.SourceField.Split(".").ToList());
+
+                    var fieldsFromDestinationArr = mappingMergeField.DestinationField.Split(".").ToList();
+
+                    objectToBeUpdated = JObjectHelper.GetObject(objectToBeUpdated, fieldsFromDestinationArr, valueFromSource);
+                    hasChange = true;
+                }
+            }
+
+            return hasChange;
         }
     }
 }

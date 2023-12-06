@@ -1,37 +1,13 @@
 ﻿@using Migration.Repository.Models
-@using Migration.Repository
 @inject IJSRuntime jsRuntime
-
-<div class="card card-default">
-    <div class="card-header">
-        <h3 class="card-title">Select your Source</h3>
-    </div>
-    <div class="card-body">
-        <DatabaseSelectorComponent DataSettings="DataMapping.Source.Settings" OnDbSettingsChanged="(sourceDbSettings) => AddSourceDbSettings(sourceDbSettings)">
-        </DatabaseSelectorComponent>
-        <QueryFieldComponent Query="@DataMapping.Source.Query" OnQueryAdded="async (query) => await AddSourceQuery(query)">
-        </QueryFieldComponent>
-    </div>
-</div>
-<div class="card card-default">
-    <div class="card-header">
-        <h3 class="card-title">Select your Destination</h3>
-    </div>
-    <div class="card-body">
-        <DatabaseSelectorComponent DataSettings="DataMapping.Destination.Settings" OnDbSettingsChanged="(destinationDbSettings) => AddDestinationDbSettings(destinationDbSettings)">
-        </DatabaseSelectorComponent>
-        <QueryFieldComponent Query="@DataMapping.Destination.Query" OnQueryAdded="async (query) => await AddDestinationQuery(query)">
-        </QueryFieldComponent>
-    </div>
-</div>
 <div class="card card-default">
     <div class="card-header">
         <h3 class="card-title">Mapping configuration</h3>
     </div>
     <div class="card-body">
         <div class="row">
-            <div class="col-lg-1">
-                <label>Operator Type</label>
+            <div class="col-sm-6">
+                <label>Mapping Type</label>
                 <select class="form-control" data-keeper-edited="yes" value="@_dataFieldsMapping.MappingType" @onchange="ChangeMappingType">
                     @foreach (var mappingType in Enum.GetValues<MappingType>())
                     {
@@ -39,17 +15,28 @@
                     }
                 </select>
             </div>
-            </div>
+            @* <div class="col-lg-6">
+            <label>Operation Type</label>
+            <select class="form-control" data-keeper-edited="yes" value="@DataMapping.Destination.OperationType" @onchange="ChangeOperationType">
+            @foreach (var mappingType in Enum.GetValues<OperationType>())
+            {
+            <option value="@mappingType">@mappingType</option>
+            }
+            </select>
+            </div> *@
+        </div>
         <div class="row">
-            <div class="col-lg-4">
+            <div class="col-sm-12">
                 @switch (_dataFieldsMapping.MappingType)
                 {
                     case MappingType.TableJoin:
                         <TableJoinComponent OnDataFieldsMappingUpdated="(dataFieldMapping) => AddFieldsMapping(dataFieldMapping)"
+                                            DataMapping="DataMapping"
                                             DataFieldsMapping="_dataFieldsMapping"></TableJoinComponent>
                         break;
                     case MappingType.FieldValueMerge:
-                        <MergeFieldsComponent OnDataFieldsMappingUpdated="(dataFieldMapping) => AddFieldsMapping(dataFieldMapping)"></MergeFieldsComponent>
+                        <MergeFieldsComponent OnDataFieldsMappingUpdated="(dataFieldMapping) => AddFieldsMapping(dataFieldMapping)"
+                                              DataMapping="DataMapping"></MergeFieldsComponent>
                         break;
                     case MappingType.FieldValueMergeWithCondition:
                         <MergeFieldValuesConditionComponent OnDataFieldsMappingUpdated="(dataFieldMapping) =>AddFieldsMapping(dataFieldMapping)"></MergeFieldValuesConditionComponent>
@@ -57,9 +44,11 @@
                     case MappingType.ValueWithCondition:
                         <UpdateValueConditionComponent OnDataFieldsMappingUpdated="(dataFieldMapping) => AddFieldsMapping(dataFieldMapping)"></UpdateValueConditionComponent>
                         break;
-                }   
+                }
             </div>
-            <div class="col-lg-8">
+        </div>
+        <div class="row">
+            <div class="col-sm-12">
                 <MappingListComponent DataMapping="DataMapping"
                                       OnDataFieldsMappingEditing="(dataFieldsMapping) => _dataFieldsMapping = dataFieldsMapping "></MappingListComponent>
             </div>
@@ -88,38 +77,6 @@
     private string _querySource;
     private string _queryDestination;
 
-    private void AddSourceDbSettings(DataSettings sourceSettings)
-    {
-        if (DataMapping.Source == null) DataMapping.Source = new();
-
-        DataMapping.Source.Settings = sourceSettings;
-    }
-
-    private void AddDestinationDbSettings(DataSettings destinationSettings)
-    {
-        if (DataMapping.Destination == null) DataMapping.Destination = new();
-
-        DataMapping.Destination.Settings = destinationSettings;
-    }
-
-    private async Task AddSourceQuery(string query)
-    {
-        await ShowSuccessAlert("Source Query added");
-
-        if (DataMapping.Source == null) DataMapping.Source = new();
-
-        DataMapping.Source.Query = query;
-    }
-
-    private async Task AddDestinationQuery(string query)
-    {
-        await ShowSuccessAlert("Destination Query added");
-
-        if (DataMapping.Destination == null) DataMapping.Destination = new();
-
-        DataMapping.Destination.Query = query;
-    }
-
     private async Task AddMapping()
     {
         await ShowSuccessAlert("Mapping added");
@@ -129,8 +86,12 @@
 
     private void ChangeMappingType(ChangeEventArgs e)
     {
-        _dataFieldsMapping = new();
         _dataFieldsMapping.MappingType = Enum.Parse<MappingType>(e.Value.ToString());
+    }
+
+    private void ChangeOperationType(ChangeEventArgs e)
+    {
+        //     DataMapping.Destination.OperationType = Enum.Parse<OperationType>(e.Value.ToString());
     }
 
     private async Task ShowSuccessAlert(string message)

@@ -56,7 +56,8 @@ namespace Migration.Infrastructure.CosmosDb
                         JToken jToken = JToken.FromObject(record);
 
                         var value = ((JValue)jToken["id"]).Value;
-                        dictionary[value.ToString()] = jToken.ToString(); ;
+                        var entityId = container.Id;
+                        dictionary[$"{entityId}:{value}"] = jToken.ToString();
                     }
                 }
             }
@@ -86,7 +87,39 @@ namespace Migration.Infrastructure.CosmosDb
                         JToken jToken = JToken.FromObject(record);
 
                         var value = ((JValue)jToken["id"]).Value;
-                        dictionary[value.ToString()] = jToken.ToString(); ;
+                        var entityId = container.Id;
+                        dictionary[$"{entityId}:{value}"] = jToken.ToString();
+                    }
+                }
+            }
+
+            return dictionary;
+        }
+
+        public async Task<Dictionary<string, string>> Get(string rawQuery, List<DataFieldsMapping> fieldMappings, Dictionary<string, string> data, int take)
+        {
+            var query = QueryBuilder.BuildFromMultipleSources(rawQuery, fieldMappings, data, take);
+
+            Dictionary<string, string> dictionary = new();
+
+            using FeedIterator<dynamic> feedIterator = container.GetItemQueryIterator<dynamic>(query);
+
+            var nextResult = true;
+            while (nextResult)
+            {
+                var responseRecord = await feedIterator.ReadNextAsync();
+
+                nextResult = responseRecord.Count > 0;
+
+                if (nextResult)
+                {
+                    foreach (var record in responseRecord.ToList())
+                    {
+                        JToken jToken = JToken.FromObject(record);
+
+                        var value = ((JValue)jToken["id"]).Value;
+                        var entityId = container.Id;
+                        dictionary[$"{entityId}:{value}"] = jToken.ToString();
                     }
                 }
             }

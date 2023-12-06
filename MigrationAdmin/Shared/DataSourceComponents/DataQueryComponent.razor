@@ -1,24 +1,72 @@
 ﻿@using MigrationAdmin.Models
-<div class="card card-info">
+@using Migration.Repository.Models
+@using Migration.Repository
+@inject IJSRuntime jsRuntime
+
+<div class="card card-default">
     <div class="card-header">
-        <h3 class="card-title">Configure your source: </h3>
+        <h3 class="card-title">@Title </h3>
         <div class="card-tools">
             <button type="button" class="btn btn-tool" data-card-widget="collapse">
                 <i class="fas fa-minus"></i>
             </button>
         </div>
     </div>
-    <div class="card-body" style="display: block;">
+</div>
+
+<div class="card card-default">
+    <div class="card-header">
+        <h3 class="card-title">Select your Source</h3>
+    </div>
+    <div class="card-body">
+        <DatabaseSelectorComponent DataSettings="_aggregateData.Settings" OnDbSettingsChanged="(sourceDbSettings) => AddDataSettings(sourceDbSettings)">
+        </DatabaseSelectorComponent>
         <div class="row">
-            <div class="col-sm-2">
+            <div class="col-sm-9">
                 <div class="form-group">
-                    <label>Select what type of mapping do you want to apply to the destination</label>
-                    <select class="form-control" id="dataqueryMappingType" data-keeper-edited="yes" @onchange="ChangeDataQueryMappingType">
-                        @foreach (var type in _dataQueryMappingType)
-                        {
-                            <option value="@type.Value">@type.Key</option>
-                        }
-                    </select>
+                    <label>Query (Format: select c.Field1,c.Field2,c.Field3,c.Field4 from c where c.Field1 = value) or (select * from c where c.Field1 = value)</label>
+                    <input class="form-control" id="query" data-keeper-edited="yes" @bind="_aggregateData.Query" />
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <div class="form-group">
+                    <button class="btn btn-default" @onclick="() => AddData()"><i class="nav-icon fas fa-plus"></i> Add</button>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="form-group">
+                    <table class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th>Entity</th>
+                                <th>Query</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var data in _listAggregateData)
+                            {
+                                <tr>
+                                    <td>
+                                        @data.Settings.CurrentEntity
+                                    </td>
+                                    <td>
+                                        @data.Query
+                                    </td>
+                                    <td>
+                                        <a class="btn btn-app" @onclick="() => Edit(data)">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a class="btn btn-app" @onclick="() => Remove(data)">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -26,25 +74,113 @@
 </div>
 
 @code {
-    [Parameter]
-    public EventCallback<DataQueryMappingType> DataQueryMappingTypeChangedCallback { get; set; }
+    // [Parameter]
+    // public DataMapping DataMapping { get; set; } = new();
 
     [Parameter]
-    public DataQueryMappingType DataQueryType { get; set; }
+    public string Title { get; set; }
 
-    private Dictionary<string, DataQueryMappingType> _dataQueryMappingType = new()
+    // [Parameter]
+    // public EventCallback<DataMapping> OnDataMappingChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<AggregateData> OnAggregateDataAdded { get; set; }
+
+    private bool _editing;
+
+    private AggregateData _aggregateData = new();
+    private List<AggregateData> _listAggregateData = new();
+
+    private async Task AddData()
     {
-    {"Update the same collection", DataQueryMappingType.UpdateSameCollection},
-    {"Update another collection", DataQueryMappingType.UpdateAnotherCollection}
-    };
+        if (!_editing && _listAggregateData.Any(a => a.Settings.CurrentEntity == _aggregateData.Settings.CurrentEntity))
+        {
+            await ShowErrorAlert("There is already the same entity added");
+            return;
+        }
 
-    public async Task ChangeDataQueryMappingType(ChangeEventArgs e)
-    {
-        if (e.Value == null) return;
+        _listAggregateData.Remove(_aggregateData);
+        _listAggregateData.Add(_aggregateData);
 
-        if (Enum.TryParse<DataQueryMappingType>(e.Value.ToString(), out var value))
-            DataQueryType = value;
+        await OnAggregateDataAdded.InvokeAsync(_aggregateData);
 
-        await DataQueryMappingTypeChangedCallback.InvokeAsync(DataQueryType);
+        _aggregateData = new AggregateData()
+            {
+                Settings = _aggregateData.Settings
+            };
+
+        _editing = false;
     }
+
+    // private void AddSourceDbSettings(DataSettings sourceSettings)
+    // {
+    //     if (DataMapping.Source == null) DataMapping.Source = new();
+
+    //     DataMapping.Source.Settings = sourceSettings;
+    // }
+
+    // private void AddDestinationDbSettings(DataSettings destinationSettings)
+    // {
+    //     if (DataMapping.Destination == null) DataMapping.Destination = new();
+
+    //     DataMapping.Destination.Settings = destinationSettings;
+    // }
+
+    // private async Task AddSourceQuery(string query)
+    // {
+    //     await ShowSuccessAlert("Source Query added");
+
+    //     if (DataMapping.Source == null) DataMapping.Source = new();
+
+    //     DataMapping.Source.Query = query;
+    // }
+
+    // private async Task AddDestinationQuery(string query)
+    // {
+    //     await ShowSuccessAlert("Destination Query added");
+
+    //     if (DataMapping.Destination == null) DataMapping.Destination = new();
+
+    //     DataMapping.Destination.Query = query;
+    // }
+
+    // private async Task AddMapping()
+    // {
+    //     await ShowSuccessAlert("Mapping added");
+
+    //     await OnDataMappingChanged.InvokeAsync(DataMapping);
+    // }
+
+    // private void ChangeOperationType(ChangeEventArgs e)
+    // {
+    //     DataMapping.Destination.OperationType = Enum.Parse<OperationType>(e.Value.ToString());
+    // }
+
+    private async Task ShowSuccessAlert(string message)
+    {
+        await jsRuntime.InvokeAsync<object>("ShowSuccessAlert", message);
+    }
+
+    private async Task ShowErrorAlert(string message)
+    {
+        await jsRuntime.InvokeAsync<object>("ShowErrorAlert", message);
+    }
+
+    private void AddDataSettings(DataSettings dataSettings)
+    {
+        _aggregateData.Settings = dataSettings;
+    }
+
+    private void Edit(AggregateData data)
+    {
+        _editing = true;
+        _aggregateData = data;
+    }
+
+    private void Remove(AggregateData data)
+    {
+        _editing = false;
+        _listAggregateData.Remove(data);
+    }
+
 }

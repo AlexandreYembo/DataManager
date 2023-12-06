@@ -65,7 +65,11 @@
         {
             _connectionStrings = data.ToDictionary(k => k.FullName, v => v.FullName);
             DataSettings = data.FirstOrDefault();
-            _connectionName = DataSettings.Name;
+            _connectionName = DataSettings.FullName;
+
+            DataSettings.CurrentEntity = DataSettings.Entities.FirstOrDefault();
+
+            await OnDbSettingsChanged.InvokeAsync(DataSettings);
         }
     }
 

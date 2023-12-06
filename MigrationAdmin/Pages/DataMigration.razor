@@ -43,7 +43,7 @@
                     </tr>
                     </thead>
                     <tbody>
-                    @foreach (var dataMapping in _dataMappings)
+                  @*   @foreach (var dataMapping in _dataMappings)
                     {
                         <tr>
                             <td>
@@ -79,11 +79,8 @@
                                     </tbody>
                                 </table>
                             </td>
-                            @* <div>
-                                    <button class="btn btn-success" @onclick="() => PreviewChanges(dataMapping)">Preview 5 records displayed</button>
-                                </div>*@
                         </tr>
-                    }
+                    } *@
                     </tbody>
                 </table>
             </div>
@@ -103,7 +100,7 @@
         if (string.IsNullOrEmpty(json)) return;
 
         var result = JsonConvert.DeserializeObject<Profile>(json);
-        _dataMappings = result.DataMappings;
+      //  _dataMappings = result.DataMappings;
 
         await InvokeAsync(StateHasChanged);
     }

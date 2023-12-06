@@ -8,17 +8,45 @@
     </div>
     <div class="card-body">
         <div class="row">
-            <div class="col-sm-12">
+            <div class="col-sm-2">
                 <div class="form-group">
-                    <label>Source</label>
+                    <label>Source Entity</label>
+                    <select class="form-control" id="container" data-keeper-edited="yes" value="@_dataFieldsMapping.SourceEntity" @onchange="ChangeEntity">
+                        @if (DataMapping.Source != null && DataMapping.Source.Any())
+                        {
+                            @foreach (var entity in DataMapping.Source.Select(s => s.Settings.CurrentEntity))
+                            {
+                                <option value="@entity">@entity</option>
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="col-sm-10">
+                <div class="form-group">
+                    <label>Source Field</label>
                     <input class="form-control" data-keeper-edited="yes" @bind="_dataFieldsMapping.SourceField" />
                 </div>
             </div>
         </div>
         <div class="row">
-            <div class="col-sm-12">
+            <div class="col-sm-2">
                 <div class="form-group">
-                    <label>Destination</label>
+                    <label>Destination Entity</label>
+                    <select class="form-control" id="container" data-keeper-edited="yes" value="@_dataFieldsMapping.DestinationEntity" @onchange="ChangeEntity">
+                        @if (DataMapping.Destination != null && DataMapping.Destination.Any())
+                        {
+                            @foreach (var entity in DataMapping.Destination.Select(s => s.Settings.CurrentEntity))
+                            {
+                                <option value="@entity">@entity</option>
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="col-sm-10">
+                <div class="form-group">
+                    <label>Destination Field</label>
                     <input class="form-control" data-keeper-edited="yes" @bind="_dataFieldsMapping.DestinationField" />
                 </div>
             </div>
@@ -31,4 +59,15 @@
 
 @code {
     private DataFieldsMapping _dataFieldsMapping = new();
+
+    [Parameter]
+    public DataMapping DataMapping { get; set; } = new();
+
+    private void ChangeEntity(ChangeEventArgs obj)
+    {
+        if (obj.Value != null)
+        {
+            _dataFieldsMapping.SourceEntity = obj.Value.ToString();
+        }
+    }
 }

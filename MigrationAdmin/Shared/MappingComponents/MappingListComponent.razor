@@ -225,4 +225,13 @@
     {
         DataMapping.FieldsMapping.Remove(dataFieldsMapping);
     }
+
+    private void Add(MappingType mappingType)
+    {
+        DataMapping.FieldsMapping.Add(new DataFieldsMapping()
+        {
+                MappingType = mappingType
+        });
+    }
+
 }

@@ -8,7 +8,7 @@
     </div>
     <div class="card-body">
         <div class="row">
-            <div class="col-sm-12">
+            <div class="col-sm-2">
                 <div class="form-group">
                     <label>Operator Type</label>
                     <select class="form-control" data-keeper-edited="yes" @bind="DataFieldsMapping.OperatorType">
@@ -19,20 +19,70 @@
                     </select>
                 </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col-sm-12">
+            <div class="col-sm-2">
                 <div class="form-group">
-                    <label>Source</label>
-                    <input class="form-control" data-keeper-edited="yes" @bind="DataFieldsMapping.SourceField" />
+                    <label>Join Type</label>
+                    <select class="form-control" data-keeper-edited="yes" @bind="DataFieldsMapping.JoinType">
+                        @foreach (var joinType in Enum.GetValues<JoinType>())
+                        {
+                            <option value="@joinType">@joinType</option>
+                        }
+                    </select>
                 </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col-sm-12">
+            <div class="col-sm-2">
+                <div class="form-group">
+                    <label>Source Entity</label>
+                    <select class="form-control" id="container" data-keeper-edited="yes" value="@DataFieldsMapping.SourceEntity" @onchange="ChangeSourceEntity">
+                        @if (DataMapping.Source != null && DataMapping.Source.Any())
+                        {
+                            @foreach (var entity in DataMapping.Source.Select(s => s.Settings.CurrentEntity))
+                            {
+                                <option value="@entity">@entity</option>
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <div class="form-group">
+                    <label>Source</label>
+                    <input class="form-control" data-keeper-edited="yes" @bind="DataFieldsMapping.SourceField"/>
+                </div>
+            </div>
+            <div class="col-sm-2">
+                <div class="form-group">
+                    <label>Destination Entity</label>
+                    @if (DataFieldsMapping.JoinType == JoinType.Destination)
+                    {
+                        <select class="form-control" id="container" data-keeper-edited="yes" value="@DataFieldsMapping.DestinationEntity" @onchange="ChangeDestinationEntity">
+                            @if (DataMapping.Destination != null && DataMapping.Destination.Any())
+                            {
+                                @foreach (var entity in DataMapping.Destination.Select(s => s.Settings.CurrentEntity))
+                                {
+                                    <option value="@entity">@entity</option>
+                                }
+                            }
+                        </select>
+                    }
+                    else
+                    {
+                        <select class="form-control" id="container" data-keeper-edited="yes" value="@DataFieldsMapping.DestinationEntity" @onchange="ChangeDestinationEntity">
+                            @if (DataMapping.Source != null && DataMapping.Source.Any())
+                            {
+                                @foreach (var entity in DataMapping.Source.Select(s => s.Settings.CurrentEntity))
+                                {
+                                    <option value="@entity">@entity</option>
+                                }
+                            }
+                        </select>
+                    }
+                </div>
+            </div>
+            <div class="col-sm-3">
                 <div class="form-group">
                     <label>Destination</label>
-                    <input class="form-control" data-keeper-edited="yes" @bind="DataFieldsMapping.DestinationField" />
+                    <input class="form-control" data-keeper-edited="yes" @bind="DataFieldsMapping.DestinationField"/>
                 </div>
             </div>
         </div>
@@ -41,3 +91,25 @@
         <button class="btn btn-default" @onclick="async () => await AddDataFieldsMapping(DataFieldsMapping, MappingType.TableJoin)">Add</button>
     </div>
 </div>
+
+@code
+{
+    [Parameter]
+    public DataMapping DataMapping { get; set; } = new();
+
+    private void ChangeSourceEntity(ChangeEventArgs obj)
+    {
+        if (obj.Value != null)
+        {
+            DataFieldsMapping.SourceEntity = obj.Value.ToString();
+        }
+    }
+
+    private void ChangeDestinationEntity(ChangeEventArgs obj)
+    {
+        if (obj.Value != null)
+        {
+            DataFieldsMapping.DestinationEntity = obj.Value.ToString();
+        }
+    }
+}
