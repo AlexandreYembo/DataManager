@@ -1,9 +1,12 @@
 ﻿@using Microsoft.AspNetCore.Components
+@using Migration.Infrastructure.Redis
+@using Migration.Infrastructure.Redis.Entities
 @using Migration.Repository
 @using InputFile = Microsoft.AspNetCore.Components.Forms.InputFile
 @inherits CustomComponents
 @inject Func<DataSettings, ITestConnection> _testConnection;
-@inject IStorage<DataSettings> _storageDbSettings;
+@inject IRepository<DataSettings> _redis;
+
 <div class="card card-default">
     <div class="card-header">
         <h3 class="card-title">Configure a new connection string</h3>
@@ -78,13 +81,13 @@
                                 {
                                     <label class="custom-file-label">Choose file</label>
                                 }
-                                </div>
-                                <div class="input-group-append">
-                                    <button class="btn btn-default" @onclick="HandleFileUpload">Upload</button>
-                                </div>
+                            </div>
+                            <div class="input-group-append">
+                                <button class="btn btn-default" @onclick="HandleFileUpload">Upload</button>
                             </div>
                         </div>
                     </div>
+                </div>
             }
             else
             {
@@ -127,7 +130,7 @@
     public DataSettings DataSettings { get; set; } = new();
 
     [Parameter]
-    public EventCallback<DataSettings> OnConnectionSuccessfully { get; set; }
+    public EventCallback OnConnectionSuccessfully { get; set; }
 
     private bool _error;
 
@@ -153,21 +156,19 @@
 
         try
         {
-            var settings = await _storageDbSettings.GetAll();
-
             DataSettings = await _testConnection(DataSettings).Test();
             _error = false;
             _message = "Connected to Cosmos DB";
 
-            settings ??= new();
+            var redisData = new RedisData<DataSettings>()
+                {
+                    Data = DataSettings,
+                    Key = DataSettings.FullName
+                };
 
-            settings.RemoveAll(s => s.FullName == DataSettings.FullName);
+            await _redis.SaveAsync(redisData);
 
-            settings.Add(DataSettings);
-
-            await _storageDbSettings.Add(settings);
-
-            await OnConnectionSuccessfully.InvokeAsync(DataSettings);
+            await OnConnectionSuccessfully.InvokeAsync();
 
             StateHasChanged();
         }
@@ -188,7 +189,7 @@
 
     private async Task HandleFileUpload()
     {
-        if(Directory.Exists("uploads"))
+        if (Directory.Exists("uploads"))
         {
             Directory.CreateDirectory("uploads");
         }
@@ -197,8 +198,6 @@
 
         try
         {
-            var settings = await _storageDbSettings.GetAll();
-
             using (var stream = new FileStream(filePath, FileMode.Create))
             {
                 await _uploadedFile.OpenReadStream().CopyToAsync(stream);
@@ -210,21 +209,29 @@
                     Value = filePath
                 });
 
-            settings ??= new();
+            var redisData = new RedisData<DataSettings>()
+                {
+                    Data = DataSettings,
+                    Key = DataSettings.FullName
+                };
 
-            settings.RemoveAll(s => s.FullName == DataSettings.FullName);
 
-            settings.Add(DataSettings);
+            await _redis.SaveAsync(redisData);
 
-            await _storageDbSettings.Add(settings);
+            _error = false;
+            _message = "File Uploaded";
 
             await OnConnectionSuccessfully.InvokeAsync(DataSettings);
 
             StateHasChanged();
         }
-        catch
+        catch (Exception e)
         {
-
+            _error = true;
+            _message = $"Error to connect to Cosmos DB. Details: {e.Message}";
         }
+
+        Loading = false;
+        ShowModal = true;
     }
 }

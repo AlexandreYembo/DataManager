@@ -34,10 +34,22 @@ namespace Migration.Repository.Extensions
 
             var split = condition.Split(new[] { "&&", "||" }, StringSplitOptions.RemoveEmptyEntries);
 
-            var conditionResults = split.Select(s => GetValueByType(data, s.Split("==").FirstOrDefault()) == s.Split("==").LastOrDefault());
+            var op = string.Empty;
+
+            //add in the future a switch case
+            if (split.Any(a => a.Contains("==")))
+            {
+                op = "==";
+            }
+
+            if (split.Any(a => a.Contains("!=")))
+            {
+                op = "!=";
+            }
+
+            var conditionResults = split.Select(s => GetValueByType(data, s.Split(op).FirstOrDefault()) == s.Split(op).LastOrDefault());
 
             return condition.Contains("||") ? conditionResults.Any(a => a) : conditionResults.All(a => a);
-
         }
 
         private static string GetValueByType(JObject data, string value)

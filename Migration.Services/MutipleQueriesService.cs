@@ -26,6 +26,7 @@ namespace Migration.Services
         public async Task<Dictionary<string, List<DynamicData>>> Get(DataMapping dataMapping, int take)
         {
             Dictionary<string, List<DynamicData>> result = new();
+
             var source = await _genericRepository(dataMapping.Source.Settings)
                 .Get(dataMapping.Source.Query);
 
@@ -34,7 +35,7 @@ namespace Migration.Services
 
             Dictionary<string, JObject> dataSource = new();
 
-            foreach (var sourceData in source)
+            foreach (var sourceData in source) //TODO: need to group source by the join applied to avoid making multiple queries for the same relationship
             {
                 var jsonObject = JObject.Parse(sourceData.Value);
                 dataSource.Add($"{dataMapping.Source.Settings.CurrentEntity}:{jsonObject["id"]}" , jsonObject);
@@ -50,12 +51,12 @@ namespace Migration.Services
 
                         dataDestination.Add(dataMapping.Destination.Settings.CurrentEntity, destination.ApplyJoin(sourceData, dataMapping.FieldsMapping));
 
-                        result.Add($"{dataMapping.Source.Settings.CurrentEntity}:{sourceData.Key}", dataDestination.ToDynamicDataList(sourceData));
+                        result.Add($"{dataMapping.Source.Settings.CurrentEntity}:{sourceData.Key}", dataDestination.ToDynamicDataList(sourceData, dataMapping.Source.Settings.CurrentEntity));
                 }
-                else
-                {
-                    result.Add($"{dataMapping.Source.Settings.CurrentEntity}:{sourceData.Key}", dataSource.LastOrDefault().ToDynamicDataList(DataType.Source));
-                }
+                //else
+                //{
+                //    result.Add($"{dataMapping.Source.Settings.CurrentEntity}:{sourceData.Key}", dataSource.LastOrDefault().ToDynamicDataList(DataType.Source));
+                //}
             }
 
             return result;

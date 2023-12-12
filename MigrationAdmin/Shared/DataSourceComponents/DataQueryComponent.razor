@@ -1,7 +1,11 @@
 ﻿@using MigrationAdmin.Models
 @using Migration.Repository
 @using Migration.Repository.Models
+@using Migration.Infrastructure.Redis.Entities
+@using Migration.Infrastructure.Redis
 @inject IJSRuntime jsRuntime
+@inject IRepository<RedisData<DataSettings>> _redis;
+
 <div class="card card-default">
     <div class="card-header">
         <h3 class="card-title">Select the profile type </h3>
@@ -30,12 +34,14 @@
                 @if (DataQueryType == DataQueryMappingType.UpdateAnotherCollection)
                 {
                     <DatabaseSelectorComponent Title="Select the source"
+                                               ConnectionStrings="DataSettings?.ToDictionary(kvp => kvp.FullName, kvp => kvp.FullName)"
                                                DataSettings="DataMapping.Source.Settings"
                                                OnDbSettingsChanged="(sourceDbSettings) => AddSourceDbSettings(sourceDbSettings)"
                                                Query="@DataMapping.Source.Query"
                                                OnQueryAdded="async (query) => await AddSourceQuery(query)">
                     </DatabaseSelectorComponent>
                     <DatabaseSelectorComponent Title="Select the destination"
+                                               ConnectionStrings="DataSettings?.ToDictionary(kvp => kvp.FullName, kvp => kvp.FullName)"
                                                DataSettings="DataMapping.Destination.Settings"
                                                OnDbSettingsChanged="(sourceDbSettings) => AddDestinationDbSettings(sourceDbSettings)"
                                                Query="@DataMapping.Destination.Query"
@@ -45,9 +51,10 @@
                 else
                 {
                     <DatabaseSelectorComponent Title="Select data"
-                                               DataSettings="DataMapping.Source.Settings" 
+                                               ConnectionStrings="DataSettings?.ToDictionary(kvp => kvp.FullName, kvp => kvp.FullName)"
+                                               DataSettings="DataMapping.Source.Settings"
                                                OnDbSettingsChanged="(sourceDbSettings) => AddSourceDbSettings(sourceDbSettings)"
-                                               Query="@DataMapping.Source.Query" 
+                                               Query="@DataMapping.Source.Query"
                                                OnQueryAdded="async (query) => await AddSourceQuery(query)">
                     </DatabaseSelectorComponent>
                 }
@@ -66,11 +73,38 @@
     [Parameter]
     public DataMapping DataMapping { get; set; }
 
+    [Parameter]
+    public IEnumerable<DataSettings> DataSettings { get; set; }
+
+    [Parameter]
+    public Action<DataMapping> WhenNewConnectIsAdded { get; set; }
+
     private Dictionary<string, DataQueryMappingType> _dataQueryMappingType = new()
     {
     {"Update the same collection", DataQueryMappingType.UpdateSameCollection},
     {"Update another collection", DataQueryMappingType.UpdateAnotherCollection}
     };
+    
+    protected override void OnInitialized()
+    {
+        // var redisData = await _redis.FindAsync(typeof(DataSettings).Name);
+
+        // var dataSettings = redisData.Select(s => s.Data).ToList();
+
+        // if (!dataSettings.Any())
+        //     return;
+
+        // DataSettings = dataSettings;
+
+        if (DataSettings == null)
+            return;
+
+        DataMapping.Source.Settings = DataSettings.FirstOrDefault();
+        DataMapping.Source.Settings.CurrentEntity = DataMapping.Source.Settings.Entities.FirstOrDefault();
+
+        DataMapping.Destination.Settings = DataSettings.FirstOrDefault();
+        DataMapping.Destination.Settings.CurrentEntity = DataMapping.Destination.Settings.Entities.FirstOrDefault();
+    }
 
     public async Task ChangeDataQueryMappingType(ChangeEventArgs e)
     {

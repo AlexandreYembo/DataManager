@@ -1,5 +1,8 @@
 ﻿@inject IJSRuntime jsRuntime
-@using Newtonsoft.Json
+@using Migration.Infrastructure.Redis.Entities
+@using Migration.Infrastructure.Redis
+@inject IRepository<object> _redis;
+
 <div class="modal fade show" id="logDetailsModal" style="display:block" aria-modal="true" role="dialog">
     <div class="modal-dialog" style="max-width: 500px;">
         <div class="modal-content">
@@ -14,8 +17,8 @@
                 <div class="row">
                     <div class="col-sm-12">
                         <div class="form-group">
-                            <label>Provide the file name for @TypeOfFile</label>
-                            <input class="form-control" id="url" data-keeper-edited="yes" @bind="@_fileName" />
+                            <label>Provide the name for @Data.GetType().Name</label>
+                            <input class="form-control" data-keeper-edited="yes" @bind="@_name" />
                         </div>
                     </div>
                 </div>
@@ -32,10 +35,7 @@
 
 @code {
     [Parameter]
-    public string TypeOfFile { get; set; }
-
-    [Parameter]
-    public string Folder { get; set; }
+    public string TypeOfEntity { get; set; }
 
     [Parameter]
     public string ModalTitle { get; set; }
@@ -46,15 +46,18 @@
     [Parameter]
     public EventCallback OnConfirmation { get; set; }
     
-    private string _fileName;
+    private string _name;
 
     public async Task SaveOk()
     {
-        if (!Directory.Exists(Folder))
-            Directory.CreateDirectory(Folder);
+        var redisData = new RedisData<object>()
+        {
+            Data = Data,
+            Key = _name
+        };
 
-        var json = JsonConvert.SerializeObject(Data);
-        await File.WriteAllTextAsync($"{Folder}/{_fileName}.json", json);
+        await _redis.SaveAsync(redisData);
+
         await ShowSuccessAlert();
         
         await OnConfirmation.InvokeAsync();
@@ -62,6 +65,6 @@
 
     public async Task ShowSuccessAlert()
     {
-        await jsRuntime.InvokeAsync<object>("ShowSuccessAlert", $"{TypeOfFile} saved");
+        await jsRuntime.InvokeAsync<object>("ShowSuccessAlert", $"{Data.GetType().Name} saved");
     }
 }

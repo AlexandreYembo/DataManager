@@ -14,7 +14,7 @@ namespace MigrationAdmin
 
         public bool ShowModal { get; set; }
 
-        public bool ShowModalSaveFiles { get; set; }
+        public bool ShowModalSaveData { get; set; }
 
         public List<DynamicData> Data { get; set; } = new();
 
@@ -25,12 +25,12 @@ namespace MigrationAdmin
 
         public void SaveFile()
         {
-            ShowModalSaveFiles = true;
+            ShowModalSaveData = true;
         }
 
         public void FileSaved()
         {
-            ShowModalSaveFiles = false;
+            ShowModalSaveData = false;
         }
 
         [Parameter]

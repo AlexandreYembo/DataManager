@@ -1,8 +1,12 @@
-﻿using Migration.Repository;
+﻿using Migration.Infrastructure.Redis;
+using Migration.Infrastructure.Redis.Entities;
+using Migration.Repository;
 using Migration.Repository.Extensions;
-using Migration.Repository.Helpers;
 using Migration.Repository.Models;
+using Migration.Services.Helpers;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using StackExchange.Redis;
 
 namespace Migration.Services
 {
@@ -14,71 +18,82 @@ namespace Migration.Services
     public class MigrationService : IMigrationService
     {
         private readonly Func<DataSettings, IGenericRepository> _genericRepository;
+        private readonly IRepository<JObject> _migrationProcessRepository;
 
-        public MigrationService(Func<DataSettings, IGenericRepository> genericRepository)
+        public MigrationService(Func<DataSettings, IGenericRepository> genericRepository,
+            IRepository<JObject> migrationProcessRepository)
         {
             _genericRepository = genericRepository;
+            _migrationProcessRepository = migrationProcessRepository;
         }
 
         public async Task Migrate(DataMapping dataMapping)
         {
-            List<Task> processTaks = new();
+            List<Task> processTasks = new();
 
             //TODO: Obtain records already processed (can use pagination)
             var source = await _genericRepository(dataMapping.Source.Settings)
-                .Get(dataMapping.Source.Query);
+                .Get(dataMapping.Source.Query, null, null, 5);
 
-            if (!source.Any())
-                return;
-
-            var mappingMergeFields = dataMapping.FieldsMapping
-                .Where(w => w.MappingType == MappingType.FieldValueMerge).ToList();
-
-            foreach (var sourceData in source)
+            if (source.Any())
             {
-                processTaks.Add(ProcessDestinationRecordsAsync(dataMapping, sourceData, source, mappingMergeFields));
+                foreach (var sourceData in source)
+                {
+                    processTasks.Add(ProcessDestinationRecordsAsync(dataMapping, sourceData));
+                }
+
+                //TODO: Subscribe an event to add the records already processed, can save pagination OFFSET <offset_amount> LIMIT <limit_amount>
+                //https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/query/offset-limit
+
+                await Task.WhenAll(processTasks);
             }
-
-            //TODO: Subscribe an event to add the records already processed, can save pagination OFFSET <offset_amount> LIMIT <limit_amount>
-            //https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/query/offset-limit
-
-            await Task.WhenAll(processTaks);
         }
 
-        private async Task ProcessDestinationRecordsAsync(DataMapping dataMapping, KeyValuePair<string, string> sourceData, Dictionary<string, string> source, List<DataFieldsMapping> mappingMergeFields)
+        private async Task ProcessDestinationRecordsAsync(DataMapping dataMapping,
+            KeyValuePair<string, string> sourceData)
         {
-            //var destination = await _genericRepository(dataMapping.Destination.Settings)
-            //    .Get(dataMapping.Destination.Query, dataMapping.FieldsMapping, sourceData.Value, 15);
+            var destination = await _genericRepository(dataMapping.Destination.Settings)
+                .Get(dataMapping.Destination.Query, dataMapping.FieldsMapping, sourceData.Value, 15);
 
-            //var listDestination = destination.ApplyJoin(source, dataMapping.FieldsMapping);
+            var listDestination = destination.ApplyJoin(sourceData, dataMapping.FieldsMapping);
 
-            //if (!listDestination.Any()) return;
+            if (!listDestination.Any()) return;
 
-            //var sourceObj = JObject.Parse(sourceData.Value);
+            var sourceObj = JObject.Parse(sourceData.Value);
 
-            //foreach (var d in listDestination)
-            //{
-            //    bool hasChange = false;
+            foreach (var originalData in listDestination)
+            {
+                try
+                {
+                    bool hasChange = false;
 
-            //    var originalData = d;
-            //    var objectToBeUpdated = d;
+                    var objectToBeUpdated = UpdateDataHelper.UpdateObject(originalData.ToString(), dataMapping.FieldsMapping,
+                        sourceObj, ref hasChange);
 
-            //    foreach (var mappingMergeField in mappingMergeFields)
-            //    {
-            //        var fieldsFromSourceArr = mappingMergeField.SourceField.Split(".").ToList();
+                    if (!hasChange) return;
 
-            //        var valueFromSource = JObjectHelper.GetValueFromObject(sourceObj, fieldsFromSourceArr);
+                    await Task.Run(() => SaveBackup(dataMapping, originalData, "backup"));
+                    await Task.Run(() => SaveBackup(dataMapping, objectToBeUpdated, "updated"));
+                }
+                catch (Exception e)
+                {
+                    //await _migrationProcessRepository.SaveAsync(new RedisData<List<string>>()
+                    //{
+                    //    Data =
+                    //})
+                }
+            }
+        }
 
-            //        var fieldsFromDestinationArr = mappingMergeField.DestinationField.Split(".").ToList();
+        private async Task SaveBackup(DataMapping dataMapping, JObject data, string suffix)
+        {
+            var redisData = new RedisData<JObject>()
+            {
+                Key = $"{data["id"]}-{suffix}",
+                Data = data
+            };
 
-            //        objectToBeUpdated = JObjectHelper.GetObject(objectToBeUpdated, fieldsFromDestinationArr,
-            //            valueFromSource);
-            //        hasChange = true;
-            //    }
-
-            //    if (!hasChange) return;
-            //}
-
+            await _migrationProcessRepository.SaveAsync(redisData, $"{dataMapping.Destination.Settings.CurrentEntity}-Migration");
         }
     }
 }

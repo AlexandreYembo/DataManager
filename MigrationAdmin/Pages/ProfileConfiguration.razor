@@ -6,9 +6,15 @@
 @using Migration.Services.Helpers
 @using Newtonsoft.Json
 @using Newtonsoft.Json.Linq
+@using Migration.Repository
+@using Migration.Infrastructure.Redis
+@using Migration.Infrastructure.Redis.Entities
 @inherits CustomComponents;
 @inject IJSRuntime jsRuntime
 @inject IQueryService _queryService;
+@inject IRepository<DataSettings> _dataSettingsRepository;
+@inject IRepository<Profile> _profileRepository;
+
 <div class="card card-default card-tabs">
     <div class="card-header p-0 pt-1">
         <ul class="nav nav-tabs" id="custom-tabs-one-tab" role="tablist">
@@ -29,12 +35,13 @@
     <div class="card-body">
         <div class="tab-content" id="custom-tabs-one-tabContent">
             <div class="tab-pane fade  @GetStep("show active", 1)" id="custom-tabs-one-database" role="tabpanel" aria-labelledby="custom-tabs-one-database-tab">
-                <ConnectionConfigurationComponent>
+                <ConnectionConfigurationComponent OnConnectionSuccessfully="UpdateDataSettings">
                 </ConnectionConfigurationComponent>
             </div>
 
             <div class="tab-pane fade @GetStep("show active", 2)" id="custom-tabs-one-sourceData" role="tabpanel" aria-labelledby="custom-tabs-one-sourceData-tab">
                 <DataQueryComponent DataMapping="Profile.DataMappings[0]"
+                                    DataSettings="_dataSettings"
                                     DataQueryMappingTypeChangedCallback="(dataType) => _dataQueryType = dataType"></DataQueryComponent>
             </div>
 
@@ -52,7 +59,27 @@
             <div class="tab-pane fade @GetStep("show active", 4)" id="custom-tabs-one-preview" role="tabpanel" aria-labelledby="custom-tabs-one-preview-tab">
                 <div class="card card-default">
                     <div class="card-header">
-                        <h3 class="card-title">Fields to Update</h3>
+                        <h3 class="card-title">Profile configuration details</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-sm-2">
+                                <label>Name</label>
+                                <input class="form-control" id="parValue" data-keeper-edited="yes" @bind="@Profile.Name" />
+                            </div>
+                            <div class="col-sm-2">
+                                <label>Description</label>
+                                <input class="form-control" id="parValue" data-keeper-edited="yes" @bind="@Profile.Description" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button class="btn btn-default" @onclick="() => SaveProfile()"> <i class="nav-icon fas fa-save"></i>Save Profile</button>
+                    </div>
+                </div>
+                <div class="card card-default">
+                    <div class="card-header">
+                        <h3 class="card-title">Data Preview</h3>
                     </div>
                     <div class="card-body">
                         @if (_resultDataFromConfiguration != null)
@@ -153,14 +180,11 @@
 }
 
 
-@if (ShowModalSaveFiles)
+@if (ShowModalSaveData)
 {
-    <SaveFileConfirmationComponent Data="Profile"
-                                   Folder="Profiles"
-                                   ModalTitle="Save / Edit the Profile"
-                                   TypeOfFile="Profile"
-                                   OnConfirmation="() => FileSaved()">
-    </SaveFileConfirmationComponent>
+    <SaveDataConfirmationComponent Data="Profile"
+                                   ModalTitle="Save Profile Configuration">
+    </SaveDataConfirmationComponent>
 }
 
 @if (_showModalDataDifference)
@@ -183,6 +207,8 @@
 
     private Dictionary<string, List<DynamicData>> _resultDataFromConfiguration;
 
+    private IEnumerable<DataSettings> _dataSettings;
+
     private string _message;
 
     protected override async Task OnInitializedAsync()
@@ -191,10 +217,19 @@
             {
                 Id = 1,
                 FieldsMapping = new()
-    {
-    new ()
-    }
+                    {
+                    new ()
+                    }
             });
+
+        var settings = await _dataSettingsRepository.FindAsync();
+
+        if (!settings.Any()) return;
+
+        _dataSettings = settings;
+
+        Profile.DataMappings[0].Source.Settings = settings.FirstOrDefault();
+        Profile.DataMappings[0].Destination.Settings = settings.FirstOrDefault();
     }
 
     public async Task PreviewDataResult()
@@ -263,12 +298,6 @@
         _showModalDataDifference = false;
     }
 
-
-    public async Task ShowErrorAlert(string message)
-    {
-        await jsRuntime.InvokeAsync<object>("ShowErrorAlert", message);
-    }
-
     private string GetStep(string showActive, int step)
     {
         if (_step == step)
@@ -285,5 +314,37 @@
     private void Next()
     {
         _step++;
+    }
+
+    private async Task UpdateDataSettings()
+    {
+        _dataSettings = await _dataSettingsRepository.FindAsync();
+
+        Profile.DataMappings[0].Source.Settings = _dataSettings.FirstOrDefault();
+        Profile.DataMappings[0].Destination.Settings = _dataSettings.FirstOrDefault();
+    }
+
+    private async Task SaveProfile()
+    {
+        var redisData = new RedisData<Profile>()
+            {
+                Data = Profile,
+                Key = Profile.Name
+            };
+
+        await _profileRepository.SaveAsync(redisData);
+
+        await ShowSuccessAlert();
+
+    }
+
+    private async Task ShowSuccessAlert()
+    {
+        await jsRuntime.InvokeAsync<object>("ShowSuccessAlert", $"{Data.GetType().Name} saved");
+    }
+
+    private async Task ShowErrorAlert(string message)
+    {
+        await jsRuntime.InvokeAsync<object>("ShowErrorAlert", message);
     }
 }
