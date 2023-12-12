@@ -7,6 +7,7 @@ namespace Migration.Repository.Models
         public string? Name { get; set; }
         public string? Description { get; set; }
         public List<DataMapping> DataMappings { get; set; } = new();
+        public bool Selected { get; set; }
     }
 
     public class DataMapping

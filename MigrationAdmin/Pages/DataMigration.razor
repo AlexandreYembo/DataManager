@@ -1,41 +1,29 @@
 ﻿@page "/dataMigration"
-@using Newtonsoft.Json
 @using Migration.Repository.Models
 @using Migration.Services
+@using Migration.Infrastructure.Redis
+@inject IJSRuntime jsRuntime
 @inherits CustomComponents;
-@inject IQueryService _queryService;
-
-<div class="content">
-    <div class="container-fluid">
-        <div class="card card-info">
-            <div class="card-header">
-                <h3 class="card-title">Select the profile you want to perform the migration</h3>
-            </div>
-            <div class="card-body">
-
-                <FileSelectorComponent Description="List of Profiles"
-                                       Path="Profiles"
-                                       OnFileLoadCallback="(json) => FileLoad(json)"></FileSelectorComponent>
-            </div>
-        </div>
-        <div class="card card-info">
-            <div class="card-header">
-                <h3 class="card-title">Review the Profile before migration</h3>
-            </div>
-            @if (Loading)
-            {
-                <div class="col-sm-12">
-                    <Loading />
-                </div>
-            }
-            <div class="card-body">
+@inject IMigrationService _migrateService;
+@inject IRepository<Profile> _profileRepository;
+<div class="card card-default card-tabs">
+    <div class="card-header p-0 pt-1">
+        <ul class="nav nav-tabs" id="custom-tabs-one-tab" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link @GetStep("active", 1)" id="custom-tabs-one-profiles-tab" role="tab" aria-controls="custom-tabs-one-profiles" aria-selected="true"><i class="nav-icon fas fa-address-card"></i> List of Profiles</a>
+            </li>
+        </ul>
+    </div>
+    <div class="card-body">
+        <div class="tab-content" id="custom-tabs-one-tabContent">
+            <div class="tab-pane fade  @GetStep("show active", 1)" id="custom-tabs-one-database" role="tabpanel" aria-labelledby="custom-tabs-one-database-tab">
                 <table id="dataGeneral" class="table table-bordered table-striped">
                     <thead>
                     <tr>
-                        <th>Source</th>
-                        <th>Destination</th>
+                        <th>Profile</th>
+                        <th>Description</th>
                         <th>
-                            Fields
+                            Mapping
                         </th>
                         <th>
 
@@ -43,94 +31,134 @@
                     </tr>
                     </thead>
                     <tbody>
-                    @foreach (var dataMapping in _dataMappings)
+                    @if (_profiles != null)
                     {
-                        <tr>
-                            <td>
-                                <p>Database Name: <b> @dataMapping.Source.Settings.Name</b></p>
-                            </td>
-                            <td>
-                                <p>Database Name: <b> @dataMapping.Destination.Settings.Name</b></p>
-                            </td>
-                            <td>
-                                <table id="dataFields" class="table table-bordered table-striped">
-                                    <thead>
-                                    <tr>
-                                        <th>Mapping Type</th>
-                                        <th>Source</th>
-                                        <th>Destination</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    @foreach (var fieldMapping in @dataMapping.FieldsMapping.OrderBy(s => s.MappingType))
-                                    {
+                        foreach (var profile in _profiles)
+                        {
+                            <tr>
+                                <td>
+                                    <p>Database Name: <b> @profile.Name</b></p>
+                                </td>
+                                <td>
+                                    <p>Database Name: <b> @profile.Description</b></p>
+                                </td>
+                                <td>
+                                    <table id="dataFields" class="table table-bordered table-striped">
+                                        <thead>
                                         <tr>
-                                            <td>
-                                                @fieldMapping.MappingType
-                                            </td>
-                                            <td>
-                                                @dataMapping.Source.Settings.CurrentEntity.@fieldMapping.SourceField
-                                            </td>
-                                            <td>
-                                                @dataMapping.Destination.Settings.CurrentEntity.@fieldMapping.DestinationField
-                                            </td>
+                                            <th>Mapping Type</th>
+                                            <th>Source</th>
+                                            <th>Destination</th>
                                         </tr>
-                                    }
-                                    </tbody>
-                                </table>
-                            </td>
-                            @* <div>
-                                    <button class="btn btn-success" @onclick="() => PreviewChanges(dataMapping)">Preview 5 records displayed</button>
-                                </div>*@
-                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        @foreach (var fieldMapping in profile.DataMappings[0].FieldsMapping.OrderBy(s => s.MappingType))
+                                        {
+                                            <tr>
+                                                <td>
+                                                    @fieldMapping.MappingType
+                                                </td>
+                                                <td>
+                                                    @profile.DataMappings[0].Source.Settings.CurrentEntity.@fieldMapping.SourceField
+                                                </td>
+                                                <td>
+                                                    @profile.DataMappings[0].Destination.Settings.CurrentEntity.@fieldMapping.DestinationField
+                                                </td>
+                                            </tr>
+                                        }
+                                        </tbody>
+                                    </table>
+                                </td>
+                                <td>
+                                    <input type="checkbox" @bind="profile.Selected"/>
+                                </td>
+                            </tr>
+                        }
                     }
                     </tbody>
                 </table>
             </div>
-            <div class="card-footer">
-                <button class="btn btn-warning" @onclick="() => Migrate()">Migrate</button>
-            </div>
+        </div>
+    </div>
+    <div class="card-footer">
+        <div class="col-sm-1">
+            <button class="btn btn-default" @onclick="() => Migrate()"> <i class="nav-icon fas fa"></i> Migrate</button>
         </div>
     </div>
 </div>
+
+@if (Loading)
+{
+    <div class="col-sm-12">
+        <Loading/>
+    </div>
+}
+
 @code {
 
-    private List<DataMapping> _dataMappings = new();
-    private bool _showModalDataDifference { get; set; }
+    private int _step = 1;
 
-    private async Task FileLoad(string json)
+    private List<Profile> _profiles;
+
+    protected override async Task OnInitializedAsync()
     {
-        if (string.IsNullOrEmpty(json)) return;
-
-        var result = JsonConvert.DeserializeObject<Profile>(json);
-        _dataMappings = result.DataMappings;
-
-        await InvokeAsync(StateHasChanged);
+        try
+        {
+            _profiles = await _profileRepository.FindAsync();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
     }
 
-    public async Task PreviewChanges(DataMapping dataMapping)
+    private string GetStep(string showActive, int step)
     {
-        _showModalDataDifference = true;
-        Loading = true;
+        if (_step == step)
+            return showActive;
 
-       // await _queryService.Get(dataMapping);
-
-        //var dataList = _service.Preview(CommandsModel, Data);
-
-        //DataDifference = new();
-
-        //foreach (var data in dataList)
-        //{
-        //    DataDifference.Add(data.Key, DifferenceHelper.FindDifferences(data.Value));
-        //}
-
-        Loading = false;
+        return string.Empty;
     }
 
     public async Task Migrate()
     {
+        var profileToMigrate = _profiles.Where(w => w.Selected);
+
+        if (!profileToMigrate.Any())
+        {
+            await ShowErrorAlert("You must need to select one profile");
+        }
+        else if(profileToMigrate.Count() > 1)
+        {
+            await ShowErrorAlert("You cannot perform more than 1 migration in the same time");
+        }
         Loading = true;
 
+        await _migrateService.Migrate(profileToMigrate.FirstOrDefault().DataMappings[0]);
+
         Loading = false;
+    }
+
+    private void Previous()
+    {
+        _step--;
+    }
+
+    private void Next()
+    {
+        _step++;
+    }
+
+
+    private void ProfileSelected(ChangeEventArgs obj)
+    {
+        var a = "ss0";
+
+    }
+
+    private async Task ShowErrorAlert(string message)
+    {
+        await jsRuntime.InvokeAsync<object>("ShowErrorAlert", message);
     }
 }

@@ -29,7 +29,7 @@ namespace Migration.Services.Extensions
             };
         }
 
-        public static List<DynamicData> ToDynamicDataList(this Dictionary<string, IEnumerable<JObject>> destination, KeyValuePair<string, string> source)
+        public static List<DynamicData> ToDynamicDataList(this Dictionary<string, IEnumerable<JObject>> destination, KeyValuePair<string, string> source, string sourceEntity)
         {
             List<DynamicData> result = new();
             result.Add(new DynamicData()
@@ -37,7 +37,7 @@ namespace Migration.Services.Extensions
                 Id = JObject.Parse(source.Value)["id"].ToString(),
                 Data = source.Value,
                 DataType = DataType.Source,
-                Entity = GetEntity(source.Key)
+                Entity = sourceEntity
             });
 
             result.AddRange(destination.SelectMany(s => s.Value.Select((v => new DynamicData()

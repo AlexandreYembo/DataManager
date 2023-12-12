@@ -1,5 +1,8 @@
 ﻿@using Migration.Repository
-@inject IStorage<DataSettings> _storageDataSettings;
+@using Migration.Infrastructure.Redis.Entities
+@using Migration.Infrastructure.Redis
+@inject IRepository<DataSettings> _redis;
+
 <div class="card card-default">
     <div class="card-header">
         <h3 class="card-title">@Title</h3>
@@ -15,9 +18,9 @@
                 <div class="form-group">
                     <label>Select the Connection </label>
                     <select class="form-control" id="connectionString" data-keeper-edited="yes" @onchange="ChangeConnectionString">
-                        @if (_connectionStrings != null)
+                        @if (ConnectionStrings != null)
                         {
-                            foreach (var connectionString in _connectionStrings.Where(w => !string.IsNullOrEmpty(w.Value)))
+                            foreach (var connectionString in ConnectionStrings.Where(w => !string.IsNullOrEmpty(w.Value)))
                             {
                                 <option value="@connectionString.Value">@connectionString.Key</option>
                             }
@@ -25,32 +28,35 @@
                     </select>
                 </div>
             </div>
-            @if (DataSettings.ConnectionType != ConnectionType.File)
+            @if (DataSettings != null)
             {
-                <div class="col-sm-6">
-                    <div class="form-group">
-                        <label>Select the Container</label>
-                        <select class="form-control" id="entities" data-keeper-edited="yes" @onchange="ChangeEntity">
-                            @if (DataSettings != null)
-                            {
-                                <option selected="selected" value="@DataSettings.Entities.FirstOrDefault()"> @DataSettings.Entities.FirstOrDefault()</option>
-                                @foreach (var container in DataSettings.Entities.Skip(1))
+                if (DataSettings.ConnectionType != ConnectionType.File)
+                {
+                    <div class="col-sm-6">
+                        <div class="form-group">
+                            <label>Select the Container</label>
+                            <select class="form-control" id="entities" data-keeper-edited="yes" @onchange="ChangeEntity">
+                                @if (DataSettings != null)
                                 {
-                                    <option value="@container">@container</option>
+                                    <option selected="selected" value="@DataSettings.Entities.FirstOrDefault()"> @DataSettings.Entities.FirstOrDefault()</option>
+                                    @foreach (var container in DataSettings.Entities.Skip(1))
+                                    {
+                                        <option value="@container">@container</option>
+                                    }
                                 }
-                            }
-                        </select>
+                            </select>
+                        </div>
                     </div>
-                </div>
-            }
-            else
-            {
-                <div class="col-sm-2">
-                    <div class="form-group">
-                        <label>Entity</label>
-                        <input class="form-control" id="profileName" data-keeper-edited="yes" @bind="@DataSettings.CurrentEntity" />
+                }
+                else
+                {
+                    <div class="col-sm-2">
+                        <div class="form-group">
+                            <label>Entity</label>
+                            <input class="form-control" id="profileName" data-keeper-edited="yes" @bind="@DataSettings.CurrentEntity" />
+                        </div>
                     </div>
-                </div>
+                }
             }
         </div>
         <div class="row">
@@ -87,24 +93,27 @@
     [Parameter]
     public string Query { get; set; }
 
-    private string _connectionName { get; set; }
+    [Parameter]
+    public Dictionary<string, string?> ConnectionStrings { get; set; }
 
-    private Dictionary<string, string?> _connectionStrings;
+    private string _connectionName { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        var data = await _storageDataSettings.GetAll();
+        // var redisData = await _redis.FindAsync(typeof(DataSettings).Name);
 
-        if (data != null && data.Any())
-        {
-            _connectionStrings = data.ToDictionary(k => k.FullName, v => v.FullName);
-            DataSettings = data.FirstOrDefault();
-            _connectionName = DataSettings.FullName;
+        // var dataSettings = redisData.Select(s => s.Data).ToList();
 
-            DataSettings.CurrentEntity = DataSettings.Entities.FirstOrDefault();
+        // if (dataSettings != null && dataSettings.Any())
+        // {
+        //     ConnectionStrings = dataSettings.ToDictionary(k => k.FullName, v => v.FullName);
+        //     DataSettings = dataSettings.FirstOrDefault();
+        //     _connectionName = DataSettings.FullName;
 
-            await OnDbSettingsChanged.InvokeAsync(DataSettings);
-        }
+        //     DataSettings.CurrentEntity = DataSettings.Entities.FirstOrDefault();
+
+        //     await OnDbSettingsChanged.InvokeAsync(DataSettings);
+        // }
     }
 
     public async Task ChangeConnectionString(ChangeEventArgs e)
@@ -115,24 +124,32 @@
 
         if (string.IsNullOrEmpty(_connectionName)) return;
 
-        var settings = await _storageDataSettings.Get(w => w.FullName == _connectionName);
+        var dataSettings = await GetDataSettings();
 
-        DataSettings.Entities = settings.Entities;
+        DataSettings.Entities = dataSettings.Entities;
 
-        await OnDbSettingsChanged.InvokeAsync(settings);
+        await OnDbSettingsChanged.InvokeAsync(dataSettings);
+    }
+
+    private async Task<DataSettings?> GetDataSettings()
+    {
+        var redisData = await _redis.FindAsync(_connectionName);
+
+        var dataSettings = redisData.FirstOrDefault();
+        return dataSettings;
     }
 
     public async Task ChangeEntity(ChangeEventArgs e)
     {
         if (e.Value == null) return;
 
-        var settings = await _storageDataSettings.Get(w => w.FullName == _connectionName);
+        var dataSettings = await GetDataSettings();
 
-        if (settings == null) return;
+        if (dataSettings == null) return;
 
-        settings.CurrentEntity = e.Value.ToString();
+        dataSettings.CurrentEntity = e.Value.ToString();
 
-        await OnDbSettingsChanged.InvokeAsync(settings);
+        await OnDbSettingsChanged.InvokeAsync(dataSettings);
     }
 
     public async Task AddQuery()

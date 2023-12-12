@@ -1,9 +1,11 @@
 using Blazored.LocalStorage;
 using Migration.Infrastructure.CosmosDb;
+using Migration.Infrastructure.Redis;
 using Migration.Repository;
 using Migration.Services;
 using Migration.Services.Publishers;
 using Migration.Services.Subscribers;
+using MigrationAdmin.Extensions;
 using MigrationAdmin.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,6 +13,8 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
+
+builder.Services.AddConfiguration();
 
 builder.Services.AddTransient(typeof(IStorage<>), typeof(LocalStorage<>));
 
@@ -27,10 +31,14 @@ builder.Services.AddScoped<LogResultSubscriber>();
 #region register Services
 builder.Services.AddScoped<IUpdateRecordsInBatchService, UpdateRecordsInBatchService>();
 builder.Services.AddScoped<IQueryService, MutipleQueriesService>();
+builder.Services.AddScoped<IMigrationService, MigrationService>();
 #endregion
+
 
 //Add repositories
 builder.Services.AddBlazoredLocalStorage();
+
+builder.Services.RegisterRedis();
 
 builder.Services.AddTransient<Func<DataSettings, IGenericRepository>>(_ => settings =>
      settings?.ConnectionType switch
