@@ -1,4 +1,5 @@
-﻿using Migration.Services.Models;
+﻿using Migration.Repository.Models;
+using Migration.Services.Models;
 using Newtonsoft.Json.Linq;
 
 namespace Migration.Services.Extensions
@@ -29,12 +30,23 @@ namespace Migration.Services.Extensions
             };
         }
 
-        public static List<DynamicData> ToDynamicDataList(this Dictionary<string, IEnumerable<JObject>> destination, KeyValuePair<string, string> source, string sourceEntity)
+        public static List<DynamicData> ToDynamicDataList(this Dictionary<string, IEnumerable<JObject>> destination, KeyValuePair<string, string> source, string sourceEntity, OperationType operationType)
         {
+            List<ActionType> actionTypes = new();
+
+            if (operationType == OperationType.Insert)
+            {
+                actionTypes.Add(ActionType.Insert);
+            }
+            else if (operationType == OperationType.Delete)
+            {
+                actionTypes.Add(ActionType.Delete);
+            }
+
             List<DynamicData> result = new();
             result.Add(new DynamicData()
             {
-                Id = JObject.Parse(source.Value)["id"].ToString(),
+                Id = JObject.Parse(source.Value)["id"] != null ? JObject.Parse(source.Value)["id"].ToString() : source.Key,
                 Data = source.Value,
                 DataType = DataType.Source,
                 Entity = sourceEntity
@@ -45,7 +57,8 @@ namespace Migration.Services.Extensions
                 Id = v["id"].ToString(),
                 Data = v.ToString(),
                 DataType = DataType.Destination,
-                Entity = GetEntity(s.Key)
+                Entity = GetEntity(s.Key),
+                Actions = actionTypes
             }))).ToList());
 
             return result;

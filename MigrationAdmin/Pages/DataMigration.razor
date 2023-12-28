@@ -2,21 +2,34 @@
 @using Migration.Repository.Models
 @using Migration.Services
 @using Migration.Infrastructure.Redis
+@using Migration.Infrastructure.Redis.Entities
+@using Migration.Services.Delegates
+@using Migration.Services.Publishers
+@using Migration.Services.Subscribers
+@using Newtonsoft.Json.Linq
 @inject IJSRuntime jsRuntime
 @inherits CustomComponents;
 @inject IMigrationService _migrateService;
 @inject IRepository<Profile> _profileRepository;
+@inject IRepository<JObject> _repository;
+@inject LogResultSubscriber LogSubscriber
+@inject LogPublisher LogPublisher
+@inject LogDetailsPublisher LogDetailsPublisher
+
 <div class="card card-default card-tabs">
     <div class="card-header p-0 pt-1">
         <ul class="nav nav-tabs" id="custom-tabs-one-tab" role="tablist">
             <li class="nav-item">
-                <a class="nav-link @GetStep("active", 1)" id="custom-tabs-one-profiles-tab" role="tab" aria-controls="custom-tabs-one-profiles" aria-selected="true"><i class="nav-icon fas fa-address-card"></i> List of Profiles</a>
+                <a class="nav-link active" id="custom-tabs-one-profiles-tab" role="tab" data-toggle="pill" href="#custom-tabs-one-profiles" aria-controls="custom-tabs-one-profiles" aria-selected="true"><i class="nav-icon fas fa-address-card"></i> List of Profiles</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="custom-tabs-one-jobs-tab" role="tab" data-toggle="pill" href="#custom-tabs-one-jobs" aria-controls="custom-tabs-one-jobs" aria-selected="true"><i class="nav-icon fas fa-address-card"></i> List of Jobs</a>
             </li>
         </ul>
     </div>
     <div class="card-body">
         <div class="tab-content" id="custom-tabs-one-tabContent">
-            <div class="tab-pane fade  @GetStep("show active", 1)" id="custom-tabs-one-database" role="tabpanel" aria-labelledby="custom-tabs-one-database-tab">
+            <div class="tab-pane fade show active" id="custom-tabs-one-profiles" role="tabpanel" aria-labelledby="custom-tabs-one-profiles-tab">
                 <table id="dataGeneral" class="table table-bordered table-striped">
                     <thead>
                     <tr>
@@ -26,7 +39,6 @@
                             Mapping
                         </th>
                         <th>
-
                         </th>
                     </tr>
                     </thead>
@@ -70,7 +82,8 @@
                                     </table>
                                 </td>
                                 <td>
-                                    <input type="checkbox" @bind="profile.Selected"/>
+                                    <input type="checkbox" @bind="profile.Selected" />
+                                    <button class="btn btn-default" @onclick="() => EdiProfile(profile)"> <i class="nav-icon fas fa-edit"></i> Edit</button>
                                 </td>
                             </tr>
                         }
@@ -78,33 +91,86 @@
                     </tbody>
                 </table>
             </div>
+            <div class="tab-pane fade" id="custom-tabs-one-jobs" role="tabpanel" aria-labelledby="custom-tabs-one-jobs-tab">
+                <table id="jobs" class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>Job Id</th>
+                            <th>Profile</th>
+                            <th>Operation Type</th>
+                            <th>
+                                Status
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (_jobs != null)
+                        {
+                            foreach (var job in _jobs)
+                            {
+                                <tr>
+                                    <td>
+                                        @job.SelectToken("JobId")
+                                    </td>
+                                    <td>
+                                        @job.SelectToken("ProfileId")
+                                    </td>
+                                    <td>
+                                        @job.SelectToken("OperationType")
+                                    </td>
+                                    <td>
+                                        @job.SelectToken("Status")
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
     <div class="card-footer">
         <div class="col-sm-1">
-            <button class="btn btn-default" @onclick="() => Migrate()"> <i class="nav-icon fas fa"></i> Migrate</button>
+            <button class="btn btn-default" @onclick="() => Migrate()"> <i class="nav-icon fas fa-database"></i> Migrate</button>
         </div>
     </div>
 </div>
 
+<Log LogResult="LogResult" IsLoading="Loading"></Log>
+
 @if (Loading)
 {
     <div class="col-sm-12">
-        <Loading/>
+        <Loading />
     </div>
+}
+
+@if (_editProfileModalIsEnabled)
+{
+    <EditProfileComponent Profile="_editProfile"
+                          ModalOk="() => ModalOk()"></EditProfileComponent>
 }
 
 @code {
 
-    private int _step = 1;
-
+    private bool _editProfileModalIsEnabled;
+    private Profile _editProfile;
     private List<Profile> _profiles;
+    private List<JObject> _jobs;
 
     protected override async Task OnInitializedAsync()
     {
+        LogPublisher.OnEntityChanged += LogSubscriber.OnEventChanged;
+        LogPublisher.OnEntityChanged += OnLogUpdated;
+        LogDetailsPublisher.OnEntityChanged += LogSubscriber.OnEventChanged;
+
         try
         {
             _profiles = await _profileRepository.FindAsync();
+            _jobs = await _repository.FindAsync(new RedisData<JObject>()
+            {
+                Id = "Jobs"
+            });
         }
         catch (Exception e)
         {
@@ -113,12 +179,10 @@
         }
     }
 
-    private string GetStep(string showActive, int step)
+    private void OnLogUpdated(object sender, LogResultEventArgs e)
     {
-        if (_step == step)
-            return showActive;
-
-        return string.Empty;
+        LogResult = e.LogResult;
+        InvokeAsync(StateHasChanged);
     }
 
     public async Task Migrate()
@@ -129,7 +193,7 @@
         {
             await ShowErrorAlert("You must need to select one profile");
         }
-        else if(profileToMigrate.Count() > 1)
+        else if (profileToMigrate.Count() > 1)
         {
             await ShowErrorAlert("You cannot perform more than 1 migration in the same time");
         }
@@ -140,21 +204,15 @@
         Loading = false;
     }
 
-    private void Previous()
+    public void EdiProfile(Profile profile)
     {
-        _step--;
+        _editProfile = profile;
+        _editProfileModalIsEnabled = true;
     }
 
-    private void Next()
+    public void ModalOk()
     {
-        _step++;
-    }
-
-
-    private void ProfileSelected(ChangeEventArgs obj)
-    {
-        var a = "ss0";
-
+        _editProfileModalIsEnabled = false;
     }
 
     private async Task ShowErrorAlert(string message)

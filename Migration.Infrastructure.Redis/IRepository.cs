@@ -1,6 +1,5 @@
 ﻿using Migration.Infrastructure.Redis.Entities;
 using Newtonsoft.Json.Linq;
-using StackExchange.Redis;
 
 namespace Migration.Infrastructure.Redis
 {
@@ -9,7 +8,9 @@ namespace Migration.Infrastructure.Redis
         Task SaveAsync(RedisData<TEntity> redisData);
         Task SaveAsync(RedisData<JObject> redisData, string id);
 
+        Task<List<JObject>> FindAsync(RedisData<JObject> redisData);
         Task<List<TEntity>> FindAsync(string key);
         Task<List<TEntity>> FindAsync();
+        Task<long> CountAsync(string key);
     }
 }

@@ -36,6 +36,12 @@ namespace Migration.Infrastructure.Redis
             await _db.HashSetAsync(id, new[] { new HashEntry(redisData.Key, redisValue.ToString()) });
         }
 
+        public async Task<List<JObject>> FindAsync(RedisData<JObject> redisData)
+        {
+            var redisResult = await _db.HashGetAllAsync(redisData.Id);
+            return redisResult.Select(s => JObject.Parse(s.Value.ToString())).ToList();
+        }
+
         public async Task<List<TEntity>> FindAsync()
         {
             var redisResult = await _db.HashGetAllAsync(typeof(TEntity).Name);
@@ -52,6 +58,13 @@ namespace Migration.Infrastructure.Redis
             List<TEntity?> result = redisResult.Where(w => w.Key == key).Select(s => JsonSerializer.Deserialize<TEntity>(s.Value, GetOptions())).ToList();
 
             return result ?? new();
+        }
+
+        public async Task<long> CountAsync(string key)
+        {
+            var count = await _db.KeyRefCountAsync(key);
+
+            return count ?? 0;
         }
 
         private static JsonSerializerOptions GetOptions() =>

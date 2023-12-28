@@ -26,7 +26,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Azure.Data.Tables" Version="12.8.0" />
+		<PackageReference Include="Azure.Data.Tables" Version="12.8.2" />
 		<PackageReference Include="Blazored.LocalStorage" Version="4.4.0" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Cosmos" Version="7.0.3" />
 		<PackageReference Include="System.Linq.Dynamic.Core" Version="1.3.4" />
@@ -45,6 +45,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <ProjectReference Include="..\Migration.Infrastructure.AzureTableStorage\Migration.Infrastructure.AzureTableStorage.csproj" />
 	  <ProjectReference Include="..\Migration.Infrastructure.CosmosDb\Migration.Infrastructure.CosmosDb.csproj" />
 	  <ProjectReference Include="..\Migration.Infrastructure.Redis\Migration.Infrastructure.Redis.csproj" />
 	  <ProjectReference Include="..\Migration.Repository\Migration.Repository.csproj" />
@@ -52,6 +53,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Folder Include="Models\" />
 	  <Folder Include="Uploads\" />
 	</ItemGroup>
 

@@ -33,6 +33,7 @@
                                                     <th>Properties</th>
                                                     <th>Original Values</th>
                                                     <th>Values changed</th>
+                                                    <th>Actions</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -46,8 +47,15 @@
                                                             @((MarkupString)difference.Object1Value)
                                                         </td>
                                                         <td>
-                                                             @((MarkupString)difference.Object2Value)
+                                                            @((MarkupString)difference.Object2Value)
                                                         </td>
+
+                                                        @if (difference.OperationType == OperationType.Delete)
+                                                        {
+                                                            <td style="color:red"> <i style="color:red" class="nav-icon fas fa-trash"></i> Destination record will be deleted</td>
+                                                        }else{
+                                                            <td></td>
+                                                        }
                                                     </tr>
                                                 }
                                             </tbody>
@@ -62,7 +70,8 @@
 
             <!-- Modal footer -->
             <div class="modal-footer">
-                @if(ShowConfirmationButtom){
+                @if (ShowConfirmationButtom)
+                {
                     <button type="button" style="margin-top:15px;" class="btn btn-warning" @onclick=ModalConfirm>Yes</button>
                     <button type="button" style="margin-top:15px;" class="btn btn-close" @onclick=ModalOk>No</button>
                 }
@@ -79,16 +88,16 @@
 @code {
     [Parameter]
     public bool IsLoading { get; set; }
-   
+
     [Parameter]
     public bool ShowModalScroll { get; set; }
 
     [Parameter]
     public bool ShowConfirmationButtom { get; set; }
-   
+
     [Parameter]
     public Dictionary<string, List<Difference>> DataDifferences { get; set; }
-    
+
     [Parameter]
     public EventCallback ModalOk { get; set; }
 

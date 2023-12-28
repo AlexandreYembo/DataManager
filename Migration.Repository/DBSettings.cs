@@ -42,14 +42,21 @@
                     Parameters.Add(new CustomAttributes());
                     AllowAddCustomParameters = false;
                     break;
-                //case ConnectionType.TableStorage:
-                //    AllowAddCustomParameters = false;
-                //    Parameters.Add(new CustomAttributes());
-                //    break;
-                //case ConnectionType.Api:
-                //    AllowAddCustomParameters = true;
-                //    Parameters.Add(new CustomAttributes());
-                //    break;
+                case ConnectionType.TableStorage:
+                    AllowAddCustomParameters = false;
+                    Parameters.Add(new CustomAttributes()
+                    {
+                        Key = "AccountName"
+                    });
+                    Parameters.Add(new CustomAttributes()
+                    {
+                        Key = "AuthKey"
+                    });
+                    break;
+                    //case ConnectionType.Api:
+                    //    AllowAddCustomParameters = true;
+                    //    Parameters.Add(new CustomAttributes());
+                    //    break;
             }
         }
 
@@ -64,6 +71,7 @@
 
         public string GetFileName() => Parameters?.FirstOrDefault(f => f.Key == "FileName")?.Value ?? string.Empty;
 
+        public string GetAccountName() => Parameters?.FirstOrDefault(f => f.Key == "AccountName")?.Value ?? string.Empty;
     }
 
     public class CustomAttributes
@@ -78,6 +86,7 @@
         File,
         //TableStorage, //TODO
         //Api,//TODO
+        TableStorage
     }
 
     //To Be replaced

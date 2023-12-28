@@ -8,6 +8,7 @@ namespace Migration.Repository.Models
         public string? Description { get; set; }
         public List<DataMapping> DataMappings { get; set; } = new();
         public bool Selected { get; set; }
+        public string Id { get; set; }
     }
 
     public class DataMapping
@@ -16,8 +17,10 @@ namespace Migration.Repository.Models
         public AggregateData Destination { get; set; } = new();
         public List<CommandModel> Commands { get; set; } = new();
         public List<DataFieldsMapping> FieldsMapping { get; set; } = new();
+        public OperationType OperationType { get; set; }
 
-        public int Id { get; set; }
+        public string Id { get; set; }
+        public DataQueryMappingType DataQueryMappingType { get; set; }
     }
 
     /// <summary>
@@ -33,6 +36,7 @@ namespace Migration.Repository.Models
     {
         public MappingType MappingType { get; set; }
         public OperatorType? OperatorType { get; set; }
+        public bool IgnoreCaseSensitive { get; set; }
         public string? SourceField { get; set; }
         public string? DestinationField { get; set; }
         public FieldValueType? ValueType { get; set; }
@@ -59,9 +63,10 @@ namespace Migration.Repository.Models
     public enum MappingType
     {
         TableJoin,
-        FieldValueMerge,
-        ValueWithCondition,
-        FieldValueMergeWithCondition
+        UpdateValue,
+        MergeField,
+        UpdateValueWithCondition,
+        MergeFieldWithCondition
     }
 
     public enum OperatorType
@@ -75,5 +80,19 @@ namespace Migration.Repository.Models
     {
         And,
         Or
+    }
+
+    public enum OperationType
+    {
+        Insert,
+        Update,
+        Delete,
+        Report
+    }
+
+    public enum DataQueryMappingType
+    {
+        UpdateSameCollection,
+        UpdateAnotherCollection
     }
 }

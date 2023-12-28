@@ -110,10 +110,11 @@
         //     DataSettings = dataSettings.FirstOrDefault();
         //     _connectionName = DataSettings.FullName;
 
-        //     DataSettings.CurrentEntity = DataSettings.Entities.FirstOrDefault();
+        DataSettings.CurrentEntity = DataSettings.Entities.FirstOrDefault();
 
         //     await OnDbSettingsChanged.InvokeAsync(DataSettings);
         // }
+
     }
 
     public async Task ChangeConnectionString(ChangeEventArgs e)
@@ -126,7 +127,11 @@
 
         var dataSettings = await GetDataSettings();
 
+        dataSettings.CurrentEntity = dataSettings.Entities.FirstOrDefault();
+
         DataSettings.Entities = dataSettings.Entities;
+       
+        DataSettings.CurrentEntity = DataSettings.Entities.FirstOrDefault();
 
         await OnDbSettingsChanged.InvokeAsync(dataSettings);
     }

@@ -6,15 +6,21 @@
             <li class="nav-item">
                 <a class="nav-link active" id="custom-tabs-one-TableJoin-tab" data-toggle="pill" href="#custom-tabs-one-TableJoin" role="tab" aria-controls="custom-tabs-one-TableJoin" aria-selected="true">Table Join</a>
             </li>
-            <li class="nav-item">
-                <a class="nav-link" id="custom-tabs-one-ValueMerge-tab" data-toggle="pill" href="#custom-tabs-one-ValueMerge" role="tab" aria-controls="custom-tabs-one-ValueMerge" aria-selected="false">Value Merge</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" id="custom-tabs-one-ValueMergeWithCondition-tab" data-toggle="pill" href="#custom-tabs-one-ValueMergeWithCondition" role="tab" aria-controls="custom-tabs-one-ValueMergeWithCondition" aria-selected="false">Value Merge With Condition</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" id="custom-tabs-one-ValueWithCondition-tab" data-toggle="pill" href="#custom-tabs-one-ValueWithCondition" role="tab" aria-controls="custom-tabs-one-ValueWithCondition" aria-selected="false">Value With Condition</a>
-            </li>
+            @if (DataMapping.OperationType == OperationType.Update || DataMapping.OperationType == OperationType.Insert)
+            {
+                <li class="nav-item">
+                    <a class="nav-link" id="custom-tabs-one-ValueUpdate-tab" data-toggle="pill" href="#custom-tabs-one-ValueUpdate" role="tab" aria-controls="custom-tabs-one-ValueUpdate" aria-selected="false">Update Value</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="custom-tabs-one-ValueMerge-tab" data-toggle="pill" href="#custom-tabs-one-ValueMerge" role="tab" aria-controls="custom-tabs-one-ValueMerge" aria-selected="false">Merge Field</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="custom-tabs-one-ValueMergeWithCondition-tab" data-toggle="pill" href="#custom-tabs-one-ValueMergeWithCondition" role="tab" aria-controls="custom-tabs-one-ValueMergeWithCondition" aria-selected="false">Merge Value With Condition</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="custom-tabs-one-ValueWithCondition-tab" data-toggle="pill" href="#custom-tabs-one-ValueWithCondition" role="tab" aria-controls="custom-tabs-one-ValueWithCondition" aria-selected="false">Update Value With Condition</a>
+                </li>
+            }
         </ul>
     </div>
     <div class="card-body">
@@ -60,174 +66,214 @@
                 </table>
             </div>
 
-            <div class="tab-pane fade" id="custom-tabs-one-ValueMerge" role="tabpanel" aria-labelledby="custom-tabs-one-ValueMerge-tab">
-                <table class="table table-bordered table-striped">
-                    <thead>
-                        <tr>
-                            <th>Mapping Type</th>
-                            <th>Source</th>
-                            <th>Destination</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var destMap in DataMapping.FieldsMapping.Where(w => w.MappingType == MappingType.FieldValueMerge))
-                        {
+            @if (DataMapping.OperationType == OperationType.Update || DataMapping.OperationType == OperationType.Insert)
+            {
+                <div class="tab-pane fade" id="custom-tabs-one-ValueUpdate" role="tabpanel" aria-labelledby="custom-tabs-one-ValueUpdate-tab">
+                    <table class="table table-bordered table-striped">
+                        <thead>
                             <tr>
-                                <td>
-                                    @destMap.MappingType
-                                </td>
-                                <td>
-                                    @destMap.SourceField
-                                </td>
-                                <td>
-                                    @destMap.DestinationField
-                                </td>
-                                <td>
-                                    <a class="btn btn-app" @onclick="() => Edit(destMap)">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <a class="btn btn-app" @onclick="() => Remove(destMap)">
-                                        <i class="fas fa-trash"></i>
-                                    </a>
-                                </td>
+                                <th>Mapping Type</th>
+                                <th>Destination Field</th>
+                                <th>Destination Value</th>
+                                <th></th>
                             </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody>
+                            @foreach (var destMap in DataMapping.FieldsMapping.Where(w => w.MappingType == MappingType.UpdateValue))
+                            {
+                                <tr>
+                                    <td>
+                                        @destMap.MappingType
+                                    </td>
+                                    <td>
+                                        @destMap.DestinationField
+                                    </td>
+                                    <td>
+                                        @destMap.ValueField
+                                    </td>
+                                    <td>
+                                        <a class="btn btn-app" @onclick="() => Edit(destMap)">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a class="btn btn-app" @onclick="() => Remove(destMap)">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
 
-            <div class="tab-pane fade" id="custom-tabs-one-ValueMergeWithCondition" role="tabpanel" aria-labelledby="custom-tabs-one-ValueMergeWithCondition-tab">
-                <table class="table table-bordered table-striped">
-                    <thead>
-                        <tr>
-                            <th>Mapping Type</th>
-                            <th>Source Condition</th>
-                            <th>Source</th>
-                            <th>Destination</th>
-                            <th>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var destMap in DataMapping.FieldsMapping.Where(w => w.MappingType == MappingType.FieldValueMergeWithCondition))
-                        {
+                <div class="tab-pane fade" id="custom-tabs-one-ValueMerge" role="tabpanel" aria-labelledby="custom-tabs-one-ValueMerge-tab">
+                    <table class="table table-bordered table-striped">
+                        <thead>
                             <tr>
-                                <td>
-                                    @destMap.MappingType
-                                </td>
-                                <td>
-                                    <table class="table table-bordered table-striped">
-                                        <thead>
-                                            <tr>
-                                                <th>Value Type</th>
-                                                <th>Source Condition</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach (var sourceCondition in destMap.SourceCondition)
-                                            {
+                                <th>Mapping Type</th>
+                                <th>Source</th>
+                                <th>Destination</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var destMap in DataMapping.FieldsMapping.Where(w => w.MappingType == MappingType.MergeField))
+                            {
+                                <tr>
+                                    <td>
+                                        @destMap.MappingType
+                                    </td>
+                                    <td>
+                                        @destMap.SourceField
+                                    </td>
+                                    <td>
+                                        @destMap.DestinationField
+                                    </td>
+                                    <td>
+                                        <a class="btn btn-app" @onclick="() => Edit(destMap)">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a class="btn btn-app" @onclick="() => Remove(destMap)">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="tab-pane fade" id="custom-tabs-one-ValueMergeWithCondition" role="tabpanel" aria-labelledby="custom-tabs-one-ValueMergeWithCondition-tab">
+                    <table class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th>Mapping Type</th>
+                                <th>Source Condition</th>
+                                <th>Source</th>
+                                <th>Destination</th>
+                                <th>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var destMap in DataMapping.FieldsMapping.Where(w => w.MappingType == MappingType.MergeFieldWithCondition))
+                            {
+                                <tr>
+                                    <td>
+                                        @destMap.MappingType
+                                    </td>
+                                    <td>
+                                        <table class="table table-bordered table-striped">
+                                            <thead>
                                                 <tr>
-                                                    <td>
-                                                        @if (sourceCondition.Type != null)
-                                                        {
-                                                            @sourceCondition.Type
-                                                        }
-                                                    </td>
-                                                    <td>
-                                                        @sourceCondition.Query
-                                                    </td>
-
+                                                    <th>Value Type</th>
+                                                    <th>Source Condition</th>
                                                 </tr>
-                                            }
-                                        </tbody>
-                                    </table>
-                                </td>
-                                <td>
-                                    @destMap.SourceField
-                                </td>
-                                <td>
-                                    @destMap.DestinationField
-                                </td>
-                                <td>
-                                    <a class="btn btn-app" @onclick="() => Edit(destMap)">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <a class="btn btn-app" @onclick="() => Remove(destMap)">
-                                        <i class="fas fa-trash"></i>
-                                    </a>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var sourceCondition in destMap.SourceCondition)
+                                                {
+                                                    <tr>
+                                                        <td>
+                                                            @if (sourceCondition.Type != null)
+                                                            {
+                                                                @sourceCondition.Type
+                                                            }
+                                                        </td>
+                                                        <td>
+                                                            @sourceCondition.Query
+                                                        </td>
 
-            <div class="tab-pane fade" id="custom-tabs-one-ValueWithCondition" role="tabpanel" aria-labelledby="custom-tabs-one-ValueWithCondition-tab">
-                <table class="table table-bordered table-striped">
-                    <thead>
-                        <tr>
-                            <th>Value Type</th>
-                            <th>Source Condition</th>
-                            <th>Destination Field</th>
-                            <th>Destination Value</th>
-                            <th>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var destMap in DataMapping.FieldsMapping.Where(w => w.MappingType == MappingType.ValueWithCondition))
-                        {
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                    <td>
+                                        @destMap.SourceField
+                                    </td>
+                                    <td>
+                                        @destMap.DestinationField
+                                    </td>
+                                    <td>
+                                        <a class="btn btn-app" @onclick="() => Edit(destMap)">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a class="btn btn-app" @onclick="() => Remove(destMap)">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="tab-pane fade" id="custom-tabs-one-ValueWithCondition" role="tabpanel" aria-labelledby="custom-tabs-one-ValueWithCondition-tab">
+                    <table class="table table-bordered table-striped">
+                        <thead>
                             <tr>
-                                <td>
-                                    @destMap.ValueType
-                                </td>
-                                <td>
-                                    <table class="table table-bordered table-striped">
-                                        <thead>
-                                            <tr>
-                                                <th>Value Type</th>
-                                                <th>Source Condition</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach (var sourceCondition in destMap.SourceCondition)
-                                            {
-                                                <tr>
-                                                    <td>
-                                                        @if (sourceCondition.Type != null)
-                                                        {
-                                                            @sourceCondition.Type
-                                                        }
-                                                    </td>
-                                                    <td>
-                                                        @sourceCondition.Query
-                                                    </td>
-
-                                                </tr>
-                                            }
-                                        </tbody>
-                                    </table>
-                                </td>
-                                <td>
-                                    @destMap.DestinationField
-                                </td>
-                                <td>
-                                    @destMap.ValueField
-                                </td>
-                                <td>
-                                    <a class="btn btn-app" @onclick="() => Edit(destMap)">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <a class="btn btn-app" @onclick="() => Remove(destMap)">
-                                        <i class="fas fa-trash"></i>
-                                    </a>
-                                </td>
+                                <th>Value Type</th>
+                                <th>Source Condition</th>
+                                <th>Destination Field</th>
+                                <th>Destination Value</th>
+                                <th>
+                                </th>
                             </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody>
+                            @foreach (var destMap in DataMapping.FieldsMapping.Where(w => w.MappingType == MappingType.UpdateValueWithCondition))
+                            {
+                                <tr>
+                                    <td>
+                                        @destMap.ValueType
+                                    </td>
+                                    <td>
+                                        <table class="table table-bordered table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>Value Type</th>
+                                                    <th>Source Condition</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var sourceCondition in destMap.SourceCondition)
+                                                {
+                                                    <tr>
+                                                        <td>
+                                                            @if (sourceCondition.Type != null)
+                                                            {
+                                                                @sourceCondition.Type
+                                                            }
+                                                        </td>
+                                                        <td>
+                                                            @sourceCondition.Query
+                                                        </td>
+
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                    <td>
+                                        @destMap.DestinationField
+                                    </td>
+                                    <td>
+                                        @destMap.ValueField
+                                    </td>
+                                    <td>
+                                        <a class="btn btn-app" @onclick="() => Edit(destMap)">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a class="btn btn-app" @onclick="() => Remove(destMap)">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
         </div>
     </div>
 </div>
