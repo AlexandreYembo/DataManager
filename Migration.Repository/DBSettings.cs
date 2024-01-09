@@ -42,14 +42,28 @@
                     Parameters.Add(new CustomAttributes());
                     AllowAddCustomParameters = false;
                     break;
-                //case ConnectionType.TableStorage:
-                //    AllowAddCustomParameters = false;
-                //    Parameters.Add(new CustomAttributes());
-                //    break;
-                //case ConnectionType.Api:
-                //    AllowAddCustomParameters = true;
-                //    Parameters.Add(new CustomAttributes());
-                //    break;
+                case ConnectionType.TableStorage:
+                    AllowAddCustomParameters = false;
+                    Parameters.Add(new CustomAttributes()
+                    {
+                        Key = "Is Emulator",
+                        Value = "False",
+                        Type = "bool"
+                    });
+
+                    Parameters.Add(new CustomAttributes()
+                    {
+                        Key = "AccountName"
+                    });
+                    Parameters.Add(new CustomAttributes()
+                    {
+                        Key = "AuthKey"
+                    });
+                    break;
+                    //case ConnectionType.Api:
+                    //    AllowAddCustomParameters = true;
+                    //    Parameters.Add(new CustomAttributes());
+                    //    break;
             }
         }
 
@@ -64,12 +78,14 @@
 
         public string GetFileName() => Parameters?.FirstOrDefault(f => f.Key == "FileName")?.Value ?? string.Empty;
 
+        public string GetAccountName() => Parameters?.FirstOrDefault(f => f.Key == "AccountName")?.Value ?? string.Empty;
     }
 
     public class CustomAttributes
     {
         public string Key { get; set; }
         public string? Value { get; set; }
+        public string Type { get; set; }
     }
 
     public enum ConnectionType
@@ -78,6 +94,7 @@
         File,
         //TableStorage, //TODO
         //Api,//TODO
+        TableStorage
     }
 
     //To Be replaced

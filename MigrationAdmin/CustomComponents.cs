@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
+using Migration.Repository.LogModels;
 using Migration.Repository.Models;
-using Migration.Services.LogModels;
 using Migration.Services.Models;
 
 namespace MigrationAdmin

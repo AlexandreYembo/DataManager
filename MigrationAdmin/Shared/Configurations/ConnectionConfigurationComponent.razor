@@ -93,14 +93,28 @@
             {
                 foreach (var par in DataSettings.Parameters)
                 {
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <div class="form-group">
-                                <label>@par.Key</label>
-                                <input class="form-control" id="parValue" data-keeper-edited="yes" @bind="@par.Value" />
+                    if (par.Type == "bool")
+                    {
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <div class="form-group">
+                                    <label>@par.Key</label>
+                                    <input type="checkbox" checked="@bool.Parse(par.Value)" @oninput="ChangeIsEmulator" />
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    }
+                    else
+                    {
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <div class="form-group">
+                                    <label>@par.Key</label>
+                                    <input class="form-control" id="parValue" data-keeper-edited="yes" @bind="@par.Value" />
+                                </div>
+                            </div>
+                        </div>
+                    }
                 }
             }
         }
@@ -133,7 +147,6 @@
     public EventCallback OnConnectionSuccessfully { get; set; }
 
     private bool _error;
-
     private string _message;
 
     private IBrowserFile _uploadedFile;
@@ -234,4 +247,10 @@
         Loading = false;
         ShowModal = true;
     }
+
+    private void ChangeIsEmulator(ChangeEventArgs e)
+    {
+        DataSettings.Parameters.FirstOrDefault(f => f.Key == "Is Emulator").Value = e.Value.ToString();
+    }
+
 }

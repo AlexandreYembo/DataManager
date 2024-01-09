@@ -1,0 +1,30 @@
+﻿@using Microsoft.AspNetCore.Components
+@using Migration.Repository.Models
+@inherits MigrationAdmin.CustomComponents
+
+<div class="card card-default">
+    <div class="card-header">
+        <h3 class="card-title">Configure the Fields you want to merge the value</h3>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="form-group">
+                    <label>Destination Field</label>
+                    <input class="form-control" data-keeper-edited="yes" @bind="DataFieldsMapping.DestinationField" />
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="form-group">
+                    <label>Destination Value</label>
+                    <input class="form-control" data-keeper-edited="yes" @bind="DataFieldsMapping.ValueField" />
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-footer">
+        <button class="btn btn-default" @onclick="async () => await AddDataFieldsMapping(DataFieldsMapping, MappingType.UpdateValue)">Add</button>
+    </div>
+</div>

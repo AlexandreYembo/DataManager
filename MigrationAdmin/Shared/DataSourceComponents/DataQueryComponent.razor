@@ -1,10 +1,9 @@
-﻿@using MigrationAdmin.Models
-@using Migration.Repository
+﻿@using Migration.Repository
 @using Migration.Repository.Models
 @using Migration.Infrastructure.Redis.Entities
 @using Migration.Infrastructure.Redis
 @inject IJSRuntime jsRuntime
-@inject IRepository<RedisData<DataSettings>> _redis;
+@inject IRepository<DataSettings> _redis;
 
 <div class="card card-default">
     <div class="card-header">
@@ -17,10 +16,10 @@
     </div>
     <div class="card-body" style="display: block;">
         <div class="row">
-            <div class="col-sm-2">
+            <div class="col-sm-4">
                 <div class="form-group">
                     <label>Select what type of mapping do you want to apply</label>
-                    <select class="form-control" id="dataqueryMappingType" data-keeper-edited="yes" @onchange="ChangeDataQueryMappingType">
+                    <select class="form-control" data-keeper-edited="yes" value="@DataMapping.DataQueryMappingType" @onchange="ChangeDataQueryMappingType">
                         @foreach (var type in _dataQueryMappingType)
                         {
                             <option value="@type.Value">@type.Key</option>
@@ -28,24 +27,35 @@
                     </select>
                 </div>
             </div>
+            <div class="col-sm-2">
+                <label>Operation Type</label>
+                <select class="form-control" data-keeper-edited="yes" value="@DataMapping.OperationType" @onchange="ChangeOperationType">
+                    @foreach (var operationType in Enum.GetValues<OperationType>())
+                    {
+                        <option value="@operationType">@operationType</option>
+                    }
+                </select>
+            </div>
         </div>
         <div class="row">
             <div class="col-sm-12">
-                @if (DataQueryType == DataQueryMappingType.UpdateAnotherCollection)
+                @if (DataMapping.DataQueryMappingType == DataQueryMappingType.UpdateAnotherCollection)
                 {
                     <DatabaseSelectorComponent Title="Select the source"
                                                ConnectionStrings="DataSettings?.ToDictionary(kvp => kvp.FullName, kvp => kvp.FullName)"
                                                DataSettings="DataMapping.Source.Settings"
                                                OnDbSettingsChanged="(sourceDbSettings) => AddSourceDbSettings(sourceDbSettings)"
                                                Query="@DataMapping.Source.Query"
-                                               OnQueryAdded="async (query) => await AddSourceQuery(query)">
+                                               OnQueryAdded="async (query) => await AddSourceQuery(query)"
+                                               DisplayQuery="true">
                     </DatabaseSelectorComponent>
                     <DatabaseSelectorComponent Title="Select the destination"
                                                ConnectionStrings="DataSettings?.ToDictionary(kvp => kvp.FullName, kvp => kvp.FullName)"
                                                DataSettings="DataMapping.Destination.Settings"
                                                OnDbSettingsChanged="(sourceDbSettings) => AddDestinationDbSettings(sourceDbSettings)"
                                                Query="@DataMapping.Destination.Query"
-                                               OnQueryAdded="async (query) => await AddDestinationQuery(query)">
+                                               OnQueryAdded="async (query) => await AddDestinationQuery(query)"
+                                               DisplayQuery="true">
                     </DatabaseSelectorComponent>
                 }
                 else
@@ -55,7 +65,8 @@
                                                DataSettings="DataMapping.Source.Settings"
                                                OnDbSettingsChanged="(sourceDbSettings) => AddSourceDbSettings(sourceDbSettings)"
                                                Query="@DataMapping.Source.Query"
-                                               OnQueryAdded="async (query) => await AddSourceQuery(query)">
+                                               OnQueryAdded="async (query) => await AddSourceQuery(query)"
+                                               DisplayQuery="true">
                     </DatabaseSelectorComponent>
                 }
             </div>
@@ -85,25 +96,26 @@
     {"Update another collection", DataQueryMappingType.UpdateAnotherCollection}
     };
     
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        // var redisData = await _redis.FindAsync(typeof(DataSettings).Name);
+        var redisData = await _redis.FindAsync();
 
-        // var dataSettings = redisData.Select(s => s.Data).ToList();
-
-        // if (!dataSettings.Any())
-        //     return;
-
-        // DataSettings = dataSettings;
-
-        if (DataSettings == null)
+        if (!redisData.Any())
             return;
 
-        DataMapping.Source.Settings = DataSettings.FirstOrDefault();
-        DataMapping.Source.Settings.CurrentEntity = DataMapping.Source.Settings.Entities.FirstOrDefault();
+        DataSettings = redisData;
 
-        DataMapping.Destination.Settings = DataSettings.FirstOrDefault();
-        DataMapping.Destination.Settings.CurrentEntity = DataMapping.Destination.Settings.Entities.FirstOrDefault();
+        if (DataMapping.Source.Settings == null)
+        {
+            DataMapping.Source.Settings = DataSettings.FirstOrDefault();
+            DataMapping.Source.Settings.CurrentEntity = DataMapping.Source.Settings.Entities.FirstOrDefault();
+        }
+        
+        if (DataMapping.Destination.Settings == null)
+        {
+            DataMapping.Destination.Settings = DataSettings.FirstOrDefault();
+            DataMapping.Destination.Settings.CurrentEntity = DataMapping.Destination.Settings.Entities.FirstOrDefault();
+        }
     }
 
     public async Task ChangeDataQueryMappingType(ChangeEventArgs e)
@@ -113,7 +125,14 @@
         if (Enum.TryParse<DataQueryMappingType>(e.Value.ToString(), out var value))
             DataQueryType = value;
 
+        DataMapping.DataQueryMappingType = DataQueryType;
+
         await DataQueryMappingTypeChangedCallback.InvokeAsync(DataQueryType);
+    }
+
+    private void ChangeOperationType(ChangeEventArgs e)
+    {
+        DataMapping.OperationType = Enum.Parse<OperationType>(e.Value.ToString());
     }
 
     private void AddSourceDbSettings(DataSettings sourceSettings)

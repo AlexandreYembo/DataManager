@@ -1,0 +1,68 @@
+﻿@using Newtonsoft.Json.Linq
+@using Migration.Repository.Models
+@using Migration.Repository
+@using Migration.Infrastructure.Redis
+@inject IRepository<DataSettings> _redis;
+<div class="modal fade show" id="logDetailsModal" style="display:block" aria-modal="true" role="dialog">
+    <div class="modal-dialog" style="max-width: 900px; ">
+        <div class="modal-content">
+
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <h4 class="modal-title">Export Data To Another DB</h4>
+            </div>
+
+            <!-- Modal body -->
+            <div class="modal-body" style="overflow:scroll;max-height:900px">
+
+                <div class="card card-info">
+                    <div class="card-header">
+                        <h3 class="card-title">Select your Data base</h3>
+                    </div>
+                    <div class="card-body">
+                        <DatabaseSelectorComponent Title="Select the source"
+                                                   ConnectionStrings="_dataSettings?.ToDictionary(kvp => kvp.FullName, kvp => kvp.FullName)"
+                                                   DataSettings="_dataSetting"
+                                                   OnDbSettingsChanged="(sourceDbSettings) => AddSourceDbSettings(sourceDbSettings)"
+                                                   DisplayQuery="false"></DatabaseSelectorComponent>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Modal footer -->
+            <div class="modal-footer">
+                <button type="button" style="margin-top:15px;" class="btn btn-close" @onclick=ModalOk>Ok</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public List<JObject> Data { get; set; }
+    [Parameter]
+    public EventCallback ModalOk { get; set; }
+
+    private IEnumerable<DataSettings> _dataSettings { get; set; }
+    private DataSettings _dataSetting { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var redisData = await _redis.FindAsync();
+
+        if (!redisData.Any())
+            return;
+
+        _dataSettings = redisData;
+        _dataSetting = _dataSettings.FirstOrDefault();
+
+    }
+
+    private void AddSourceDbSettings(DataSettings sourceDbSettings)
+    {
+        throw new NotImplementedException();
+    }
+
+}

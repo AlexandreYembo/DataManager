@@ -17,12 +17,12 @@
                             <th>Value Type</th>
                             <th>Source Condition</th>
                             <th>
-                                    <button class="btn btn-success" @onclick="() => AddCondition(DataFieldsMapping.SourceCondition)">+</button>
+                                    <button class="btn btn-success" @onclick="() => AddCondition(DataFieldsMapping.Conditions)">+</button>
                             </th>
                         </tr>
                         </thead>
                         <tbody>
-                            @foreach (var sourceCondition in DataFieldsMapping.SourceCondition)
+                            @foreach (var sourceCondition in DataFieldsMapping.Conditions)
                         {
                             <tr>
                                 <td>
@@ -42,7 +42,7 @@
                                 <td>
                                     @if (sourceCondition.Type != null)
                                     {
-                                            <button class="btn btn-danger" @onclick="() => RemoveCondition(DataFieldsMapping.SourceCondition, sourceCondition)">-</button>
+                                            <button class="btn btn-danger" @onclick="() => RemoveCondition(DataFieldsMapping.Conditions, sourceCondition)">-</button>
                                     }
                                 </td>
                             </tr>
@@ -70,6 +70,6 @@
         </div>
     </div>
     <div class="card-footer">
-        <button class="btn btn-default" @onclick="async () => await AddDataFieldsMapping(DataFieldsMapping, MappingType.ValueWithCondition)">Add</button>
+        <button class="btn btn-default" @onclick="async () => await AddDataFieldsMapping(DataFieldsMapping, MappingType.UpdateValueWithCondition)">Add</button>
     </div>
 </div>

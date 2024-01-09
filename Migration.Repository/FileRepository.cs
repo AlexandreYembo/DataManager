@@ -66,7 +66,7 @@ namespace Migration.Repository
             return filterExpression;
         }
 
-        public Task<Dictionary<string, string>> Get(string rawQuery, List<DataFieldsMapping> fieldMappings, string data, int take)
+        public Task<Dictionary<string, string>> Get(string rawQuery, List<DataFieldsMapping> fieldMappings, string data, int take, int skip = 0)
         {
             throw new NotImplementedException();
         }
@@ -81,7 +81,12 @@ namespace Migration.Repository
             throw new NotImplementedException();
         }
 
-        public Task Update(JObject entity)
+        public Task Update(JObject entity, List<DataFieldsMapping> fieldMappings = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task Delete(JObject entity)
         {
             throw new NotImplementedException();
         }

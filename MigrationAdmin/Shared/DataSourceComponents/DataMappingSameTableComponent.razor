@@ -1,66 +1,152 @@
 ﻿@using Migration.Repository.DbOperations
+@using Migration.Repository.Models
+@inherits MigrationAdmin.CustomComponents
+<div class="card card-default">
+    <div class="card-header">
+        <h3 class="card-title">Mapping configuration</h3>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-sm-2">
+                <label>Mapping Type</label>
+                <select class="form-control" data-keeper-edited="yes" value="@_dataFieldsMapping.MappingType" @onchange="ChangeMappingType">
+                    @foreach (var mappingType in Enum.GetValues<MappingType>().Where(w => w != MappingType.TableJoin))
+                    {
+                        <option value="@mappingType">@mappingType</option>
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-12">
+                @if (DataMapping.OperationType == OperationType.Update || DataMapping.OperationType == OperationType.Insert)
+                {
+                    @switch (_dataFieldsMapping.MappingType)
+                    {
+                        case MappingType.MergeField:
+                            <MergeFieldsComponent OnDataFieldsMappingUpdated="(dataFieldMapping) => AddFieldsMapping(dataFieldMapping)"
+                                                  DataFieldsMapping="_dataFieldsMapping"></MergeFieldsComponent>
+                            break;
+                        case MappingType.UpdateValue:
+                            <UpdateValueComponent OnDataFieldsMappingUpdated="(dataFieldMapping) => AddFieldsMapping(dataFieldMapping)"
+                                                  DataFieldsMapping="_dataFieldsMapping"></UpdateValueComponent>
+                            break;
+                        case MappingType.MergeFieldWithCondition:
+                            <MergeFieldValuesConditionComponent OnDataFieldsMappingUpdated="(dataFieldMapping) => AddFieldsMapping(dataFieldMapping)"
+                                                                DataFieldsMapping="_dataFieldsMapping"></MergeFieldValuesConditionComponent>
+                            break;
+                        case MappingType.UpdateValueWithCondition:
+                            <UpdateValueConditionComponent OnDataFieldsMappingUpdated="(dataFieldMapping) => AddFieldsMapping(dataFieldMapping)"
+                                                           DataFieldsMapping="_dataFieldsMapping"></UpdateValueConditionComponent>
+                            break;
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12">
+        <MappingListComponent DataMapping="DataMapping"
+                              OnDataFieldsMappingEditing="(dataFieldsMapping) => _dataFieldsMapping = dataFieldsMapping "></MappingListComponent>
+    </div>
+</div>
 
-<table id="dataManagement" class="table">
-    <thead>
-        <tr>
-            <th>Field Type</th>
-            <th>Field (Including the Path for Objects and Array)</th>
-            <th>Value</th>
-            <th>
-                <button class="btn btn-success" @onclick="() => AddCommand()">+</button>
-            </th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var command in CommandsModel)
-        {
-            <tr>
-                <td>
-                    <select class="form-control" id="fieldType" data-keeper-edited="yes" @bind="@command.Type">
-                        @foreach (var fieldType in FieldsTypes)
+@* <div class="card card-default">
+    <div class="card-header">
+        <h3 class="card-title">Configure the Fields you want to merge the value</h3>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="form-group">
+                    <label>Field</label>
+                    <input class="form-control" data-keeper-edited="yes" @bind="_dataFieldsMapping.SourceField" />
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="form-group">
+                    <label>Value</label>
+                    <input class="form-control" data-keeper-edited="yes" @bind="_dataFieldsMapping.ValueField" />
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-footer">
+        <button class="btn btn-default" @onclick="async () => await AddFieldsMapping(_dataFieldsMapping)">Add</button>
+    </div>
+
+    <div class="card-header">
+        <h3 class="card-title">Mapping</h3>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-sm-12">
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>Field</th>
+                            <th>Value</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var destMap in DataMapping.FieldsMapping)
                         {
-                            <option value="@fieldType">@fieldType</option>
+                            <tr>
+                                <td>
+                                    @destMap.SourceField
+                                </td>
+                                <td>
+                                    @destMap.ValueField
+                                </td>
+                                <td>
+                                    <a class="btn btn-app" @onclick="() => Edit(destMap)">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a class="btn btn-app" @onclick="() => Remove(destMap)">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
                         }
-                    </select>
-                </td>
-                <td>
-                    <input class="form-control" id="command" data-keeper-edited="yes" @bind="@command.Field" />
-                </td>
-                <td>
-                    <input class="form-control" id="command" data-keeper-edited="yes" @bind="@command.Value" />
-                </td>
-                <td>
-                    <button class="btn btn-danger" @onclick="() => RemoveCommand(command)">-</button>
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
-@code {
-  
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div> *@
+@code
+{
+    [Parameter]
+    public DataMapping DataMapping { get; set; } = new();
 
     [Parameter]
-    public List<CommandModel> CommandsModel { get; set; }
+    public EventCallback<DataMapping> OnDataMappingChanged { get; set; }
 
-    private string  _query;
+    private DataFieldsMapping _dataFieldsMapping = new();
 
-    public void AddCommand()
+    private async Task AddFieldsMapping(DataFieldsMapping dataFieldMapping)
     {
-        CommandsModel.Add(new CommandModel());
+        dataFieldMapping.DirectionType = MappingDirectionType.Source;
+
+        DataMapping.FieldsMapping.Remove(dataFieldMapping);
+        DataMapping.FieldsMapping.Add(dataFieldMapping);
+        _dataFieldsMapping = new DataFieldsMapping();
+
+        await OnDataMappingChanged.InvokeAsync(DataMapping);
     }
 
-    private void RemoveCommand(CommandModel command)
+    private void Remove(DataFieldsMapping dataFieldsMapping)
     {
-        CommandsModel.Remove(command);
+        DataMapping.FieldsMapping.Remove(dataFieldsMapping);
     }
 
-    public List<string> FieldsTypes { get; set; } = new()
+    private void ChangeMappingType(ChangeEventArgs e)
     {
-        "Select an option",
-        "String",
-        "Integer",
-        "Boolean",
-        "Guid",
-        "DateTime"
-    };
+        _dataFieldsMapping = new();
+        _dataFieldsMapping.MappingType = Enum.Parse<MappingType>(e.Value.ToString());
+    }
 }

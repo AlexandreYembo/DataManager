@@ -1,4 +1,4 @@
-﻿namespace Migration.Services.Publishers
+﻿namespace Migration.Repository.Publishers
 {
     public interface IPublisher<in TEntity, TEventArgs>
                                         where TEntity : class, new()

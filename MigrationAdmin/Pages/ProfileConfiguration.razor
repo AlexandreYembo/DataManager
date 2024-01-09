@@ -1,5 +1,4 @@
 ﻿@page "/profileConfiguration"
-@using MigrationAdmin.Models
 @using Migration.Repository.Models
 @using Migration.Services
 @using Migration.Services.Models
@@ -53,7 +52,8 @@
                 }
                 else
                 {
-                    <DataMappingSameTableComponent CommandsModel="Profile.DataMappings[0].Commands"></DataMappingSameTableComponent>
+                    <DataMappingSameTableComponent DataMapping="Profile.DataMappings[0]"
+                                                   OnDataMappingChanged="(mappingResult) => _ = mappingResult"></DataMappingSameTableComponent>
                 }
             </div>
             <div class="tab-pane fade @GetStep("show active", 4)" id="custom-tabs-one-preview" role="tabpanel" aria-labelledby="custom-tabs-one-preview-tab">
@@ -64,12 +64,16 @@
                     <div class="card-body">
                         <div class="row">
                             <div class="col-sm-2">
+                                <label>Environment Name</label>
+                                <input class="form-control" data-keeper-edited="yes" @bind="@Profile.EnvironmentName" />
+                            </div>
+                            <div class="col-sm-2">
                                 <label>Name</label>
-                                <input class="form-control" id="parValue" data-keeper-edited="yes" @bind="@Profile.Name" />
+                                <input class="form-control" data-keeper-edited="yes" @bind="@Profile.Name"/>
                             </div>
                             <div class="col-sm-2">
                                 <label>Description</label>
-                                <input class="form-control" id="parValue" data-keeper-edited="yes" @bind="@Profile.Description" />
+                                <input class="form-control" data-keeper-edited="yes" @bind="@Profile.Description"/>
                             </div>
                         </div>
                     </div>
@@ -161,12 +165,6 @@
                     <button class="btn btn-default" @onclick="() => PreviewDataResult()"> <i class="nav-icon fas fa-forward"></i> Next</button>
                 </div>
             }
-            else
-            {
-                <div class="col-sm-1">
-                    <button class="btn btn-default" @onclick="() => SaveFile()"> <i class="nav-icon fas fa-save"></i> Save Profile</button>
-                </div>
-            }
         </div>
     </div>
 </div>
@@ -177,14 +175,6 @@
     <div class="col-sm-12">
         <Loading />
     </div>
-}
-
-
-@if (ShowModalSaveData)
-{
-    <SaveDataConfirmationComponent Data="Profile"
-                                   ModalTitle="Save Profile Configuration">
-    </SaveDataConfirmationComponent>
 }
 
 @if (_showModalDataDifference)
@@ -215,7 +205,7 @@
     {
         Profile.DataMappings.Add(new DataMapping()
             {
-                Id = 1,
+                Id = Guid.NewGuid().ToString(),
                 FieldsMapping = new()
                     {
                     new ()
@@ -237,8 +227,14 @@
         _step++;
         Loading = true;
 
+        Profile.DataMappings[0].DataQueryMappingType = _dataQueryType;
+
         try
         {
+            if (Profile.DataMappings[0].DataQueryMappingType == DataQueryMappingType.UpdateSameCollection)
+            {
+                Profile.DataMappings[0].Destination = null;
+            }
             _resultDataFromConfiguration = await _queryService.Get(Profile.DataMappings[0], take: 10); //TODO: DataMappings[0] will be a list in the future
         }
         catch (Exception e)
@@ -261,7 +257,7 @@
 
             foreach (var data in _resultDataFromConfiguration.Where(w => w.Key == key))
             {
-                var differences = DifferencesMultipleDestinationsHelper.FindDifferences(Profile.DataMappings, data.Value);
+                var differences = DifferencesMultipleDestinationsHelper.FindDifferences(Profile.DataMappings[0], data.Value);
 
                 if (differences.Any())
                 {
@@ -282,15 +278,6 @@
         var mergedDictionary = dictionaries.Aggregate((dict1, dict2) =>
         dict1.Concat(dict2).ToDictionary(kvp => kvp.Key, kvp => kvp.Value));
         return mergedDictionary;
-    }
-
-    private async Task FileLoad(string json)
-    {
-        if (string.IsNullOrEmpty(json)) return;
-
-        Profile = JsonConvert.DeserializeObject<Profile>(json);
-
-        await InvokeAsync(StateHasChanged);
     }
 
     public void ModalOk()
@@ -326,21 +313,25 @@
 
     private async Task SaveProfile()
     {
+        if (Profile.DataMappings[0].DataQueryMappingType == DataQueryMappingType.UpdateSameCollection)
+        {
+            Profile.DataMappings[0].Destination = null;
+        }
+
         var redisData = new RedisData<Profile>()
             {
                 Data = Profile,
                 Key = Profile.Name
             };
 
-        await _profileRepository.SaveAsync(redisData);
+        await _profileRepository.SaveAsync(redisData, Profile.EnvironmentName);
 
         await ShowSuccessAlert();
-
     }
 
     private async Task ShowSuccessAlert()
     {
-        await jsRuntime.InvokeAsync<object>("ShowSuccessAlert", $"{Data.GetType().Name} saved");
+        await jsRuntime.InvokeAsync<object>("ShowSuccessAlert", $"Profile configuration saved");
     }
 
     private async Task ShowErrorAlert(string message)

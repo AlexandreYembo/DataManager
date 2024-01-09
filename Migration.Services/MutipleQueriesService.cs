@@ -28,7 +28,7 @@ namespace Migration.Services
             Dictionary<string, List<DynamicData>> result = new();
 
             var source = await _genericRepository(dataMapping.Source.Settings)
-                .Get(dataMapping.Source.Query);
+                .Get(dataMapping.Source.Query, null, null, 10, 0);
 
             if (!source.Any())
                 return new();
@@ -38,21 +38,37 @@ namespace Migration.Services
             foreach (var sourceData in source) //TODO: need to group source by the join applied to avoid making multiple queries for the same relationship
             {
                 var jsonObject = JObject.Parse(sourceData.Value);
-                dataSource.Add($"{dataMapping.Source.Settings.CurrentEntity}:{jsonObject["id"]}" , jsonObject);
 
-                var destination = await _genericRepository(dataMapping.Destination.Settings)
-             .Get(dataMapping.Destination.Query, dataMapping.FieldsMapping, sourceData.Value, take);
-
-                Dictionary<string, IEnumerable<JObject>> dataDestination = new();
-                if (destination.Any())
+                if (jsonObject["id"] != null)
                 {
-                    //To avoid add duplicated record
-                    if (!result.Values.Any(a => a.Any(a1 => destination.ContainsValue(a1.Data))))
-
-                        dataDestination.Add(dataMapping.Destination.Settings.CurrentEntity, destination.ApplyJoin(sourceData, dataMapping.FieldsMapping));
-
-                        result.Add($"{dataMapping.Source.Settings.CurrentEntity}:{sourceData.Key}", dataDestination.ToDynamicDataList(sourceData, dataMapping.Source.Settings.CurrentEntity));
+                    dataSource.Add($"{dataMapping.Source.Settings.CurrentEntity}:{jsonObject["id"]}", jsonObject);
                 }
+                else
+                {
+                    dataSource.Add($"{dataMapping.Source.Settings.CurrentEntity}:{Guid.NewGuid()}", jsonObject);
+                }
+
+                if (dataMapping.DataQueryMappingType == DataQueryMappingType.UpdateAnotherCollection)
+                {
+                    var destination = await _genericRepository(dataMapping.Destination.Settings)
+                        .Get(dataMapping.Destination.Query, dataMapping.FieldsMapping, sourceData.Value, take, 0);
+
+                    Dictionary<string, IEnumerable<JObject>> dataDestination = new();
+                    if (destination.Any())
+                    {
+                        //To avoid add duplicated record
+                        if (!result.Values.Any(a => a.Any(a1 => destination.ContainsValue(a1.Data))))
+                        {
+                            dataDestination.Add(dataMapping.Destination.Settings.CurrentEntity, destination.ApplyJoin(sourceData, dataMapping.FieldsMapping));
+                            result.Add($"{dataMapping.Source.Settings.CurrentEntity}:{sourceData.Key}", dataDestination.ToDynamicDataList(sourceData, dataMapping.Source.Settings.CurrentEntity, dataMapping.OperationType));
+                        }
+                    }
+                }
+                else
+                {
+                        result.Add($"{dataMapping.Source.Settings.CurrentEntity}:{sourceData.Key}", dataSource.LastOrDefault().ToDynamicDataList());
+                }
+
                 //else
                 //{
                 //    result.Add($"{dataMapping.Source.Settings.CurrentEntity}:{sourceData.Key}", dataSource.LastOrDefault().ToDynamicDataList(DataType.Source));

@@ -8,7 +8,7 @@
     <div class="card-body">
         <div class="row">
             <div class="col-sm-2">
-                <label>Operator Type</label>
+                <label>Mapping Type</label>
                 <select class="form-control" data-keeper-edited="yes" value="@_dataFieldsMapping.MappingType" @onchange="ChangeMappingType">
                     @foreach (var mappingType in Enum.GetValues<MappingType>())
                     {
@@ -19,24 +19,48 @@
         </div>
         <div class="row">
             <div class="col-sm-12">
-                @switch (_dataFieldsMapping.MappingType)
+                @if (DataMapping.OperationType == OperationType.Update || DataMapping.OperationType == OperationType.Insert)
                 {
-                    case MappingType.TableJoin:
-                        <TableJoinComponent OnDataFieldsMappingUpdated="(dataFieldMapping) => AddFieldsMapping(dataFieldMapping)"
-                                            DataFieldsMapping="_dataFieldsMapping"></TableJoinComponent>
-                        break;
-                    case MappingType.FieldValueMerge:
-                        <MergeFieldsComponent OnDataFieldsMappingUpdated="(dataFieldMapping) => AddFieldsMapping(dataFieldMapping)"
-                                              DataFieldsMapping="_dataFieldsMapping"></MergeFieldsComponent>
-                        break;
-                    case MappingType.FieldValueMergeWithCondition:
-                        <MergeFieldValuesConditionComponent OnDataFieldsMappingUpdated="(dataFieldMapping) =>AddFieldsMapping(dataFieldMapping)"
-                                                            DataFieldsMapping="_dataFieldsMapping"></MergeFieldValuesConditionComponent>
-                        break;
-                    case MappingType.ValueWithCondition:
-                        <UpdateValueConditionComponent OnDataFieldsMappingUpdated="(dataFieldMapping) => AddFieldsMapping(dataFieldMapping)"
-                                                       DataFieldsMapping="_dataFieldsMapping"></UpdateValueConditionComponent>
-                        break;
+                    <div class="row">
+                        <div class="col-sm-2">
+                            <label>Choose Direction Type</label>
+                            <select class="form-control" data-keeper-edited="yes" value="@_dataFieldsMapping.DirectionType" @onchange="ChangeDirectionType">
+                                @foreach (var mappingType in Enum.GetValues<MappingDirectionType>())
+                                {
+                                    <option value="@mappingType">@mappingType</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    @switch (_dataFieldsMapping.MappingType)
+                    {
+                        case MappingType.TableJoin:
+                            <TableJoinComponent OnDataFieldsMappingUpdated="(dataFieldMapping) => AddFieldsMapping(dataFieldMapping)"
+                                                DataFieldsMapping="_dataFieldsMapping"></TableJoinComponent>
+                            break;
+                        case MappingType.MergeField:
+                            <MergeFieldsComponent OnDataFieldsMappingUpdated="(dataFieldMapping) => AddFieldsMapping(dataFieldMapping)"
+                                                  DataFieldsMapping="_dataFieldsMapping"></MergeFieldsComponent>
+                            break;
+                        case MappingType.UpdateValue:
+                            <UpdateValueComponent OnDataFieldsMappingUpdated="(dataFieldMapping) => AddFieldsMapping(dataFieldMapping)"
+                                                  DataFieldsMapping="_dataFieldsMapping"></UpdateValueComponent>
+                            break;
+                        case MappingType.MergeFieldWithCondition:
+                            <MergeFieldValuesConditionComponent OnDataFieldsMappingUpdated="(dataFieldMapping) => AddFieldsMapping(dataFieldMapping)"
+                                                                DataFieldsMapping="_dataFieldsMapping"></MergeFieldValuesConditionComponent>
+                            break;
+                        case MappingType.UpdateValueWithCondition:
+                            <UpdateValueConditionComponent OnDataFieldsMappingUpdated="(dataFieldMapping) => AddFieldsMapping(dataFieldMapping)"
+                                                           DataFieldsMapping="_dataFieldsMapping"></UpdateValueConditionComponent>
+                            break;
+                    }
+                }
+                else
+                {
+                    <TableJoinComponent OnDataFieldsMappingUpdated="(dataFieldMapping) => AddFieldsMapping(dataFieldMapping)"
+                                        DataFieldsMapping="_dataFieldsMapping"></TableJoinComponent>
                 }
             </div>
         </div>
@@ -45,14 +69,6 @@
                 <MappingListComponent DataMapping="DataMapping"
                                       OnDataFieldsMappingEditing="(dataFieldsMapping) => _dataFieldsMapping = dataFieldsMapping "></MappingListComponent>
             </div>
-        </div>
-    </div>
-</div>
-
-<div class="row">
-    <div class="col-sm-12">
-        <div class="form-group">
-            <button class="btn btn-default" @onclick="async () => await AddMapping()"> Add Mapping</button>
         </div>
     </div>
 </div>
@@ -84,35 +100,15 @@
         DataMapping.Destination.Settings = destinationSettings;
     }
 
-    private async Task AddSourceQuery(string query)
-    {
-        await ShowSuccessAlert("Source Query added");
-
-        if (DataMapping.Source == null) DataMapping.Source = new();
-
-        DataMapping.Source.Query = query;
-    }
-
-    private async Task AddDestinationQuery(string query)
-    {
-        await ShowSuccessAlert("Destination Query added");
-
-        if (DataMapping.Destination == null) DataMapping.Destination = new();
-
-        DataMapping.Destination.Query = query;
-    }
-
-    private async Task AddMapping()
-    {
-        await ShowSuccessAlert("Mapping added");
-
-        await OnDataMappingChanged.InvokeAsync(DataMapping);
-    }
-
     private void ChangeMappingType(ChangeEventArgs e)
     {
         _dataFieldsMapping = new();
         _dataFieldsMapping.MappingType = Enum.Parse<MappingType>(e.Value.ToString());
+    }
+
+    private void ChangeDirectionType(ChangeEventArgs e)
+    {
+        _dataFieldsMapping.DirectionType = Enum.Parse<MappingDirectionType>(e.Value.ToString());
     }
 
     private async Task ShowSuccessAlert(string message)
@@ -120,10 +116,11 @@
         await jsRuntime.InvokeAsync<object>("ShowSuccessAlert", message);
     }
 
-    private void AddFieldsMapping(DataFieldsMapping dataFieldMapping)
+    private async Task AddFieldsMapping(DataFieldsMapping dataFieldMapping)
     {
         DataMapping.FieldsMapping.Remove(dataFieldMapping);
         DataMapping.FieldsMapping.Add(dataFieldMapping);
         _dataFieldsMapping = new DataFieldsMapping();
+        await OnDataMappingChanged.InvokeAsync(DataMapping);
     }
 }

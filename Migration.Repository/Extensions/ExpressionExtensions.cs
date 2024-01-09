@@ -1,5 +1,6 @@
 ﻿using Migration.Repository.Models;
 using Newtonsoft.Json.Linq;
+using System;
 
 namespace Migration.Repository.Extensions
 {
@@ -21,15 +22,42 @@ namespace Migration.Repository.Extensions
                 {
                     var value1 = s[property.SourceField]?.ToString();
 
-                    var path2 = d[property.DestinationField];
+                    if (string.IsNullOrEmpty(value1))
+                        value1 = s.SelectToken(property.SourceField).ToString();
+
+                    var field = property.DestinationField;
+
+                    int? index = 0;
+
+                    if (field.Contains("[") && field.Contains("]"))
+                    {
+                        var firstIndex = field.LastIndexOf("[", StringComparison.Ordinal) + 1;
+                        var lastIndex = field.IndexOf("]", StringComparison.Ordinal);
+
+                        if (lastIndex - firstIndex > 0)
+                        {
+                            var r = field.Substring(firstIndex, lastIndex - firstIndex);
+                            index = int.Parse(r);
+
+                            field = field.Substring(0, firstIndex - 1);
+                        }
+                    }
+
+                    var path2 = d[field];
+
+                    if (path2 == null)
+                        path2 = d.SelectToken(field);
 
                     string value2 = "";
 
                     if (path2.GetType() == typeof(JArray))
                     {
-                        value2 = d[property.DestinationField]?.ToString();
+                        var arr = ((JArray)d[field]);
+                        var jtoken = arr[index];
 
-                        if (!value2.Contains(value1))
+                        value2 = jtoken.ToString();
+
+                        if (!value2.Contains(value1, StringComparison.InvariantCultureIgnoreCase))
                         {
                             return false;
                         }
@@ -38,9 +66,22 @@ namespace Migration.Repository.Extensions
                     {
                         value2 = d[property.DestinationField]?.ToString();
 
-                        if (value1 != value2)
+                        if (string.IsNullOrEmpty(value2))
+                            value2 = d.SelectToken(property.DestinationField).ToString();
+
+                        if (property.IgnoreCaseSensitive)
                         {
-                            return false;
+                            if (!value1.Equals(value2, StringComparison.InvariantCultureIgnoreCase))
+                            {
+                                return false;
+                            }
+                        }
+                        else
+                        {
+                            if (value1 != value2)
+                            {
+                                return false;
+                            }
                         }
                     }
 

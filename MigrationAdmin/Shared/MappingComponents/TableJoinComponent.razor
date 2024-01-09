@@ -8,7 +8,7 @@
     </div>
     <div class="card-body">
         <div class="row">
-            <div class="col-sm-12">
+            <div class="col-sm-1">
                 <div class="form-group">
                     <label>Operator Type</label>
                     <select class="form-control" data-keeper-edited="yes" @bind="DataFieldsMapping.OperatorType">
@@ -19,18 +19,22 @@
                     </select>
                 </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col-sm-6">
+            <div class="col-sm-1">
                 <div class="form-group">
-                    <label>Source Field</label>
-                    <input class="form-control" data-keeper-edited="yes" @bind="DataFieldsMapping.SourceField" />
+                    <label>Ignore Case Sensitive</label>
+                    <input type="checkbox" @bind="DataFieldsMapping.IgnoreCaseSensitive" />
                 </div>
             </div>
-            <div class="col-sm-6">
+            <div class="col-sm-4">
+                <div class="form-group">
+                    <label>Source Field</label>
+                    <input class="form-control" data-keeper-edited="yes" @bind="DataFieldsMapping.SourceField"/>
+                </div>
+            </div>
+            <div class="col-sm-4">
                 <div class="form-group">
                     <label>Destination Field</label>
-                    <input class="form-control" data-keeper-edited="yes" @bind="DataFieldsMapping.DestinationField" />
+                    <input class="form-control" data-keeper-edited="yes" @bind="DataFieldsMapping.DestinationField"/>
                 </div>
             </div>
         </div>

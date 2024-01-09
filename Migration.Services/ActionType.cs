@@ -4,6 +4,8 @@
     {
         None,
         RevertToPreviousChange,
-        BackupData
+        BackupData,
+        Insert,
+        Delete
     }
 }

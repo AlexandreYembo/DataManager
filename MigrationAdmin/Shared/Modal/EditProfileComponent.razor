@@ -1,0 +1,84 @@
+﻿@using Migration.Repository.Models
+@using Migration.Repository
+@using Migration.Infrastructure.Redis
+@using Migration.Infrastructure.Redis.Entities
+@inject IRepository<DataSettings> _dataSettingsRepository;
+@inject IRepository<Profile> _profileRepository;
+@inject IJSRuntime jsRuntime
+@if (_profile != null)
+{
+    <div class="modal fade show" id="dataDifferenceModal" style="display:block" aria-modal="true" role="dialog">
+        <div class="modal-dialog" style="max-width:100%;">
+            <div class="modal-content">
+
+                <!-- Modal Header -->
+                <div class="modal-header">
+                    <h4 class="modal-title">Edit Profile</h4>
+                </div>
+
+                <!-- Modal body -->
+                <div class="modal-body" style="height: 900px; overflow: scroll">
+                    <DataQueryComponent DataMapping="_profile.DataMappings[0]"
+                                        DataSettings="_dataSettings"></DataQueryComponent>
+                
+                    @if (_profile.DataMappings[0].DataQueryMappingType == DataQueryMappingType.UpdateAnotherCollection)
+                    {
+                        <DataMappingDestinationComponent DataMapping="_profile.DataMappings[0]"
+                                                         OnDataMappingChanged="(mappingResult) => _ = mappingResult"></DataMappingDestinationComponent>
+                    }
+                    else
+                    {
+                        <DataMappingSameTableComponent DataMapping="_profile.DataMappings[0]"
+                                                       OnDataMappingChanged="(mappingResult) => _ = mappingResult"></DataMappingSameTableComponent>
+                    }
+                </div>
+
+                <!-- Modal footer -->
+                <div class="modal-footer">
+                    <button type="button" style="margin-top:15px;" class="btn btn-save" @onclick="SaveProfile">Save</button>
+                    <button type="button" style="margin-top:15px;" class="btn btn-close" @onclick="ModalOk">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string ProfileId { get; set; }
+    
+    [Parameter]
+    public string Environment { get; set; }
+
+    private Profile _profile { get; set; }
+
+    [Parameter]
+    public EventCallback ModalOk { get; set; }
+
+    private IEnumerable<DataSettings> _dataSettings;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var profiles = await _profileRepository.FindAsync(Environment);
+
+        _profile = profiles.FirstOrDefault(f => f.DataMappings[0].Id == ProfileId);
+    }
+
+    private async Task SaveProfile()
+    {
+        var redisData = new RedisData<Profile>()
+        {
+                Data = _profile,
+                Key = _profile.Name
+        };
+
+        await _profileRepository.SaveAsync(redisData, _profile.EnvironmentName);
+
+        await ShowSuccessAlert();
+    }
+
+    private async Task ShowSuccessAlert()
+    {
+        await jsRuntime.InvokeAsync<object>("ShowSuccessAlert", $"Profile configuration updated");
+    }
+}

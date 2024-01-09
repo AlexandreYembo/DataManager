@@ -1,8 +1,8 @@
 ﻿
-using Migration.Services.Delegates;
-using Migration.Services.LogModels;
+using Migration.Repository.Delegates;
+using Migration.Repository.LogModels;
 
-namespace Migration.Services.Publishers
+namespace Migration.Repository.Publishers
 {
     public class LogPublisher : Publisher<LogResult, LogResultEventArgs>
     {

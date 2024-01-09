@@ -1,10 +1,11 @@
 using Blazored.LocalStorage;
+using Migration.Infrastructure.AzureTableStorage;
 using Migration.Infrastructure.CosmosDb;
 using Migration.Infrastructure.Redis;
 using Migration.Repository;
+using Migration.Repository.Publishers;
+using Migration.Repository.Subscribers;
 using Migration.Services;
-using Migration.Services.Publishers;
-using Migration.Services.Subscribers;
 using MigrationAdmin.Extensions;
 using MigrationAdmin.Infrastructure;
 
@@ -45,7 +46,7 @@ builder.Services.AddTransient<Func<DataSettings, IGenericRepository>>(_ => setti
 {
     ConnectionType.CosmosDb => new CosmosDbGenericRepository(settings),
     ConnectionType.File => new FileRepository(settings),
-    //   DbType.TableStorage => new CosmosDbGenericRepository(settings), TODO: To add the repository for Table Storage
+    ConnectionType.TableStorage => new TableStorageGenericRepository(settings),
     _ => throw new ArgumentException(string.Empty, "Invalid Db Type")
 });
 
@@ -65,17 +66,17 @@ builder.Services.AddTransient<Func<DBSettings, IGenericRepository>>(_ => setting
     return settings?.DbType switch
     {
         DbType.Cosmos => new CosmosDbGenericRepository(dataSettings),
-        //   DbType.TableStorage => new CosmosDbGenericRepository(settings), TODO: To add the repository for Table Storage
+        DbType.TableStorage => new TableStorageGenericRepository(dataSettings),
         _ => throw new ArgumentException(string.Empty, "Invalid Db Type")
     };
 });
 
 
-builder.Services.AddTransient<Func<DataSettings, ITestConnection>>(_ => settings => 
+builder.Services.AddTransient<Func<DataSettings, ITestConnection>>(_ => settings =>
     settings?.ConnectionType switch
     {
         ConnectionType.CosmosDb => new CosmosDbConnection(settings),
-        //DataType.TableStorage => new TableStorageConnection(settings), // TODO: Add
+        ConnectionType.TableStorage => new TableStorageConnection(settings),
         //DataType.Api => new ApiClient(settings),// TODO: Add
         _ => throw new ArgumentException(string.Empty, "Invalid Data Type")
     });

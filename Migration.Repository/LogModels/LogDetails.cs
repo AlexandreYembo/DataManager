@@ -1,7 +1,8 @@
-﻿namespace Migration.Services.LogModels
+﻿namespace Migration.Repository.LogModels
 {
     public class LogDetails
     {
+        public string JobId { get; set; }
         public string Title { get; set; }
         public List<string> Details { get; set; } = new();
         public List<string> Errors { get; set; } = new();

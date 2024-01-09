@@ -1,4 +1,4 @@
-﻿@using Migration.Services.LogModels
+﻿@using Migration.Repository.LogModels
 
 @if (IsLoading)
 {
@@ -154,6 +154,10 @@
             return 0;
 
         var result = Convert.ToDouble(LogResult.TotalSuccess) / Convert.ToDouble(LogResult.TotalRecords) * 100;
+
+        if (result > 100)
+            result = 100;
+
         return result;
     }
 
@@ -163,6 +167,9 @@
             return 0;
 
         var result = Convert.ToDouble(LogResult.TotalWarns) / Convert.ToDouble(LogResult.TotalRecords) * 100;
+        if (result > 100)
+            result = 100;
+
         return result;
     }
 
@@ -172,6 +179,9 @@
             return 0;
 
         var result = Convert.ToDouble(LogResult.TotalFailed) / Convert.ToDouble(LogResult.TotalRecords) * 100;
+        if (result > 100)
+            result = 100;
+
         return result;
     }
 
