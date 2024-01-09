@@ -6,9 +6,9 @@ namespace Migration.Repository.Models
     {
         public string? Name { get; set; }
         public string? Description { get; set; }
+        public string? EnvironmentName { get; set; }
         public List<DataMapping> DataMappings { get; set; } = new();
         public bool Selected { get; set; }
-        public string Id { get; set; }
     }
 
     public class DataMapping
@@ -34,13 +34,14 @@ namespace Migration.Repository.Models
 
     public class DataFieldsMapping
     {
+        public MappingDirectionType DirectionType {get;set;}
         public MappingType MappingType { get; set; }
         public OperatorType? OperatorType { get; set; }
         public bool IgnoreCaseSensitive { get; set; }
         public string? SourceField { get; set; }
         public string? DestinationField { get; set; }
         public FieldValueType? ValueType { get; set; }
-        public List<SearchCondition> SourceCondition { get; set; } = new();
+        public List<SearchCondition> Conditions { get; set; } = new();
         public string? ValueField { get; set; }
     }
 
@@ -67,6 +68,12 @@ namespace Migration.Repository.Models
         MergeField,
         UpdateValueWithCondition,
         MergeFieldWithCondition
+    }
+
+    public enum MappingDirectionType
+    {
+        Source,
+        Destination
     }
 
     public enum OperatorType

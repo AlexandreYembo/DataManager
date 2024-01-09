@@ -1,7 +1,8 @@
-﻿namespace Migration.Services.LogModels
+﻿namespace Migration.Repository.LogModels
 {
     public class LogResult
     {
+        public string JobId { get; set; }
         public DateTime StartedIn { get; set; }
         public DateTime FinishedIn { get; set; }
 

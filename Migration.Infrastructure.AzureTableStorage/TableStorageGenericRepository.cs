@@ -8,6 +8,7 @@ using Migration.Repository.Models;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 using System.Dynamic;
+using System.Text;
 
 namespace Migration.Infrastructure.AzureTableStorage
 {
@@ -23,7 +24,10 @@ namespace Migration.Infrastructure.AzureTableStorage
         {
             if (!string.IsNullOrEmpty(settings.CurrentEntity))
             {
-                _storageAccount = CloudStorageAccount.Parse(CreateConnectionString(settings));
+                _storageAccount = settings.Parameters.Any(p => p.Key == "Is Emulator" && p.Value == "True") ?
+                    CloudStorageAccount.DevelopmentStorageAccount :
+                    CloudStorageAccount.Parse(CreateConnectionString(settings));
+
                 _tableClient = _storageAccount.CreateCloudTableClient();
                 _table = _tableClient.GetTableReference(settings.CurrentEntity);
             }
@@ -85,8 +89,9 @@ namespace Migration.Infrastructure.AzureTableStorage
                 string rowKey = entity.RowKey;
 
                 jo.Add("id", $"{partitionKey}:{rowKey}");
+
                 jo.Add("PartitionKey", partitionKey);
-                jo.Add("RowKey", partitionKey);
+                jo.Add("RowKey", rowKey);
                 jo.Add("ETag", entity.ETag);
 
                 foreach (KeyValuePair<string, EntityProperty> property in entity.Properties)
@@ -104,13 +109,19 @@ namespace Migration.Infrastructure.AzureTableStorage
             return dictionary;
         }
 
-        public async Task Update(JObject entity)
+        public async Task Update(JObject entity, List<DataFieldsMapping> fieldMappings = null)
         {
             try
             {
-                entity.Remove("id");
+                var structure = GetTableStructure();
 
-                dynamic tEntity = new ElasticTableEntity();
+                if (!structure.ContainsKey("id"))
+                {
+                    entity.Remove("id"); // this is not used if is not part of the table schema
+                }
+
+                ElasticTableEntity tEntity = new ElasticTableEntity();
+
                 tEntity.PartitionKey = entity["PartitionKey"].ToString();
                 tEntity.RowKey = entity["RowKey"].ToString();
                 tEntity.ETag = entity["ETag"].ToString();
@@ -118,7 +129,19 @@ namespace Migration.Infrastructure.AzureTableStorage
                 foreach (var e in entity)
                 {
                     if (e.Key != "PartitionKey" && e.Key != "RowKey" && e.Key != "ETag")
-                        tEntity[e.Key] = e.Value.ToString();
+                    {
+                        EdmType fieldType;
+                        var mappingType = fieldMappings?.Where(w => w.MappingType != MappingType.TableJoin).FirstOrDefault(a => a.DestinationField == e.Key);
+                        if (mappingType != null)
+                        {
+                            fieldType = structure[mappingType.SourceField];
+                        }
+                        else
+                        {
+                            fieldType = structure[e.Key];
+                        }
+                        tEntity.Properties.Add(e.Key, GetEntityProperty(e.Key, e.Value.ToString(), fieldType));
+                    }
                 }
 
                 TableOperation replaceOperation = TableOperation.Replace(tEntity);
@@ -133,6 +156,27 @@ namespace Migration.Infrastructure.AzureTableStorage
             {
                 throw new DbOperationException("Error-0001", e.Message);
             }
+        }
+
+        private Dictionary<string, EdmType> GetTableStructure()
+        {
+            Dictionary<string, EdmType> properties = new();
+            TableQuery<DynamicTableEntity> projectionQuery = new TableQuery<DynamicTableEntity>().Take(1);
+
+            TableQuerySegment<DynamicTableEntity> queryResult =
+                _table.ExecuteQuerySegmentedAsync(projectionQuery, null).GetAwaiter().GetResult();
+
+            foreach (DynamicTableEntity entity in queryResult)
+            {
+                foreach (KeyValuePair<string, EntityProperty> property in entity.Properties)
+                {
+                    string propertyName = property.Key;
+                    var type = property.Value.PropertyType;
+                    properties.Add(propertyName, type);
+                }
+            }
+
+            return properties;
         }
 
         public async Task Delete(JObject entity)
@@ -165,6 +209,19 @@ namespace Migration.Infrastructure.AzureTableStorage
                    $"AccountName={settings.GetAccountName()};" +
                    $"AccountKey={settings.GetAuthKey()};" +
                    "EndpointSuffix=core.windows.net;";
+        }
+
+        private EntityProperty GetEntityProperty(string key, string value, EdmType type)
+        {
+            if (type == EdmType.Binary) return new EntityProperty(Encoding.ASCII.GetBytes(value));
+            if (type == EdmType.Boolean) return new EntityProperty(bool.Parse(value));
+            if (type == EdmType.DateTime) return new EntityProperty(DateTimeOffset.Parse(value));
+            if (type == EdmType.Double) return new EntityProperty(double.Parse(value));
+            if (type == EdmType.Guid) return new EntityProperty(Guid.Parse(value));
+            if (type == EdmType.Int32) return new EntityProperty(int.Parse(value));
+            if (type == EdmType.Int64) return new EntityProperty(long.Parse(value));
+            if (type == EdmType.String) return new EntityProperty(value);
+            throw new Exception("not supported " + value.GetType() + " for " + key);
         }
     }
 

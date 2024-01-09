@@ -43,11 +43,17 @@ namespace Migration.Infrastructure.CosmosDb
 
                     var relationshipData = JObject.Parse(data);
 
-                    query = query.Replace("where", $"where {ConvertOperator(joins[0], relationshipData)} #joins# ");
+                    var value = ConvertOperator(joins[0], relationshipData);
+
+                    if (!string.IsNullOrEmpty(value))
+                        query = query.Replace("where", $"where {value} #joins# ");
 
                     for (int i = 1; i < joins.Count; i++)
                     {
-                        query = query.Replace("#joins#", $"and {ConvertOperator(joins[i], relationshipData)} #joins# ");
+                        value = ConvertOperator(joins[i], relationshipData);
+
+                        if (!string.IsNullOrEmpty(value))
+                            query = query.Replace("#joins#", $"and {value} #joins# ");
                     }
 
                     //Remove the mark after resolving all the joins from the Source table to the dynamic table
@@ -95,9 +101,6 @@ namespace Migration.Infrastructure.CosmosDb
             else
             {
                 value = $"{fieldPath}";
-
-                if (string.IsNullOrEmpty(value))
-                    throw new Exception();
             }
 
             var upperCaseOperation = string.Empty;
@@ -107,13 +110,16 @@ namespace Migration.Infrastructure.CosmosDb
                 upperCaseOperation = "lower(#value#)";
             }
 
+            if (string.IsNullOrEmpty(value))
+                return string.Empty;
+
             switch (dataFieldsMapping.OperatorType)
             {
                 case OperatorType.ArrayContains: return $"ARRAY_CONTAINS(c.{dataFieldsMapping.DestinationField},{value})";
                 case OperatorType.Eq:
                     if (!string.IsNullOrEmpty(upperCaseOperation))
                         return $"{upperCaseOperation.Replace("#value#", "c." + dataFieldsMapping.DestinationField)} = {upperCaseOperation.Replace("#value#", value)}";
-                        
+
                     return $"c.{dataFieldsMapping.DestinationField} = {value}";
                 case OperatorType.In: return $"c.{dataFieldsMapping.DestinationField} in({value})";
                 default: return string.Empty;

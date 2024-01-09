@@ -3,9 +3,9 @@
 @using Migration.Services
 @using Migration.Infrastructure.Redis
 @using Migration.Infrastructure.Redis.Entities
-@using Migration.Services.Delegates
-@using Migration.Services.Publishers
-@using Migration.Services.Subscribers
+@using Migration.Repository.Delegates
+@using Migration.Repository.Publishers
+@using Migration.Repository.Subscribers
 @using Newtonsoft.Json.Linq
 @inject IJSRuntime jsRuntime
 @inherits CustomComponents;
@@ -30,66 +30,80 @@
     <div class="card-body">
         <div class="tab-content" id="custom-tabs-one-tabContent">
             <div class="tab-pane fade show active" id="custom-tabs-one-profiles" role="tabpanel" aria-labelledby="custom-tabs-one-profiles-tab">
-                <table id="dataGeneral" class="table table-bordered table-striped">
-                    <thead>
-                    <tr>
-                        <th>Profile</th>
-                        <th>Description</th>
-                        <th>
-                            Mapping
-                        </th>
-                        <th>
-                        </th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    @if (_profiles != null)
-                    {
-                        foreach (var profile in _profiles)
-                        {
-                            <tr>
-                                <td>
-                                    <p>Database Name: <b> @profile.Name</b></p>
-                                </td>
-                                <td>
-                                    <p>Database Name: <b> @profile.Description</b></p>
-                                </td>
-                                <td>
-                                    <table id="dataFields" class="table table-bordered table-striped">
-                                        <thead>
+                <div class="row">
+                    <div class="col-sm-2">
+                        <label>Environment Name</label>
+                        <input class="form-control" data-keeper-edited="yes" @bind="@_environmentName" />
+                    </div>
+                    <div class="col-sm-2">
+                        <button class="btn btn-default" @onclick="() => Search()"> <i class="nav-icon fas fa-search"></i> Search</button>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-12">
+                        <table id="dataGeneral" class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Profile</th>
+                                    <th>Description</th>
+                                    <th>
+                                        Mapping
+                                    </th>
+                                    <th>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (_profiles != null)
+                                {
+                                    foreach (var profile in _profiles)
+                                    {
                                         <tr>
-                                            <th>Mapping Type</th>
-                                            <th>Source</th>
-                                            <th>Destination</th>
+                                            <td>
+                                                <p>Database Name: <b> @profile.Name</b></p>
+                                            </td>
+                                            <td>
+                                                <p>Database Name: <b> @profile.Description</b></p>
+                                            </td>
+                                            <td>
+                                                <table id="dataFields" class="table table-bordered table-striped">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Mapping Type</th>
+                                                            <th>Source</th>
+                                                            <th>Destination</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach (var fieldMapping in profile.DataMappings[0].FieldsMapping.OrderBy(s => s.MappingType))
+                                                        {
+                                                            <tr>
+                                                                <td>
+                                                                    @fieldMapping.MappingType
+                                                                </td>
+                                                                <td>
+                                                                    @profile.DataMappings[0].Source.Settings.CurrentEntity.@fieldMapping.SourceField
+                                                                </td>
+                                                                <td>
+                                                                    @profile.DataMappings[0].Destination.Settings.CurrentEntity.@fieldMapping.DestinationField
+                                                                </td>
+                                                            </tr>
+                                                        }
+                                                    </tbody>
+                                                </table>
+                                            </td>
+                                            <td>
+                                                <input type="checkbox" @bind="profile.Selected" />
+                                                <button class="btn btn-default" @onclick="() => EditProfile(profile)"> <i class="nav-icon fas fa-edit"></i> Edit</button>
+                                                <button class="btn btn-default" @onclick="() => CloneProfile(profile)"> <i class="nav-icon fas fa-copy"></i> Clone</button>
+                                            </td>
                                         </tr>
-                                        </thead>
-                                        <tbody>
-                                        @foreach (var fieldMapping in profile.DataMappings[0].FieldsMapping.OrderBy(s => s.MappingType))
-                                        {
-                                            <tr>
-                                                <td>
-                                                    @fieldMapping.MappingType
-                                                </td>
-                                                <td>
-                                                    @profile.DataMappings[0].Source.Settings.CurrentEntity.@fieldMapping.SourceField
-                                                </td>
-                                                <td>
-                                                    @profile.DataMappings[0].Destination.Settings.CurrentEntity.@fieldMapping.DestinationField
-                                                </td>
-                                            </tr>
-                                        }
-                                        </tbody>
-                                    </table>
-                                </td>
-                                <td>
-                                    <input type="checkbox" @bind="profile.Selected" />
-                                    <button class="btn btn-default" @onclick="() => EdiProfile(profile)"> <i class="nav-icon fas fa-edit"></i> Edit</button>
-                                </td>
-                            </tr>
-                        }
-                    }
-                    </tbody>
-                </table>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
             <div class="tab-pane fade" id="custom-tabs-one-jobs" role="tabpanel" aria-labelledby="custom-tabs-one-jobs-tab">
                 <table id="jobs" class="table table-bordered table-striped">
@@ -98,6 +112,8 @@
                             <th>Job Id</th>
                             <th>Profile</th>
                             <th>Operation Type</th>
+                            <th>Source Pagination (Skip)</th>
+                            <th>Destination Pagination (Skip)</th>
                             <th>
                                 Status
                             </th>
@@ -117,6 +133,12 @@
                                     </td>
                                     <td>
                                         @job.SelectToken("OperationType")
+                                    </td>
+                                    <td>
+                                        @job.SelectToken("SourceProcessed")
+                                    </td>
+                                    <td>
+                                        @job.SelectToken("DestinationProcessed")
                                     </td>
                                     <td>
                                         @job.SelectToken("Status")
@@ -147,35 +169,47 @@
 
 @if (_editProfileModalIsEnabled)
 {
-    <EditProfileComponent Profile="_editProfile"
+    <EditProfileComponent ProfileId="@_editProfile.DataMappings[0].Id"
+                          Environment="@_editProfile.EnvironmentName"
                           ModalOk="() => ModalOk()"></EditProfileComponent>
+}
+
+@if (_cloneProfileModalIsEnabled)
+{
+    <CloneProfileComponent ProfileId="@_editProfile.DataMappings[0].Id"
+                           Environment="@_editProfile.EnvironmentName"
+                           ModalOk="() => ModalOk()"></CloneProfileComponent>
 }
 
 @code {
 
     private bool _editProfileModalIsEnabled;
+    private bool _cloneProfileModalIsEnabled;
     private Profile _editProfile;
     private List<Profile> _profiles;
     private List<JObject> _jobs;
+
+    private string _environmentName;
 
     protected override async Task OnInitializedAsync()
     {
         LogPublisher.OnEntityChanged += LogSubscriber.OnEventChanged;
         LogPublisher.OnEntityChanged += OnLogUpdated;
         LogDetailsPublisher.OnEntityChanged += LogSubscriber.OnEventChanged;
+    }
 
+    private async Task Search()
+    {
         try
         {
-            _profiles = await _profileRepository.FindAsync();
+            _profiles = await _profileRepository.FindAsync(_environmentName);
             _jobs = await _repository.FindAsync(new RedisData<JObject>()
             {
                 Id = "Jobs"
             });
         }
-        catch (Exception e)
+        catch
         {
-            Console.WriteLine(e);
-            throw;
         }
     }
 
@@ -199,20 +233,27 @@
         }
         Loading = true;
 
-        await _migrateService.Migrate(profileToMigrate.FirstOrDefault().DataMappings[0]);
+        await _migrateService.Migrate(profileToMigrate.FirstOrDefault().DataMappings[0], profileToMigrate.FirstOrDefault().EnvironmentName, 0);
 
         Loading = false;
     }
 
-    public void EdiProfile(Profile profile)
+    public void EditProfile(Profile profile)
     {
         _editProfile = profile;
         _editProfileModalIsEnabled = true;
     }
 
+    public void CloneProfile(Profile profile)
+    {
+        _editProfile = profile;
+        _cloneProfileModalIsEnabled = true;
+    }
+
     public void ModalOk()
     {
         _editProfileModalIsEnabled = false;
+        _cloneProfileModalIsEnabled = false;
     }
 
     private async Task ShowErrorAlert(string message)

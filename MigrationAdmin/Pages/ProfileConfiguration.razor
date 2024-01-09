@@ -64,12 +64,16 @@
                     <div class="card-body">
                         <div class="row">
                             <div class="col-sm-2">
+                                <label>Environment Name</label>
+                                <input class="form-control" data-keeper-edited="yes" @bind="@Profile.EnvironmentName" />
+                            </div>
+                            <div class="col-sm-2">
                                 <label>Name</label>
-                                <input class="form-control" data-keeper-edited="yes" @bind="@Profile.Name" />
+                                <input class="form-control" data-keeper-edited="yes" @bind="@Profile.Name"/>
                             </div>
                             <div class="col-sm-2">
                                 <label>Description</label>
-                                <input class="form-control" data-keeper-edited="yes" @bind="@Profile.Description" />
+                                <input class="form-control" data-keeper-edited="yes" @bind="@Profile.Description"/>
                             </div>
                         </div>
                     </div>
@@ -227,6 +231,10 @@
 
         try
         {
+            if (Profile.DataMappings[0].DataQueryMappingType == DataQueryMappingType.UpdateSameCollection)
+            {
+                Profile.DataMappings[0].Destination = null;
+            }
             _resultDataFromConfiguration = await _queryService.Get(Profile.DataMappings[0], take: 10); //TODO: DataMappings[0] will be a list in the future
         }
         catch (Exception e)
@@ -305,13 +313,18 @@
 
     private async Task SaveProfile()
     {
+        if (Profile.DataMappings[0].DataQueryMappingType == DataQueryMappingType.UpdateSameCollection)
+        {
+            Profile.DataMappings[0].Destination = null;
+        }
+
         var redisData = new RedisData<Profile>()
             {
                 Data = Profile,
                 Key = Profile.Name
             };
 
-        await _profileRepository.SaveAsync(redisData);
+        await _profileRepository.SaveAsync(redisData, Profile.EnvironmentName);
 
         await ShowSuccessAlert();
     }

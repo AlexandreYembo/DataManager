@@ -46,6 +46,13 @@
                     AllowAddCustomParameters = false;
                     Parameters.Add(new CustomAttributes()
                     {
+                        Key = "Is Emulator",
+                        Value = "False",
+                        Type = "bool"
+                    });
+
+                    Parameters.Add(new CustomAttributes()
+                    {
                         Key = "AccountName"
                     });
                     Parameters.Add(new CustomAttributes()
@@ -78,6 +85,7 @@
     {
         public string Key { get; set; }
         public string? Value { get; set; }
+        public string Type { get; set; }
     }
 
     public enum ConnectionType

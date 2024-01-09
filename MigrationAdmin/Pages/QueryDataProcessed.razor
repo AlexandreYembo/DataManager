@@ -4,6 +4,8 @@
 @using Microsoft.AspNetCore.Components
 @using Migration.Infrastructure.Redis.Entities
 @using Newtonsoft.Json
+@using System.Text
+@inject IJSRuntime jsRuntime
 @inject IRepository<JObject> _localRepository
 <div class="card card-default">
     <div class="card-header">
@@ -11,17 +13,27 @@
     </div>
     <div class="card-body">
         <div class="row">
-            <div class="col-sm-6">
+            <div class="col-sm-4">
                 <label>Entity</label>
                 <input class="form-control" data-keeper-edited="yes" @bind="@_entity" />
             </div>
-            <div class="col-sm-6">
+            <div class="col-sm-4">
+                <label>Environment</label>
+                <input class="form-control" data-keeper-edited="yes" @bind="@_environment" />
+            </div>
+            <div class="col-sm-4">
                 <label>Job Id</label>
                 <input class="form-control" data-keeper-edited="yes" @bind="@_jobId" />
             </div>
+        </div>
+        <div class="row">
             <div class="col-sm-6">
-                <label>Filter (Field:Value)</label>
-                <input class="form-control" data-keeper-edited="yes" @bind="@filter" />
+                <label>Filter Name</label>
+                <input class="form-control" data-keeper-edited="yes" @bind="@_filterName" />
+            </div>
+            <div class="col-sm-6">
+                <label>Filter Value</label>
+                <input class="form-control" data-keeper-edited="yes" @bind="@_filterValue" />
             </div>
         </div>
         <div class="card-footer">
@@ -36,9 +48,34 @@
     </div>
     <div class="card-body">
         <div class="row">
+            <div class="col-sm-1">
+                <label>Total</label>
+                @if (_data != null)
+                {
+                    <p> @_data.Where(w => !string.IsNullOrEmpty(_filterName) && !string.IsNullOrEmpty(_filterValue) ? w.SelectToken(_filterName).ToString() == _filterValue : true).Count()</p>
+                }
+                else
+                {
+                    <p>0</p>
+                }
+            </div>
+            <div class="col-sm-1">
+                <button class="btn btn-default" @onclick="() => GetData()"> <i class="nav-icon fas fa-database"></i>Revert Migration</button>
+            </div>
+            <div class="col-sm-1">
+                <button class="btn btn-default" @onclick="() => DownloadJsonData()"> <i class="nav-icon fas fa-download"></i>Save Json</button>
+            </div>
+            <div class="col-sm-1">
+                <button class="btn btn-default" @onclick="() => DownloadCSVData()"> <i class="nav-icon fas fa-download"></i>Save Csv</button>
+            </div>
+            <div class="col-sm-1">
+                <button class="btn btn-default" @onclick="() => ExportToAnotherDb()"> <i class="nav-icon fas fa-file-export"></i>Export to another DB</button>
+            </div>
+        </div>
+        <div class="row">
             @if (_data != null)
             {
-                foreach (var values in _data.Where(w => !string.IsNullOrEmpty(filter) ? w.SelectToken(filter.Split(":").FirstOrDefault()).ToString() == filter.Split(":").LastOrDefault() : true))
+                foreach (var values in _data.Where(w => !string.IsNullOrEmpty(_filterName) && !string.IsNullOrEmpty(_filterValue) ? w.SelectToken(_filterName).ToString() == _filterValue : true))
                 {
                     <div class="row">
                         <div class="col-sm-12">
@@ -67,10 +104,20 @@
     </div>
 </div>
 
+@if (_exportAnotherDb)
+{
+    <ExportAnotherDBComponent Data="@_data" ModalOk="ModalOk"></ExportAnotherDBComponent>
+}
+
 @code {
     private string _entity;
+    private string _environment;
     private string _jobId;
-    private string filter;
+    private string _filterName;
+    private string _filterValue;
+    private string _entityName;
+
+    private bool _exportAnotherDb;
 
     private List<JObject> _data;
 
@@ -82,9 +129,73 @@
 
     public async Task GetData()
     {
+        _entityName = _entity + "$" + _environment + "$" + _jobId + "$";
         _data = await _localRepository.FindAsync(new RedisData<JObject>()
             {
-                Id = _entity +"$"+ _jobId + "$"
+                Id = _entityName
             });
+    }
+
+    private async Task DownloadJsonData()
+    {
+        // Convert the JSON string to bytes
+        byte[] jsonBytes = Encoding.UTF8.GetBytes(String.Join(",", _data.Select(s => s.ToString())));
+
+        // Generate a unique filename (you can customize this as needed)
+        string fileName = $"{_entityName}.json";
+
+        // Create a memory stream from the JSON bytes
+        using (MemoryStream ms = new MemoryStream(jsonBytes))
+        {
+            // Trigger the download
+            await jsRuntime.InvokeAsync<object>("saveAsFile", fileName, Convert.ToBase64String(ms.ToArray()));
+        }
+    }
+
+    private async Task DownloadCSVData()
+    {
+        string fileName = $"{_entityName}.json";
+
+        var csvContent = ConvertJsonToCsv();
+
+        await jsRuntime.InvokeVoidAsync("downloadCsv", csvContent, $"{fileName}.csv");
+    }
+
+    private string ConvertJsonToCsv()
+    {
+        // Extract column names from JSON properties
+        List<string> columns = new List<string>();
+
+
+        foreach (JProperty property in _data.FirstOrDefault().Properties().Where(w => !w.Name.Equals("Id", StringComparison.InvariantCultureIgnoreCase)))
+        {
+            columns.Add(property.Name);
+        }
+
+        // Build CSV header
+        StringBuilder csvBuilder = new StringBuilder();
+        csvBuilder.AppendLine(string.Join(",", columns));
+
+        foreach (var d in _data)
+        {
+            List<string> rowData = new List<string>();
+
+            foreach (JProperty property in d.Properties().Where(w => !w.Name.Equals("Id", StringComparison.InvariantCultureIgnoreCase)))
+            {
+                rowData.Add(property.Value.ToString());
+            }
+            csvBuilder.AppendLine(string.Join(",", rowData) + ",");
+        }
+
+        return csvBuilder.ToString();
+    }
+
+    private async Task ExportToAnotherDb()
+    {
+        _exportAnotherDb = true;
+    }
+    public void ModalOk()
+    {
+        _exportAnotherDb = false;
     }
 }

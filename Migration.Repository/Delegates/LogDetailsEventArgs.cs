@@ -1,6 +1,6 @@
-﻿using Migration.Services.LogModels;
+﻿using Migration.Repository.LogModels;
 
-namespace Migration.Services.Delegates
+namespace Migration.Repository.Delegates
 {
     public class LogDetailsEventArgs : EventArgs
     {

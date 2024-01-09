@@ -81,7 +81,7 @@ namespace Migration.Repository
             throw new NotImplementedException();
         }
 
-        public Task Update(JObject entity)
+        public Task Update(JObject entity, List<DataFieldsMapping> fieldMappings = null)
         {
             throw new NotImplementedException();
         }

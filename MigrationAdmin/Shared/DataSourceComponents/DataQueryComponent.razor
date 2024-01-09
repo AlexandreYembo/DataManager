@@ -46,14 +46,16 @@
                                                DataSettings="DataMapping.Source.Settings"
                                                OnDbSettingsChanged="(sourceDbSettings) => AddSourceDbSettings(sourceDbSettings)"
                                                Query="@DataMapping.Source.Query"
-                                               OnQueryAdded="async (query) => await AddSourceQuery(query)">
+                                               OnQueryAdded="async (query) => await AddSourceQuery(query)"
+                                               DisplayQuery="true">
                     </DatabaseSelectorComponent>
                     <DatabaseSelectorComponent Title="Select the destination"
                                                ConnectionStrings="DataSettings?.ToDictionary(kvp => kvp.FullName, kvp => kvp.FullName)"
                                                DataSettings="DataMapping.Destination.Settings"
                                                OnDbSettingsChanged="(sourceDbSettings) => AddDestinationDbSettings(sourceDbSettings)"
                                                Query="@DataMapping.Destination.Query"
-                                               OnQueryAdded="async (query) => await AddDestinationQuery(query)">
+                                               OnQueryAdded="async (query) => await AddDestinationQuery(query)"
+                                               DisplayQuery="true">
                     </DatabaseSelectorComponent>
                 }
                 else
@@ -63,7 +65,8 @@
                                                DataSettings="DataMapping.Source.Settings"
                                                OnDbSettingsChanged="(sourceDbSettings) => AddSourceDbSettings(sourceDbSettings)"
                                                Query="@DataMapping.Source.Query"
-                                               OnQueryAdded="async (query) => await AddSourceQuery(query)">
+                                               OnQueryAdded="async (query) => await AddSourceQuery(query)"
+                                               DisplayQuery="true">
                     </DatabaseSelectorComponent>
                 }
             </div>
@@ -102,11 +105,17 @@
 
         DataSettings = redisData;
 
-        DataMapping.Source.Settings = DataSettings.FirstOrDefault();
-        DataMapping.Source.Settings.CurrentEntity = DataMapping.Source.Settings.Entities.FirstOrDefault();
-
-        DataMapping.Destination.Settings = DataSettings.FirstOrDefault();
-        DataMapping.Destination.Settings.CurrentEntity = DataMapping.Destination.Settings.Entities.FirstOrDefault();
+        if (DataMapping.Source.Settings == null)
+        {
+            DataMapping.Source.Settings = DataSettings.FirstOrDefault();
+            DataMapping.Source.Settings.CurrentEntity = DataMapping.Source.Settings.Entities.FirstOrDefault();
+        }
+        
+        if (DataMapping.Destination.Settings == null)
+        {
+            DataMapping.Destination.Settings = DataSettings.FirstOrDefault();
+            DataMapping.Destination.Settings.CurrentEntity = DataMapping.Destination.Settings.Entities.FirstOrDefault();
+        }
     }
 
     public async Task ChangeDataQueryMappingType(ChangeEventArgs e)

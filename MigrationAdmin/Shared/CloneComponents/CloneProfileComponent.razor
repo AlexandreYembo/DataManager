@@ -13,30 +13,31 @@
 
                 <!-- Modal Header -->
                 <div class="modal-header">
-                    <h4 class="modal-title">Edit Profile</h4>
+                    <h4 class="modal-title">Clone Profile</h4>
                 </div>
 
                 <!-- Modal body -->
-                <div class="modal-body" style="height: 900px; overflow: scroll">
-                    <DataQueryComponent DataMapping="_profile.DataMappings[0]"
-                                        DataSettings="_dataSettings"></DataQueryComponent>
-                
-                    @if (_profile.DataMappings[0].DataQueryMappingType == DataQueryMappingType.UpdateAnotherCollection)
-                    {
-                        <DataMappingDestinationComponent DataMapping="_profile.DataMappings[0]"
-                                                         OnDataMappingChanged="(mappingResult) => _ = mappingResult"></DataMappingDestinationComponent>
-                    }
-                    else
-                    {
-                        <DataMappingSameTableComponent DataMapping="_profile.DataMappings[0]"
-                                                       OnDataMappingChanged="(mappingResult) => _ = mappingResult"></DataMappingSameTableComponent>
-                    }
+                <div class="modal-body" style="height: 200px; overflow: scroll">
+                    <div class="row">
+                        <div class="col-sm-2">
+                            <label>Environment Name</label>
+                            <input class="form-control" data-keeper-edited="yes" @bind="@_profile.EnvironmentName" />
+                        </div>
+                        <div class="col-sm-2">
+                            <label>Name</label>
+                            <input class="form-control" data-keeper-edited="yes" @bind="@_profile.Name" />
+                        </div>
+                        <div class="col-sm-2">
+                            <label>Description</label>
+                            <input class="form-control" data-keeper-edited="yes" @bind="@_profile.Description" />
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Modal footer -->
                 <div class="modal-footer">
-                    <button type="button" style="margin-top:15px;" class="btn btn-save" @onclick="SaveProfile">Save</button>
-                    <button type="button" style="margin-top:15px;" class="btn btn-close" @onclick="ModalOk">Close</button>
+                    <button class="btn btn-default" @onclick="CloneProfile"> <i class="nav-icon fas fa-clone"></i> Clone</button>
+                    <button type="button" style="margin-top: 15px;" class="btn btn-close" @onclick="ModalOk">Close</button>
                 </div>
             </div>
         </div>
@@ -46,7 +47,7 @@
 @code {
     [Parameter]
     public string ProfileId { get; set; }
-    
+
     [Parameter]
     public string Environment { get; set; }
 
@@ -62,15 +63,17 @@
         var profiles = await _profileRepository.FindAsync(Environment);
 
         _profile = profiles.FirstOrDefault(f => f.DataMappings[0].Id == ProfileId);
+        _profile.Name = "Clone-" + _profile.Name;
     }
 
-    private async Task SaveProfile()
+    private async Task CloneProfile()
     {
+        _profile.DataMappings[0].Id = Guid.NewGuid().ToString();
         var redisData = new RedisData<Profile>()
-        {
+            {
                 Data = _profile,
                 Key = _profile.Name
-        };
+            };
 
         await _profileRepository.SaveAsync(redisData, _profile.EnvironmentName);
 
@@ -79,6 +82,6 @@
 
     private async Task ShowSuccessAlert()
     {
-        await jsRuntime.InvokeAsync<object>("ShowSuccessAlert", $"Profile configuration updated");
+        await jsRuntime.InvokeAsync<object>("ShowSuccessAlert", $"Profile configuration cloned");
     }
 }

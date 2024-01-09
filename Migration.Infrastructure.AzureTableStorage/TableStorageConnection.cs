@@ -15,7 +15,10 @@ namespace Migration.Infrastructure.AzureTableStorage
         public TableStorageConnection(DataSettings settings)
         {
             _settings = settings;
-            _storageAccount = CloudStorageAccount.Parse(CreateConnectionString(settings));
+            _storageAccount = settings.Parameters.Any(p => p.Key == "Is Emulator" && p.Value == "True") ?
+                                                    CloudStorageAccount.DevelopmentStorageAccount :
+                                                    CloudStorageAccount.Parse(CreateConnectionString(settings));
+
             _tableClient = _storageAccount.CreateCloudTableClient();
         }
         public Task<DataSettings> Test()

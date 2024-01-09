@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
 
-namespace Migration.Services.Publishers
+namespace Migration.Repository.Publishers
 {
     public class Publisher<TEntity, TEventArgs> : IPublisher<TEntity, TEventArgs>
                                                         where TEntity : class, new()

@@ -2,10 +2,10 @@
 using Migration.Repository.DbOperations;
 using Migration.Repository.Exceptions;
 using Migration.Repository.Helpers;
+using Migration.Repository.LogModels;
+using Migration.Repository.Publishers;
 using Migration.Services.Extensions;
-using Migration.Services.LogModels;
 using Migration.Services.Models;
-using Migration.Services.Publishers;
 using Newtonsoft.Json.Linq;
 
 namespace Migration.Services

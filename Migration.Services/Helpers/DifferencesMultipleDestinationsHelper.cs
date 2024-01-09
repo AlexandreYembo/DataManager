@@ -44,7 +44,7 @@ namespace Migration.Services.Helpers
                         }
                         else
                         {
-                            var objectToBeUpdated = UpdateDataHelper.UpdateObject(d.Data, mappingMergeFields, sourceObj, dataMapping.DataQueryMappingType, ref hasChange);
+                            var objectToBeUpdated = UpdateDataHelper.UpdateObject(d.Data, mappingMergeFields, sourceObj, ref hasChange);
                             if (!hasChange) continue;
 
                             result.Add(d.Entity + originalData["id"], DifferenceHelper.FindDifferences(originalData, objectToBeUpdated));
@@ -67,7 +67,7 @@ namespace Migration.Services.Helpers
                     }
                     else
                     {
-                        var objectToBeUpdated = UpdateDataHelper.UpdateObject(s.Data, dataMapping.FieldsMapping, sourceObj, dataMapping.DataQueryMappingType, ref hasChange);
+                        var objectToBeUpdated = UpdateDataHelper.UpdateObject(s.Data, dataMapping.FieldsMapping, sourceObj, ref hasChange);
                         result.Add(s.Entity + sourceObj["id"], DifferenceHelper.FindDifferences(sourceObj, objectToBeUpdated));
                     }
                 }

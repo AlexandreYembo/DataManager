@@ -3,9 +3,9 @@ using Migration.Infrastructure.AzureTableStorage;
 using Migration.Infrastructure.CosmosDb;
 using Migration.Infrastructure.Redis;
 using Migration.Repository;
+using Migration.Repository.Publishers;
+using Migration.Repository.Subscribers;
 using Migration.Services;
-using Migration.Services.Publishers;
-using Migration.Services.Subscribers;
 using MigrationAdmin.Extensions;
 using MigrationAdmin.Infrastructure;
 

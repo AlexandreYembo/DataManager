@@ -1,7 +1,7 @@
-﻿using Migration.Services.Delegates;
-using Migration.Services.LogModels;
+﻿using Migration.Repository.Delegates;
+using Migration.Repository.LogModels;
 
-namespace Migration.Services.Subscribers
+namespace Migration.Repository.Subscribers
 {
     public class LogResultSubscriber
     {

@@ -3,6 +3,57 @@
 @inherits MigrationAdmin.CustomComponents
 <div class="card card-default">
     <div class="card-header">
+        <h3 class="card-title">Mapping configuration</h3>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-sm-2">
+                <label>Mapping Type</label>
+                <select class="form-control" data-keeper-edited="yes" value="@_dataFieldsMapping.MappingType" @onchange="ChangeMappingType">
+                    @foreach (var mappingType in Enum.GetValues<MappingType>().Where(w => w != MappingType.TableJoin))
+                    {
+                        <option value="@mappingType">@mappingType</option>
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-12">
+                @if (DataMapping.OperationType == OperationType.Update || DataMapping.OperationType == OperationType.Insert)
+                {
+                    @switch (_dataFieldsMapping.MappingType)
+                    {
+                        case MappingType.MergeField:
+                            <MergeFieldsComponent OnDataFieldsMappingUpdated="(dataFieldMapping) => AddFieldsMapping(dataFieldMapping)"
+                                                  DataFieldsMapping="_dataFieldsMapping"></MergeFieldsComponent>
+                            break;
+                        case MappingType.UpdateValue:
+                            <UpdateValueComponent OnDataFieldsMappingUpdated="(dataFieldMapping) => AddFieldsMapping(dataFieldMapping)"
+                                                  DataFieldsMapping="_dataFieldsMapping"></UpdateValueComponent>
+                            break;
+                        case MappingType.MergeFieldWithCondition:
+                            <MergeFieldValuesConditionComponent OnDataFieldsMappingUpdated="(dataFieldMapping) => AddFieldsMapping(dataFieldMapping)"
+                                                                DataFieldsMapping="_dataFieldsMapping"></MergeFieldValuesConditionComponent>
+                            break;
+                        case MappingType.UpdateValueWithCondition:
+                            <UpdateValueConditionComponent OnDataFieldsMappingUpdated="(dataFieldMapping) => AddFieldsMapping(dataFieldMapping)"
+                                                           DataFieldsMapping="_dataFieldsMapping"></UpdateValueConditionComponent>
+                            break;
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12">
+        <MappingListComponent DataMapping="DataMapping"
+                              OnDataFieldsMappingEditing="(dataFieldsMapping) => _dataFieldsMapping = dataFieldsMapping "></MappingListComponent>
+    </div>
+</div>
+
+@* <div class="card card-default">
+    <div class="card-header">
         <h3 class="card-title">Configure the Fields you want to merge the value</h3>
     </div>
     <div class="card-body">
@@ -66,7 +117,7 @@
             </div>
         </div>
     </div>
-</div>
+</div> *@
 @code
 {
     [Parameter]
@@ -79,7 +130,7 @@
 
     private async Task AddFieldsMapping(DataFieldsMapping dataFieldMapping)
     {
-        _dataFieldsMapping.MappingType = MappingType.UpdateValue;
+        dataFieldMapping.DirectionType = MappingDirectionType.Source;
 
         DataMapping.FieldsMapping.Remove(dataFieldMapping);
         DataMapping.FieldsMapping.Add(dataFieldMapping);
@@ -91,5 +142,11 @@
     private void Remove(DataFieldsMapping dataFieldsMapping)
     {
         DataMapping.FieldsMapping.Remove(dataFieldsMapping);
+    }
+
+    private void ChangeMappingType(ChangeEventArgs e)
+    {
+        _dataFieldsMapping = new();
+        _dataFieldsMapping.MappingType = Enum.Parse<MappingType>(e.Value.ToString());
     }
 }

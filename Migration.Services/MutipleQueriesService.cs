@@ -48,7 +48,6 @@ namespace Migration.Services
                     dataSource.Add($"{dataMapping.Source.Settings.CurrentEntity}:{Guid.NewGuid()}", jsonObject);
                 }
 
-
                 if (dataMapping.DataQueryMappingType == DataQueryMappingType.UpdateAnotherCollection)
                 {
                     var destination = await _genericRepository(dataMapping.Destination.Settings)

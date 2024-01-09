@@ -3,6 +3,7 @@ using Migration.Repository.Models;
 using Newtonsoft.Json.Linq;
 using System.Globalization;
 using Migration.Repository.Exceptions;
+using System.Text.RegularExpressions;
 
 namespace Migration.Infrastructure.AzureTableStorage
 {
@@ -51,23 +52,25 @@ namespace Migration.Infrastructure.AzureTableStorage
 
             for (int f = 0; f < filters.Length; f++)
             {
-                var condition = filters[f].Split(new[] { "==", "!=" }, StringSplitOptions.RemoveEmptyEntries);
+                var condition = filters[f].Split(new[] { "=", "!=" }, StringSplitOptions.RemoveEmptyEntries);
+
+                var propertyCondition = condition.FirstOrDefault().Trim();
+                var valueCondition = RemoveSpaces(filters[f]).Replace(propertyCondition + "=", String.Empty).Replace(propertyCondition + "!=", String.Empty).Replace("'", string.Empty);
 
                 string operation = string.Empty;
                
-                if (filters[f].Contains("=="))
+                if (RemoveSpaces(filters[f].Split("=")[0]) == propertyCondition)
                 {
                     operation = QueryComparisons.Equal;
                 }
-
-                if (filters[f].Contains("!="))
+                else if (RemoveSpaces(filters[f].Split("!=")[0]) == propertyCondition)
                 {
                     operation = QueryComparisons.NotEqual;
                 }
 
                 if (string.IsNullOrEmpty(operation)) continue;
 
-                var filterCondition = ParseQuery(condition.FirstOrDefault().Trim(), operation, queryResult.Results.FirstOrDefault().Properties.FirstOrDefault(w => w.Key == condition.FirstOrDefault().Trim()).Value.PropertyType, condition.LastOrDefault().Trim());
+                var filterCondition = ParseQuery(propertyCondition, operation, queryResult.Results.FirstOrDefault().Properties.FirstOrDefault(w => w.Key == propertyCondition).Value.PropertyType, valueCondition);
 
                 if (!string.IsNullOrEmpty(query))
                 {
@@ -88,9 +91,12 @@ namespace Migration.Infrastructure.AzureTableStorage
                 }
             }
 
-            //TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, "0ba992a0-aabc-49ec-ae06-bf8c09b9c6b6"));
-
             return query;
+        }
+
+        private static string RemoveSpaces(string value)
+        {
+            return Regex.Replace(value, @"\s+", "");
         }
 
         private static string ConvertOperator(DataFieldsMapping dataFieldsMapping, JObject relationshipData)

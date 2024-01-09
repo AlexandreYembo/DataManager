@@ -27,13 +27,6 @@ namespace Migration.Infrastructure.CosmosDb
                 .GetContainer(db, settings.CurrentEntity);
         }
 
-        public async Task<Dictionary<string, string>> GetByListIds(string[] ids)
-        {
-            var query = $"select * from c where c.id IN({string.Join(',', ids.Select(v => "'" + v + "'"))})";
-
-            return await Get(query);
-        }
-
         public async Task<Dictionary<string, string>> Get(string rawQuery)
         {
             var query = QueryBuilder.Build(rawQuery);
@@ -104,13 +97,14 @@ namespace Migration.Infrastructure.CosmosDb
                 catch
                 {
                     nextResult = false;
+                    throw;
                 }
             }
 
             return dictionary;
         }
 
-        public async Task Update(JObject entity)
+        public async Task Update(JObject entity, List<DataFieldsMapping> fieldMappings = null)
         {
             var response = await container.UpsertItemAsync(entity);
             if (response.StatusCode != HttpStatusCode.OK)

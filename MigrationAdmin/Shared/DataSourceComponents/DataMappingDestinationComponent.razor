@@ -21,6 +21,18 @@
             <div class="col-sm-12">
                 @if (DataMapping.OperationType == OperationType.Update || DataMapping.OperationType == OperationType.Insert)
                 {
+                    <div class="row">
+                        <div class="col-sm-2">
+                            <label>Choose Direction Type</label>
+                            <select class="form-control" data-keeper-edited="yes" value="@_dataFieldsMapping.DirectionType" @onchange="ChangeDirectionType">
+                                @foreach (var mappingType in Enum.GetValues<MappingDirectionType>())
+                                {
+                                    <option value="@mappingType">@mappingType</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
                     @switch (_dataFieldsMapping.MappingType)
                     {
                         case MappingType.TableJoin:
@@ -92,6 +104,11 @@
     {
         _dataFieldsMapping = new();
         _dataFieldsMapping.MappingType = Enum.Parse<MappingType>(e.Value.ToString());
+    }
+
+    private void ChangeDirectionType(ChangeEventArgs e)
+    {
+        _dataFieldsMapping.DirectionType = Enum.Parse<MappingDirectionType>(e.Value.ToString());
     }
 
     private async Task ShowSuccessAlert(string message)

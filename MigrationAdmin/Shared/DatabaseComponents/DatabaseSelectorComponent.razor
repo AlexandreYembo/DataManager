@@ -17,7 +17,7 @@
             <div class="col-sm-6">
                 <div class="form-group">
                     <label>Select the Connection </label>
-                    <select class="form-control" id="connectionString" data-keeper-edited="yes" @onchange="ChangeConnectionString">
+                    <select class="form-control" id="connectionString" data-keeper-edited="yes" value="@_connectionName" @onchange="ChangeConnectionString">
                         @if (ConnectionStrings != null)
                         {
                             foreach (var connectionString in ConnectionStrings.Where(w => !string.IsNullOrEmpty(w.Value)))
@@ -35,11 +35,10 @@
                     <div class="col-sm-6">
                         <div class="form-group">
                             <label>Select the Container</label>
-                            <select class="form-control" id="entities" data-keeper-edited="yes" @onchange="ChangeEntity">
+                            <select class="form-control" id="entities" data-keeper-edited="yes" value="@DataSettings.CurrentEntity" @onchange="ChangeEntity">
                                 @if (DataSettings != null)
                                 {
-                                    <option selected="selected" value="@DataSettings.Entities.FirstOrDefault()"> @DataSettings.Entities.FirstOrDefault()</option>
-                                    @foreach (var container in DataSettings.Entities.Skip(1))
+                                    @foreach (var container in DataSettings.Entities)
                                     {
                                         <option value="@container">@container</option>
                                     }
@@ -59,21 +58,24 @@
                 }
             }
         </div>
-        <div class="row">
-            <div class="col-sm-12">
-                <div class="form-group">
-                    <label>Query (Format: select c.Field1,c.Field2,c.Field3,c.Field4 from c where c.Field1 = value) or (select * from c where c.Field1 = value)</label>
-                    <input class="form-control" id="query" data-keeper-edited="yes" @bind="@Query" />
+        @if (DisplayQuery)
+        {
+            <div class="row">
+                <div class="col-sm-12">
+                    <div class="form-group">
+                        <label>Query (Format: select c.Field1,c.Field2,c.Field3,c.Field4 from c where c.Field1 = value) or (select * from c where c.Field1 = value)</label>
+                        <input class="form-control" id="query" data-keeper-edited="yes" @bind="@Query" />
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col-sm-12">
-                <div class="form-group">
-                    <button class="btn btn-default" @onclick="() => AddQuery()"> Add Query</button>
+            <div class="row">
+                <div class="col-sm-12">
+                    <div class="form-group">
+                        <button class="btn btn-default" @onclick="() => AddQuery()"> Add Query</button>
+                    </div>
                 </div>
             </div>
-        </div>
+        }
     </div>
 </div>
 @code {
@@ -96,10 +98,19 @@
     [Parameter]
     public Dictionary<string, string?> ConnectionStrings { get; set; }
 
+    [Parameter]
+    public bool DisplayQuery { get; set; }
+
     private string _connectionName { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
+        if (DataSettings == null)
+        {
+            var redisData = await _redis.FindAsync();
+
+            DataSettings = redisData.FirstOrDefault();
+        }
         // var redisData = await _redis.FindAsync(typeof(DataSettings).Name);
 
         // var dataSettings = redisData.Select(s => s.Data).ToList();
@@ -108,9 +119,10 @@
         // {
         //     ConnectionStrings = dataSettings.ToDictionary(k => k.FullName, v => v.FullName);
         //     DataSettings = dataSettings.FirstOrDefault();
-        //     _connectionName = DataSettings.FullName;
+         _connectionName = DataSettings.FullName;
 
-        DataSettings.CurrentEntity = DataSettings.Entities.FirstOrDefault();
+        if (string.IsNullOrEmpty(DataSettings.CurrentEntity))
+            DataSettings.CurrentEntity = DataSettings.Entities.FirstOrDefault();
 
         //     await OnDbSettingsChanged.InvokeAsync(DataSettings);
         // }
@@ -130,7 +142,7 @@
         dataSettings.CurrentEntity = dataSettings.Entities.FirstOrDefault();
 
         DataSettings.Entities = dataSettings.Entities;
-       
+
         DataSettings.CurrentEntity = DataSettings.Entities.FirstOrDefault();
 
         await OnDbSettingsChanged.InvokeAsync(dataSettings);
@@ -138,7 +150,7 @@
 
     private async Task<DataSettings?> GetDataSettings()
     {
-        var redisData = await _redis.FindAsync(_connectionName);
+        var redisData = await _redis.FindAsync(_connectionName, string.Empty);
 
         var dataSettings = redisData.FirstOrDefault();
         return dataSettings;
@@ -148,13 +160,13 @@
     {
         if (e.Value == null) return;
 
-        var dataSettings = await GetDataSettings();
+        // var dataSettings = await GetDataSettings();
 
-        if (dataSettings == null) return;
+        if (DataSettings == null) return;
 
-        dataSettings.CurrentEntity = e.Value.ToString();
+        DataSettings.CurrentEntity = e.Value.ToString();
 
-        await OnDbSettingsChanged.InvokeAsync(dataSettings);
+        await OnDbSettingsChanged.InvokeAsync(DataSettings);
     }
 
     public async Task AddQuery()
