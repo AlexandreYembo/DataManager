@@ -90,5 +90,10 @@ namespace Migration.Repository
         {
             throw new NotImplementedException();
         }
+
+        public Task Insert(JObject entity)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

@@ -26,9 +26,9 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @if (LogDetails.Any(a => a.Details.Any()))
+                                        @if (LogDetails.Any(a => a.ActionsLogs.Any()))
                                         {
-                                            foreach (var logDetailsGrouped in LogDetails.SelectMany(log => log.Details.Select(detail => new { Detail = detail, Log = log }))
+                                            foreach (var logDetailsGrouped in LogDetails.SelectMany(log => log.ActionsLogs.Select(detail => new { Detail = detail, Log = log }))
                                             .GroupBy(o => o.Detail))
                                             {
                                                 <tr>
@@ -51,40 +51,6 @@
                                                                     <tr>
                                                                         <td style="width:50%">
                                                                             @logDetails.Log.Title
-                                                                        </td>
-                                                                    </tr>
-                                                                }
-                                                            </tbody>
-                                                        </table>
-                                                    </td>
-                                                </tr>
-                                            }
-                                        }
-                                        @if(LogDetails.Any(a => a.Errors.Any()))
-                                        {
-                                            foreach (var logDetailsGrouped in LogDetails.SelectMany(detail => detail.Errors.Select(error => new { Error = error, Detail = detail }))
-                                            .GroupBy(o => o.Error))
-                                            {
-                                                <tr>
-                                                    <td style="width:50%">
-                                                        @logDetailsGrouped.Key
-                                                    </td>
-                                                    <td >
-                                                        @logDetailsGrouped.Count()
-                                                    </td>
-                                                    <td class="row" style="overflow-y:scroll; height: 300px;">
-                                                        <table id="logsGrouped_values_errors" class="table table-bordered table-striped">
-                                                            <thead>
-                                                                <tr>
-                                                                    <th></th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody>
-                                                                @foreach (var logDetails in logDetailsGrouped)
-                                                                {
-                                                                    <tr>
-                                                                        <td style="width:50%">
-                                                                            @logDetails.Detail.Title
                                                                         </td>
                                                                     </tr>
                                                                 }

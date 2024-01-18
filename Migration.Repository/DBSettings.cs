@@ -79,6 +79,8 @@
         public string GetFileName() => Parameters?.FirstOrDefault(f => f.Key == "FileName")?.Value ?? string.Empty;
 
         public string GetAccountName() => Parameters?.FirstOrDefault(f => f.Key == "AccountName")?.Value ?? string.Empty;
+        public string GetPartitionKey() => Parameters?.FirstOrDefault(f => f.Key == "PartitionKey")?.Value ?? string.Empty;
+        public string GetIdentityKey() => Parameters?.FirstOrDefault(f => f.Key == "IdentityKey")?.Value ?? string.Empty;
     }
 
     public class CustomAttributes

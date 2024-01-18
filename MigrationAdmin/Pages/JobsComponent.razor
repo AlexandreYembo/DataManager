@@ -1,11 +1,11 @@
 ﻿@page "/jobs"
-@using Newtonsoft.Json.Linq
 @using Migration.Infrastructure.Redis
 @using Migration.Infrastructure.Redis.Entities
 @using Migration.Repository.LogModels
+@using Migration.Repository.Models
 @using Newtonsoft.Json
 @inherits CustomComponents;
-@inject IRepository<JObject> _repository;
+@inject IRepository<Jobs> _repository;
 <div class="content">
     <div class="container-fluid">
         <div class="card card-default">
@@ -36,22 +36,22 @@
                             {
                                 <tr>
                                     <td>
-                                        @job.SelectToken("JobId")
+                                        @job.JobId
                                     </td>
                                     <td>
-                                        @job.SelectToken("ProfileId")
+                                        @job.ProfileId
                                     </td>
                                     <td>
-                                        @job.SelectToken("OperationType")
+                                        @job.OperationType
                                     </td>
                                     <td>
-                                        @job.SelectToken("SourceProcessed")
+                                        @job.SourceProcessed
                                     </td>
                                     <td>
-                                        @job.SelectToken("DestinationProcessed")
+                                        @job.DestinationProcessed
                                     </td>
                                     <td>
-                                        @job.SelectToken("Status")
+                                        @job.Status
                                     </td>
                                     <td>
                                         <button class="btn btn-default" @onclick="() => GetLog(job)"> <i class="nav-icon fas fa-file-archive"></i> Log</button>
@@ -67,32 +67,26 @@
     </div>
 </div>
 @code {
-    private List<JObject> _jobs;
+    private List<Jobs> _jobs;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            _jobs = await _repository.FindAsync(new RedisData<JObject>()
-                {
-                    Id = "Jobs"
-                });
+            _jobs = await _repository.FindAsync();
         }
         catch
         {
         }
     }
 
-    private async Task GetLog(JObject job)
+    private async Task GetLog(Jobs job)
     {
-        var jobId = job.SelectToken("JobId");
-
-        var logs = await _repository.FindAsync(new RedisData<JObject>()
+        var redisValue = await _repository.FindByKeyAsync(new RedisData<Jobs>()
             {
-                Id = "Log$" + jobId + "$"
+                RedisValue = job.JobId.ToString()
             });
 
-        LogResult = JsonConvert.DeserializeObject<LogResult>(logs.FirstOrDefault().ToString());
+        LogResult = JsonConvert.DeserializeObject<LogResult>(redisValue.ToString());
     }
-
 }

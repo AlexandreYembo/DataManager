@@ -1,0 +1,50 @@
+﻿<div class="modal fade show" id="logDetailsModal" style="display:block" aria-modal="true" role="dialog">
+    <div class="modal-dialog" style="max-width: 500px;">
+        <div class="modal-content">
+
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <h4 class="modal-title warning"><i class="nav-icon fas fa-warning"></i> @Title</h4>
+            </div>
+
+            <!-- Modal body -->
+            <div class="modal-body" style="max-height:250px">
+                <div class="row">
+                    <div class="col-sm-12">
+                        <div class="form-group">
+                            <label>@Description</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal footer -->
+            <div class="modal-footer">
+                <button type="button" style="margin-top:15px; color: #ff0000" class="btn" @onclick="Yes"><i class="nav-icon fas fa-thumbs-up"></i> Yes</button>
+                <button type="button" style="margin-top:15px;" class="btn" @onclick="No"><i class="nav-icon fas fa-thumbs-down"></i> No</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string Title { get; set; }
+
+    [Parameter]
+    public string Description { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnConfirmed { get; set; }
+
+    public async Task Yes()
+    {
+        await OnConfirmed.InvokeAsync(true);
+    }
+
+    public async Task No()
+    {
+        await OnConfirmed.InvokeAsync(false);
+    }
+}

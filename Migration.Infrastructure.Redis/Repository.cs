@@ -15,7 +15,7 @@ namespace Migration.Infrastructure.Redis
             _db = db;
         }
 
-        public async Task SaveAsync(RedisData<TEntity> redisData, string environment = "")
+        public async Task SaveAsync(RedisData<TEntity> redisData)
         {
             var entity = redisData.Data;
 
@@ -26,47 +26,40 @@ namespace Migration.Infrastructure.Redis
 
             var value = JsonSerializer.Serialize(entity, _JsonSerializerOptions);
 
-            if (string.IsNullOrEmpty(environment))
-            {
-                await _db.HashSetAsync(entity.GetType().Name, new[] { new HashEntry(redisData.Key, value) });
-            }
-            else
-            {
-                await _db.HashSetAsync($"{entity.GetType().Name}-{environment}", new[] { new HashEntry(redisData.Key, value) });
-            }
+            await _db.HashSetAsync(typeof(TEntity).Name + (!string.IsNullOrEmpty(redisData.RedisKey) ? "-" + redisData.RedisKey : ""), new[] { new HashEntry(redisData.RedisValue, value) });
         }
 
-        public async Task SaveAsync(RedisData<JObject> redisData, string id)
+        public async Task SaveAsync(RedisData<JObject> redisData)
         {
             var redisValue = redisData.Data;
 
-            await _db.HashSetAsync(id, new[] { new HashEntry(redisData.Key, redisValue.ToString()) });
+            await _db.HashSetAsync(redisData.RedisKey, new[] { new HashEntry(redisData.RedisValue, redisValue.ToString()) });
         }
 
         public async Task<List<JObject>> FindAsync(RedisData<JObject> redisData)
         {
-            var redisResult = await _db.HashGetAllAsync(redisData.Id);
-            return redisResult.OrderBy(s => s.Key).Select(s => JObject.Parse(s.Value.ToString())).ToList();
+            var redisResult = await _db.HashGetAllAsync(redisData.RedisKey);
+            return redisResult.OrderBy(s => s.Key).Select(s => JObject.Parse(s.Value)).ToList();
         }
 
         public async Task<RedisValue> FindByKeyAsync(RedisData<TEntity> redisData)
         {
-            var redisResult = await _db.HashGetAsync(redisData.Id, new RedisValue(redisData.Key));
+            var redisResult = await _db.HashGetAsync(typeof(TEntity).Name + (!string.IsNullOrEmpty(redisData.RedisKey) ? "-" + redisData.RedisKey : ""), new RedisValue(redisData.RedisValue));
             return redisResult;
         }
 
-        public async Task<List<TEntity>> FindAsync(string environment = "")
+        public async Task<List<TEntity>> FindAsync(string jobCategory = "")
         {
-            var redisResult = await _db.HashGetAllAsync(typeof(TEntity).Name + (!string.IsNullOrEmpty(environment) ? "-"+ environment : ""));
+            var redisResult = await _db.HashGetAllAsync(typeof(TEntity).Name + (!string.IsNullOrEmpty(jobCategory) ? "-" + jobCategory : ""));
 
             List<TEntity?> result = redisResult.Select(s => JsonSerializer.Deserialize<TEntity>(s.Value, GetOptions())).ToList();
 
             return result ?? new();
         }
 
-        public async Task<List<TEntity>> FindAsync(string key, string environment)
+        public async Task<List<TEntity>> FindAsync(string key, string jobCategory)
         {
-            var redisResult = await _db.HashGetAllAsync(typeof(TEntity).Name + (!string.IsNullOrEmpty(environment) ? "-" + environment : ""));
+            var redisResult = await _db.HashGetAllAsync(typeof(TEntity).Name + (!string.IsNullOrEmpty(jobCategory) ? "-" + jobCategory : ""));
 
             List<TEntity?> result = redisResult.Where(w => w.Key == key).Select(s => JsonSerializer.Deserialize<TEntity>(s.Value, GetOptions())).ToList();
 

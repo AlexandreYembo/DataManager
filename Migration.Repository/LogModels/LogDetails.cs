@@ -1,16 +1,22 @@
-﻿namespace Migration.Repository.LogModels
+﻿using Newtonsoft.Json;
+
+namespace Migration.Repository.LogModels
 {
     public class LogDetails
     {
-        public string JobId { get; set; }
+        public int JobId { get; set; }
         public string Title { get; set; }
-        public List<string> Details { get; set; } = new();
-        public List<string> Errors { get; set; } = new();
         public LogType Type { get; set; }
         public bool Display { get; set; }
-        public bool IsDataBackup { get; set; }
+        public List<string> Descriptions { get; set; } = new();
+        public List<ActionsLog> ActionsLogs { get; set; } = new();
+    }
 
-        // new feature to review and do an action individually
-        public string Actions { get; set; }
+    public class ActionsLog
+    {
+        public string Label { get; set; }
+
+        [JsonIgnore]
+        public Func<Task>? Action { get; set; }
     }
 }

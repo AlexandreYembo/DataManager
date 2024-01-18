@@ -153,6 +153,7 @@ namespace Migration.Repository.Helpers
                             }
                             else
                             {
+                                value = jtoken.ToString();
                                 arr[index] = value;
                             }
                             json[firstProp] = arr;

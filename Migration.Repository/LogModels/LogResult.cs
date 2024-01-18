@@ -2,11 +2,11 @@
 {
     public class LogResult
     {
-        public string JobId { get; set; }
+        public int JobId { get; set; }
         public DateTime StartedIn { get; set; }
         public DateTime FinishedIn { get; set; }
 
-        public string ConsumeTime => GetConsumeTime();
+        public string TimeConsumed => GetTimeConsume();
         public int TotalRecords { get; set; }
         public int TotalSuccess => Details.Count(d => d.Type == LogType.Success && d.Display);
         public int TotalWarns => Details.Count(d => d.Type == LogType.Warn && d.Display);
@@ -15,7 +15,7 @@
         public string Description { get; set; }
         public List<LogDetails> Details { get; set; } = new();
 
-        private string GetConsumeTime()
+        private string GetTimeConsume()
         {
             if (StartedIn == default || FinishedIn == default) return string.Empty;
 

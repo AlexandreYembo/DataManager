@@ -1,0 +1,93 @@
+﻿@page "/createJobCategory"
+@inject IRepository<JobsCategory> _jobsCategoryRepository;
+
+@using Migration.Repository.Models
+@using Migration.Infrastructure.Redis
+@using Migration.Infrastructure.Redis.Entities
+<div class="card card-default">
+    <div class="card-header">
+        <h3 class="card-title">Create Job Category to organize your jobs</h3>
+        <div class="card-tools">
+            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                <i class="fas fa-minus"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body" style="display: block;">
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <label>Category Name </label>
+                    <input class="form-control" data-keeper-edited="yes" @bind="@_jobsCategory.CategoryName" />
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-footer">
+        <div class="col-sm-1">
+            <button class="btn btn-default" @onclick="() => Save()"> <i class="nav-icon fas fa-save"></i> Save</button>
+        </div>
+    </div>
+</div>
+
+<div class="card card-default">
+    <div class="card-header">
+        <h3 class="card-title">Create Job Category to organize your jobs</h3>
+        <div class="card-tools">
+            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                <i class="fas fa-minus"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body" style="display: block;">
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="row">
+                    <div class="col-sm-12">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Categories</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (_listJobsCategory != null)
+                                {
+                                    foreach (var jobCategory in _listJobsCategory)
+                                    {
+                                        <tr>
+                                            <td>
+                                                @jobCategory.CategoryName
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@code {
+    private JobsCategory _jobsCategory = new();
+    private List<JobsCategory> _listJobsCategory;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _listJobsCategory = await _jobsCategoryRepository.FindAsync();
+    }
+
+    private async Task Save()
+    {
+        await _jobsCategoryRepository.SaveAsync(new RedisData<JobsCategory>()
+            {
+                Data = _jobsCategory,
+                RedisValue = _jobsCategory.CategoryName
+            });
+        _listJobsCategory.Add(_jobsCategory);
+    }
+}

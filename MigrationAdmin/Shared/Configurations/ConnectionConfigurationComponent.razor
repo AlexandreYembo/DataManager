@@ -176,7 +176,7 @@
             var redisData = new RedisData<DataSettings>()
                 {
                     Data = DataSettings,
-                    Key = DataSettings.FullName
+                    RedisValue = DataSettings.FullName
                 };
 
             await _redis.SaveAsync(redisData);
@@ -225,9 +225,8 @@
             var redisData = new RedisData<DataSettings>()
                 {
                     Data = DataSettings,
-                    Key = DataSettings.FullName
+                    RedisValue = DataSettings.FullName
                 };
-
 
             await _redis.SaveAsync(redisData);
 

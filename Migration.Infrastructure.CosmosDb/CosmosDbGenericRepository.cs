@@ -1,6 +1,8 @@
-﻿using System.Net;
+﻿using System.Dynamic;
+using System.Net;
 using Microsoft.Azure.Cosmos;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Migration.Repository;
 using Migration.Repository.Exceptions;
 using Migration.Repository.Models;
@@ -11,9 +13,12 @@ namespace Migration.Infrastructure.CosmosDb
     public class CosmosDbGenericRepository : IGenericRepository
     {
         private readonly Container container;
+        private readonly DataSettings _settings;
 
         public CosmosDbGenericRepository(DataSettings settings)
         {
+            _settings = settings;
+
             var db = settings.GetDataBase();
 
             var dbContextOptionsBuilder = new DbContextOptionsBuilder<DbContext>();
@@ -21,10 +26,11 @@ namespace Migration.Infrastructure.CosmosDb
                 accountEndpoint: settings.GetEndpoint(),
                 accountKey: settings.GetAuthKey(),
                 databaseName: db);
-
+           
             var context = new DbContext(dbContextOptionsBuilder.Options);
-            container = context.Database.GetCosmosClient()
-                .GetContainer(db, settings.CurrentEntity);
+
+            var client = context.Database.GetCosmosClient();
+            container = client.GetContainer(db, settings.CurrentEntity);
         }
 
         public async Task<Dictionary<string, string>> Get(string rawQuery)
@@ -46,6 +52,9 @@ namespace Migration.Infrastructure.CosmosDb
                 {
                     foreach (var record in responseRecord.ToList())
                     {
+                        (record as JObject).Remove("_ts");
+                        (record as JObject).Remove("_etag");
+
                         JToken jToken = JToken.FromObject(record);
 
                         var value = ((JValue)jToken["id"]).Value;
@@ -62,7 +71,7 @@ namespace Migration.Infrastructure.CosmosDb
             var query = QueryBuilder.Build(rawQuery, fieldMappings, data, take, skip);
 
             Dictionary<string, string> dictionary = new();
-            
+
             if (string.IsNullOrEmpty(query)) return dictionary;
 
             using FeedIterator<dynamic> feedIterator = container.GetItemQueryIterator<dynamic>(query);
@@ -80,6 +89,9 @@ namespace Migration.Infrastructure.CosmosDb
                     {
                         foreach (var record in responseRecord.ToList())
                         {
+                            (record as JObject).Remove("_ts");
+                            (record as JObject).Remove("_etag");
+
                             JToken jToken = JToken.FromObject(record);
 
                             if (rawQuery.Contains("distinct", StringComparison.CurrentCultureIgnoreCase))
@@ -116,45 +128,76 @@ namespace Migration.Infrastructure.CosmosDb
         public async Task Delete(JObject entity)
         {
             var id = entity["id"].ToString();
+            ItemResponse<JObject> response;
 
-            var response = await container.DeleteItemAsync<JObject>(id, PartitionKey.None, null, CancellationToken.None);
+            var partitionKey = _settings.GetPartitionKey();
+
+            if (!string.IsNullOrEmpty(partitionKey))
+            {
+                response = await container.DeleteItemAsync<JObject>(id, new PartitionKey(partitionKey), null, CancellationToken.None);
+            }
+            else
+            {
+                response = await container.DeleteItemAsync<JObject>(id, PartitionKey.None, null, CancellationToken.None);
+            }
+          
             if (response.StatusCode != HttpStatusCode.OK)
             {
                 throw new DbOperationException(response.StatusCode.ToString(), entity.ToString());
             }
         }
 
-        //private PartitionKey GetPartitionKey(Guid id)
-        //{
-        //    var partitionKey = GetNullablePartitionKey();
-        //    if (partitionKey != null)
-        //    {
-        //        return partitionKey.Value;
-        //    }
+        public async Task Insert(JObject entity)
+        {
+            ItemResponse<JObject> response;
 
-        //    if (ContainerConfig.PartitionKeyPath?.Equals(IdPartitionKeyPath, StringComparison.OrdinalIgnoreCase) == true)
-        //    {
-        //        return new PartitionKey(id.ToString());
-        //    }
+            var partitionKey = _settings.GetPartitionKey();
+            var idFromData = _settings.GetIdentityKey();
 
-        //    throw new InvalidOperationException("No partition key configured");
-        //}
+            entity["id"] = entity.SelectToken(idFromData);
 
-        //private PartitionKey? GetNullablePartitionKey()
-        //{
-        //    if (!ContainerConfig.IsPartitionedContainer)
-        //    {
-        //        return PartitionKey.None;
-        //    }
+            Guid.TryParse(entity["id"].ToString(), out var id);
 
-        //    if (_partitioningContextFactory.IsInContext)
-        //    {
-        //        return PartitioningHelper.GetValidPartitionKey(_partitioningContextFactory.CurrentContext
-        //            .PartitioningKey);
-        //    }
+            if (id == default)
+            {
+                //Subscribe log with the error
+            }
 
-        //    return null;
-        //}
+            try
+            {
+                var throughput = ThroughputProperties.CreateManualThroughput(400);
 
+                var containerResponse = await container.Database.CreateContainerIfNotExistsAsync(new ContainerProperties()
+                {
+                    Id = _settings.CurrentEntity,
+                    PartitionKeyPath = $"/{partitionKey}"
+                }, throughput);
+
+                if (containerResponse.StatusCode != HttpStatusCode.Created && containerResponse.StatusCode != HttpStatusCode.OK)
+                {
+                    throw new DbOperationException(containerResponse.StatusCode.ToString(), $"Error to create {_settings.CurrentEntity}");
+                }
+
+                if (!string.IsNullOrEmpty(partitionKey))
+                {
+                    response = await container.CreateItemAsync(entity, new PartitionKey(entity[partitionKey].ToString()));
+                }
+                else
+                {
+                    response = await container.CreateItemAsync(entity, PartitionKey.None);
+                }
+
+                if (response.StatusCode != HttpStatusCode.Created)
+                {
+                    throw new DbOperationException(response.StatusCode.ToString(), entity.ToString());
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
+         
+        }
     }
 }

@@ -2,33 +2,22 @@
 @using Migration.Repository.Models
 @using Migration.Services
 @using Migration.Infrastructure.Redis
-@using Migration.Infrastructure.Redis.Entities
 @using Migration.Repository.Delegates
 @using Migration.Repository.Publishers
 @using Migration.Repository.Subscribers
-@using Newtonsoft.Json.Linq
 @inject IJSRuntime jsRuntime
 @inherits CustomComponents;
 @inject IMigrationService _migrateService;
 @inject IRepository<Profile> _profileRepository;
-@inject IRepository<JObject> _repository;
 @inject LogResultSubscriber LogSubscriber
 @inject LogPublisher LogPublisher
 @inject LogDetailsPublisher LogDetailsPublisher
 
-<div class="card card-default card-tabs">
-    <div class="card-header p-0 pt-1">
-        <ul class="nav nav-tabs" id="custom-tabs-one-tab" role="tablist">
-            <li class="nav-item">
-                <a class="nav-link active" id="custom-tabs-one-profiles-tab" role="tab" data-toggle="pill" href="#custom-tabs-one-profiles" aria-controls="custom-tabs-one-profiles" aria-selected="true"><i class="nav-icon fas fa-address-card"></i> List of Profiles</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" id="custom-tabs-one-jobs-tab" role="tab" data-toggle="pill" href="#custom-tabs-one-jobs" aria-controls="custom-tabs-one-jobs" aria-selected="true"><i class="nav-icon fas fa-address-card"></i> List of Jobs</a>
-            </li>
-        </ul>
+<div class="card card-default">
+    <div class="card-header">
+        <h3 class="card-title">Data Migration</h3>
     </div>
     <div class="card-body">
-        <div class="tab-content" id="custom-tabs-one-tabContent">
             <div class="tab-pane fade show active" id="custom-tabs-one-profiles" role="tabpanel" aria-labelledby="custom-tabs-one-profiles-tab">
                 <div class="row">
                     <div class="col-sm-2">
@@ -105,51 +94,6 @@
                     </div>
                 </div>
             </div>
-            <div class="tab-pane fade" id="custom-tabs-one-jobs" role="tabpanel" aria-labelledby="custom-tabs-one-jobs-tab">
-                <table id="jobs" class="table table-bordered table-striped">
-                    <thead>
-                        <tr>
-                            <th>Job Id</th>
-                            <th>Profile</th>
-                            <th>Operation Type</th>
-                            <th>Source Pagination (Skip)</th>
-                            <th>Destination Pagination (Skip)</th>
-                            <th>
-                                Status
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (_jobs != null)
-                        {
-                            foreach (var job in _jobs)
-                            {
-                                <tr>
-                                    <td>
-                                        @job.SelectToken("JobId")
-                                    </td>
-                                    <td>
-                                        @job.SelectToken("ProfileId")
-                                    </td>
-                                    <td>
-                                        @job.SelectToken("OperationType")
-                                    </td>
-                                    <td>
-                                        @job.SelectToken("SourceProcessed")
-                                    </td>
-                                    <td>
-                                        @job.SelectToken("DestinationProcessed")
-                                    </td>
-                                    <td>
-                                        @job.SelectToken("Status")
-                                    </td>
-                                </tr>
-                            }
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
     </div>
     <div class="card-footer">
         <div class="col-sm-1">
@@ -170,14 +114,14 @@
 @if (_editProfileModalIsEnabled)
 {
     <EditProfileComponent ProfileId="@_editProfile.DataMappings[0].Id"
-                          Environment="@_editProfile.EnvironmentName"
+                          Environment="@_editProfile.JobCategoryId"
                           ModalOk="() => ModalOk()"></EditProfileComponent>
 }
 
 @if (_cloneProfileModalIsEnabled)
 {
     <CloneProfileComponent ProfileId="@_editProfile.DataMappings[0].Id"
-                           Environment="@_editProfile.EnvironmentName"
+                           Environment="@_editProfile.JobCategoryId"
                            ModalOk="() => ModalOk()"></CloneProfileComponent>
 }
 
@@ -187,7 +131,6 @@
     private bool _cloneProfileModalIsEnabled;
     private Profile _editProfile;
     private List<Profile> _profiles;
-    private List<JObject> _jobs;
 
     private string _environmentName;
 
@@ -203,10 +146,6 @@
         try
         {
             _profiles = await _profileRepository.FindAsync(_environmentName);
-            _jobs = await _repository.FindAsync(new RedisData<JObject>()
-            {
-                Id = "Jobs"
-            });
         }
         catch
         {
@@ -233,7 +172,7 @@
         }
         Loading = true;
 
-        await _migrateService.Migrate(profileToMigrate.FirstOrDefault().DataMappings[0], profileToMigrate.FirstOrDefault().EnvironmentName, 0);
+        await _migrateService.Migrate(profileToMigrate.FirstOrDefault(), 0);
 
         Loading = false;
     }

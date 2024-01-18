@@ -23,18 +23,35 @@ namespace Migration.Services.Helpers
         /// <param name="objRight"></param>
         /// <param name="invertedObject"></param>
         /// <returns></returns>
-        public static List<Difference> FindDifferences(JObject objLeft, JObject objRight, bool invertedObject = false)
+        public static List<Difference> FindDifferences(JObject objLeft, JObject objRight, bool invertedObject = false, List<DataFieldsMapping> fieldsMappings = null)
         {
             List<Difference> differences = new List<Difference>();
 
             if (objLeft.Properties().Count() < objRight.Properties().Count())
             {
-                return FindDifferences(objRight, objLeft, true);
+                return FindDifferences(objRight, objLeft, true, fieldsMappings);
             }
 
             foreach (var property in objLeft.Properties())
             {
-                var propertyName = property.Name;
+                string propertyName = string.Empty;
+
+                if (fieldsMappings == null)
+                {
+                    propertyName = property.Name;
+                }
+                else if(fieldsMappings.Any(a => a.SourceField == property.Name))
+                {
+                    propertyName = fieldsMappings.FirstOrDefault(a => a.SourceField == property.Name).SourceField;
+                }
+                else if (fieldsMappings.Any(a => a.DestinationField == property.Name))
+                {
+                    propertyName = fieldsMappings.FirstOrDefault(a => a.SourceField == property.Name).DestinationField;
+                }
+                else
+                {
+                    continue;
+                }
 
                 var value1 = invertedObject ? objRight.GetValue(propertyName) : property.Value;
                 var value2 = invertedObject ? property.Value : objRight.GetValue(propertyName);

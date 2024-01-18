@@ -21,7 +21,7 @@
                     <div class="row">
                         <div class="col-sm-2">
                             <label>Environment Name</label>
-                            <input class="form-control" data-keeper-edited="yes" @bind="@_profile.EnvironmentName" />
+                            <input class="form-control" data-keeper-edited="yes" @bind="@_profile.JobCategoryId" />
                         </div>
                         <div class="col-sm-2">
                             <label>Name</label>
@@ -72,10 +72,11 @@
         var redisData = new RedisData<Profile>()
             {
                 Data = _profile,
-                Key = _profile.Name
+                RedisValue = _profile.Name,
+                RedisKey = _profile.JobCategoryId
             };
 
-        await _profileRepository.SaveAsync(redisData, _profile.EnvironmentName);
+        await _profileRepository.SaveAsync(redisData);
 
         await ShowSuccessAlert();
     }

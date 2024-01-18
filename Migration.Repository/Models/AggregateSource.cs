@@ -6,7 +6,7 @@ namespace Migration.Repository.Models
     {
         public string? Name { get; set; }
         public string? Description { get; set; }
-        public string? EnvironmentName { get; set; }
+        public string? JobCategoryId { get; set; }
         public List<DataMapping> DataMappings { get; set; } = new();
         public bool Selected { get; set; }
     }

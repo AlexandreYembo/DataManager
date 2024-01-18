@@ -1,6 +1,4 @@
-﻿//using Microsoft.Azure.Cosmos.Table;
-
-using Microsoft.WindowsAzure.Storage;
+﻿using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Table;
 using Migration.Repository;
 using Migration.Repository.Exceptions;
@@ -51,9 +49,9 @@ namespace Migration.Infrastructure.AzureTableStorage
                 string partitionKey = entity.PartitionKey;
                 string rowKey = entity.RowKey;
 
-                jo.Add("id", $"{partitionKey}:{rowKey}");
+                jo.Add("id", $"{partitionKey}");
                 jo.Add("PartitionKey", partitionKey);
-                jo.Add("RowKey", partitionKey);
+                jo.Add("RowKey", rowKey);
                 jo.Add("ETag", entity.ETag);
 
                 foreach (KeyValuePair<string, EntityProperty> property in entity.Properties)
@@ -88,7 +86,7 @@ namespace Migration.Infrastructure.AzureTableStorage
                 string partitionKey = entity.PartitionKey;
                 string rowKey = entity.RowKey;
 
-                jo.Add("id", $"{partitionKey}:{rowKey}");
+                jo.Add("id", $"{partitionKey}");
 
                 jo.Add("PartitionKey", partitionKey);
                 jo.Add("RowKey", rowKey);
@@ -201,6 +199,11 @@ namespace Migration.Infrastructure.AzureTableStorage
                 throw new DbOperationException("Error-0002", e.Message);
             }
 
+        }
+
+        public Task Insert(JObject entity)
+        {
+            throw new NotImplementedException();
         }
 
         private static string CreateConnectionString(DataSettings settings)

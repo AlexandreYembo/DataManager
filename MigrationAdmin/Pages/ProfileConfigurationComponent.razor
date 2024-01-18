@@ -13,6 +13,7 @@
 @inject IQueryService _queryService;
 @inject IRepository<DataSettings> _dataSettingsRepository;
 @inject IRepository<Profile> _profileRepository;
+@inject IRepository<JobsCategory> _jobsCategoryRepository;
 
 <div class="card card-default card-tabs">
     <div class="card-header p-0 pt-1">
@@ -64,16 +65,24 @@
                     <div class="card-body">
                         <div class="row">
                             <div class="col-sm-2">
-                                <label>Environment Name</label>
-                                <input class="form-control" data-keeper-edited="yes" @bind="@Profile.EnvironmentName" />
+                                <label>JobCategory</label>
+                                <select class="form-control" id="connectionString" data-keeper-edited="yes" @bind="@Profile.JobCategoryId">
+                                    @if (_listJobsCategory != null)
+                                    {
+                                        foreach (var jobsCategory in _listJobsCategory)
+                                        {
+                                            <option value="@jobsCategory.CategoryName">@jobsCategory.CategoryName</option>
+                                        }
+                                    }
+                                </select>
                             </div>
                             <div class="col-sm-2">
                                 <label>Name</label>
-                                <input class="form-control" data-keeper-edited="yes" @bind="@Profile.Name"/>
+                                <input class="form-control" data-keeper-edited="yes" @bind="@Profile.Name" />
                             </div>
                             <div class="col-sm-2">
                                 <label>Description</label>
-                                <input class="form-control" data-keeper-edited="yes" @bind="@Profile.Description"/>
+                                <input class="form-control" data-keeper-edited="yes" @bind="@Profile.Description" />
                             </div>
                         </div>
                     </div>
@@ -201,6 +210,8 @@
 
     private string _message;
 
+    private List<JobsCategory> _listJobsCategory;
+
     protected override async Task OnInitializedAsync()
     {
         Profile.DataMappings.Add(new DataMapping()
@@ -220,6 +231,8 @@
 
         Profile.DataMappings[0].Source.Settings = settings.FirstOrDefault();
         Profile.DataMappings[0].Destination.Settings = settings.FirstOrDefault();
+
+        _listJobsCategory = await _jobsCategoryRepository.FindAsync();
     }
 
     public async Task PreviewDataResult()
@@ -321,10 +334,11 @@
         var redisData = new RedisData<Profile>()
             {
                 Data = Profile,
-                Key = Profile.Name
+                RedisValue = Profile.DataMappings[0].Id,
+                RedisKey = Profile.JobCategoryId
             };
 
-        await _profileRepository.SaveAsync(redisData, Profile.EnvironmentName);
+        await _profileRepository.SaveAsync(redisData);
 
         await ShowSuccessAlert();
     }

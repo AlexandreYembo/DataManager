@@ -65,5 +65,10 @@ namespace Migration.Infrastructure.AzureTableStorage
         {
             throw new NotImplementedException();
         }
+
+        public Task Insert(JObject entity)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
