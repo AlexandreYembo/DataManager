@@ -1,0 +1,164 @@
+﻿@page "/createJob"
+@using Migration.Repository.Models
+@using Migration.Services
+@using Migration.Infrastructure.Redis
+@inject IJSRuntime jsRuntime
+@inherits CustomComponents;
+@inject IRepository<Profile> _profileRepository;
+@inject IJobService _jobService;
+
+<div class="card card-default">
+    <div class="card-header">
+        <h3 class="card-title">Create job</h3>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-sm-2">
+                <JobCategoryComponent OnJobCategorySelected="(jobCategory) => _jobCategory = jobCategory"></JobCategoryComponent>
+            </div>
+        </div>
+    </div>
+    <div class="card-footer">
+        <div class="col-sm-1">
+            <button class="btn btn-default" @onclick="() => Search()"> <i class="nav-icon fas fa-search"></i> Search</button>
+        </div>
+    </div>
+</div>
+
+<div class="card card-default">
+    <div class="card-header">
+        <h3 class="card-title">Profiles</h3>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-sm-12">
+                <table id="dataGeneral" class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>Profile</th>
+                            <th>Description</th>
+                            <th>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (_profiles != null)
+                        {
+                            foreach (var profile in _profiles)
+                            {
+                                <tr>
+                                    <td>
+                                        <p>Database Name: <b> @profile.Name</b></p>
+                                    </td>
+                                    <td>
+                                        <p>Database Name: <b> @profile.Description</b></p>
+                                    </td>
+                                    <td>
+                                        <input type="checkbox" @bind="profile.Selected" />
+                                        <button class="btn btn-default" @onclick="() => EditProfile(profile)"> <i class="nav-icon fas fa-edit"></i> Edit</button>
+                                        <button class="btn btn-default" @onclick="() => CloneProfile(profile)"> <i class="nav-icon fas fa-copy"></i> Clone</button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="card-footer">
+        <div class="col-sm-1">
+            <button class="btn btn-default" @onclick="() => CreateJob()"> <i class="nav-icon fas fa-database"></i> Create Job</button>
+        </div>
+    </div>
+</div>
+
+@if (Loading)
+{
+    <div class="col-sm-12">
+        <Loading />
+    </div>
+}
+
+@if (_editProfileModalIsEnabled)
+{
+    <EditProfileComponent ProfileId="@_editProfile.DataMappings[0].Id"
+                          Environment="@_editProfile.JobCategoryId"
+                          ModalOk="() => ModalOk()"></EditProfileComponent>
+}
+
+@if (_cloneProfileModalIsEnabled)
+{
+    <CloneProfileComponent ProfileId="@_editProfile.DataMappings[0].Id"
+                           JobCategory="@_editProfile.JobCategoryId"
+                           ModalOk="() => ModalOk()"></CloneProfileComponent>
+}
+
+@code {
+
+    private bool _editProfileModalIsEnabled;
+    private bool _cloneProfileModalIsEnabled;
+    private bool _createJobPopup;
+    private Profile _editProfile;
+    private List<Profile> _profiles;
+
+    private string _jobCategory;
+
+    private async Task Search()
+    {
+        try
+        {
+            _profiles = await _profileRepository.FindAsync(_jobCategory);
+        }
+        catch
+        {
+        }
+    }
+
+    public void EditProfile(Profile profile)
+    {
+        _editProfile = profile;
+        _editProfileModalIsEnabled = true;
+    }
+
+    public void CloneProfile(Profile profile)
+    {
+        _editProfile = profile;
+        _cloneProfileModalIsEnabled = true;
+    }
+
+    public void ModalOk()
+    {
+        _editProfileModalIsEnabled = false;
+        _cloneProfileModalIsEnabled = false;
+        _createJobPopup = false;
+    }
+
+    private async Task CreateJob()
+    {
+        var profileToMigrate = _profiles.Where(w => w.Selected);
+
+        if (!profileToMigrate.Any())
+        {
+            await ShowErrorAlert("Select a profile to create the job");
+            return;
+        }
+
+        foreach (var profile in profileToMigrate)
+        {
+            await _jobService.CreateAndAddToTheQueue(profile);
+        }
+     
+        await ShowSuccessAlert("Job created and add to the queue.");
+    }
+    
+    private async Task ShowSuccessAlert(string message)
+    {
+        await jsRuntime.InvokeAsync<object>("ShowSuccessAlert", message);
+    }
+
+    private async Task ShowErrorAlert(string message)
+    {
+        await jsRuntime.InvokeAsync<object>("ShowErrorAlert", message);
+    }
+}

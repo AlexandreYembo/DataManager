@@ -12,9 +12,9 @@
 
         public List<CustomAttributes> Parameters { get; set; } = new();
 
-        public List<string> Entities { get; set; } = new();
+        public List<Entity> Entities { get; set; } = new();
 
-        public string CurrentEntity { get; set; }
+        public Entity CurrentEntity { get; set; } = new();
 
         public bool AllowAddCustomParameters { get; set; }
 
@@ -79,8 +79,19 @@
         public string GetFileName() => Parameters?.FirstOrDefault(f => f.Key == "FileName")?.Value ?? string.Empty;
 
         public string GetAccountName() => Parameters?.FirstOrDefault(f => f.Key == "AccountName")?.Value ?? string.Empty;
-        public string GetPartitionKey() => Parameters?.FirstOrDefault(f => f.Key == "PartitionKey")?.Value ?? string.Empty;
-        public string GetIdentityKey() => Parameters?.FirstOrDefault(f => f.Key == "IdentityKey")?.Value ?? string.Empty;
+    }
+
+    public class Entity
+    {
+        public Entity(){}
+
+        public Entity(string name)
+        {
+            Name = name;
+        }
+
+        public string Name { get; set; }
+        public List<CustomAttributes> Attributes { get; set; }
     }
 
     public class CustomAttributes
@@ -94,7 +105,6 @@
     {
         CosmosDb,
         File,
-        //TableStorage, //TODO
         //Api,//TODO
         TableStorage
     }

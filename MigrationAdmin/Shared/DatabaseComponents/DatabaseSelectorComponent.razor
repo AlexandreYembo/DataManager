@@ -1,7 +1,9 @@
 ﻿@using Migration.Repository
 @using Migration.Infrastructure.Redis.Entities
 @using Migration.Infrastructure.Redis
+@using Migration.Repository.Models
 @inject IRepository<DataSettings> _redis;
+@inject Func<DataSettings, ITestConnection> _testConnection;
 
 <div class="card card-default">
     <div class="card-header">
@@ -14,7 +16,7 @@
     </div>
     <div class="card-body" style="display: block;">
         <div class="row">
-            <div class="col-sm-6">
+            <div class="col-sm-4">
                 <div class="form-group">
                     <label>Select the Connection </label>
                     <select class="form-control" id="connectionString" data-keeper-edited="yes" value="@_connectionName" @onchange="ChangeConnectionString">
@@ -32,17 +34,27 @@
             {
                 if (DataSettings.ConnectionType != ConnectionType.File)
                 {
-                    if (!NewContainer)
+                    if (TypeOfOperation != null && TypeOfOperation == OperationType.Import)
                     {
-                        <div class="col-sm-6">
+                        <div class="col-sm-2">
+                            <div class="form-group">
+                                Is new container
+                                <input type="checkbox" @bind="isNewContainer"/>
+                            </div>
+                        </div>
+                    }
+
+                    if (!isNewContainer)
+                    {
+                        <div class="col-sm-4">
                             <div class="form-group">
                                 <label>Select the Container</label>
-                                <select class="form-control" id="entities" data-keeper-edited="yes" value="@DataSettings.CurrentEntity" @onchange="ChangeEntity">
-                                    @if (DataSettings != null)
+                                <select class="form-control" id="entities" data-keeper-edited="yes" value="@DataSettings.CurrentEntity.Name" @onchange="ChangeEntity">
+                                    @if (DataSettings != null && DataSettings.Entities != null)
                                     {
                                         @foreach (var container in DataSettings.Entities)
                                         {
-                                            <option value="@container">@container</option>
+                                            <option value="@container.Name">@container.Name</option>
                                         }
                                     }
                                 </select>
@@ -51,20 +63,20 @@
                     }
                     else
                     {
-                        <div class="col-sm-2">
+                        <div class="col-sm-4">
                             <div class="form-group">
                                 <label>New Entity</label>
-                                <input class="form-control" id="profileName" data-keeper-edited="yes" @bind="@DataSettings.CurrentEntity" />
+                                <input class="form-control" id="profileName" data-keeper-edited="yes" @bind="@DataSettings.CurrentEntity.Name" />
                             </div>
                         </div>
                     }
                 }
                 else
                 {
-                    <div class="col-sm-2">
+                    <div class="col-sm-4">
                         <div class="form-group">
                             <label>Entity</label>
-                            <input class="form-control" id="profileName" data-keeper-edited="yes" @bind="@DataSettings.CurrentEntity" />
+                            <input class="form-control" id="profileName" data-keeper-edited="yes" @bind="@DataSettings.CurrentEntity.Name" />
                         </div>
                     </div>
                 }
@@ -108,10 +120,12 @@
     public string Query { get; set; }
 
     [Parameter]
-    public bool NewContainer { get; set; }
+    public OperationType? TypeOfOperation { get; set; }
 
     [Parameter]
     public Dictionary<string, string?> ConnectionStrings { get; set; }
+
+    private bool isNewContainer { get; set; }
 
     [Parameter]
     public bool DisplayQuery { get; set; }
@@ -136,9 +150,10 @@
         //     DataSettings = dataSettings.FirstOrDefault();
         _connectionName = DataSettings.FullName;
 
-        if (string.IsNullOrEmpty(DataSettings.CurrentEntity))
+        if (DataSettings.CurrentEntity != null && string.IsNullOrEmpty(DataSettings.CurrentEntity.Name) && DataSettings.Entities.Any())
             DataSettings.CurrentEntity = DataSettings.Entities.FirstOrDefault();
-
+        else
+            DataSettings.CurrentEntity = new();
         //     await OnDbSettingsChanged.InvokeAsync(DataSettings);
         // }
 
@@ -153,6 +168,8 @@
         if (string.IsNullOrEmpty(_connectionName)) return;
 
         var dataSettings = await GetDataSettings();
+
+        dataSettings = await _testConnection(dataSettings).Test();
 
         dataSettings.CurrentEntity = dataSettings.Entities.FirstOrDefault();
 
@@ -177,7 +194,7 @@
 
         if (DataSettings == null) return;
 
-        DataSettings.CurrentEntity = e.Value.ToString();
+        DataSettings.CurrentEntity = DataSettings.Entities.FirstOrDefault(w => w.Name == e.Value.ToString());
 
         await OnDbSettingsChanged.InvokeAsync(DataSettings);
     }

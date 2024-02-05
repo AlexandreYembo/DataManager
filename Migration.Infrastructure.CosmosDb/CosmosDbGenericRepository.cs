@@ -1,8 +1,6 @@
-﻿using System.Dynamic;
-using System.Net;
+﻿using System.Net;
 using Microsoft.Azure.Cosmos;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Migration.Repository;
 using Migration.Repository.Exceptions;
 using Migration.Repository.Models;
@@ -17,6 +15,9 @@ namespace Migration.Infrastructure.CosmosDb
 
         public CosmosDbGenericRepository(DataSettings settings)
         {
+            if (string.IsNullOrEmpty(settings.CurrentEntity.Name))
+                return;
+
             _settings = settings;
 
             var db = settings.GetDataBase();
@@ -30,7 +31,7 @@ namespace Migration.Infrastructure.CosmosDb
             var context = new DbContext(dbContextOptionsBuilder.Options);
 
             var client = context.Database.GetCosmosClient();
-            container = client.GetContainer(db, settings.CurrentEntity);
+            container = client.GetContainer(db, settings.CurrentEntity.Name);
         }
 
         public async Task<Dictionary<string, string>> Get(string rawQuery)
@@ -54,6 +55,9 @@ namespace Migration.Infrastructure.CosmosDb
                     {
                         (record as JObject).Remove("_ts");
                         (record as JObject).Remove("_etag");
+                        (record as JObject).Remove("_rid");
+                        (record as JObject).Remove("_self");
+                        (record as JObject).Remove("_attachments");
 
                         JToken jToken = JToken.FromObject(record);
 
@@ -91,6 +95,9 @@ namespace Migration.Infrastructure.CosmosDb
                         {
                             (record as JObject).Remove("_ts");
                             (record as JObject).Remove("_etag");
+                            (record as JObject).Remove("_rid");
+                            (record as JObject).Remove("_self");
+                            (record as JObject).Remove("_attachments");
 
                             JToken jToken = JToken.FromObject(record);
 
@@ -130,53 +137,43 @@ namespace Migration.Infrastructure.CosmosDb
             var id = entity["id"].ToString();
             ItemResponse<JObject> response;
 
-            var partitionKey = _settings.GetPartitionKey();
+            var partitionKey = _settings.CurrentEntity.Attributes.FirstOrDefault(w => w.Key == "PartitionKey")?.Value?.Replace("/", string.Empty);
 
             if (!string.IsNullOrEmpty(partitionKey))
             {
-                response = await container.DeleteItemAsync<JObject>(id, new PartitionKey(partitionKey), null, CancellationToken.None);
+                response = await container.DeleteItemAsync<JObject>(id, new PartitionKey(id), null, CancellationToken.None);
             }
             else
             {
                 response = await container.DeleteItemAsync<JObject>(id, PartitionKey.None, null, CancellationToken.None);
             }
           
-            if (response.StatusCode != HttpStatusCode.OK)
+            if (response.StatusCode != HttpStatusCode.NoContent)
             {
                 throw new DbOperationException(response.StatusCode.ToString(), entity.ToString());
             }
         }
 
-        public async Task Insert(JObject entity)
+        public async Task Insert(JObject entity, List<DataFieldsMapping> fieldMappings = null)
         {
             ItemResponse<JObject> response;
+            var hasId = entity.SelectToken("id") != null;
 
-            var partitionKey = _settings.GetPartitionKey();
-            var idFromData = _settings.GetIdentityKey();
+            if (!hasId)
+            {
+                entity["id"] = Guid.NewGuid().ToString();
+            }
 
-            entity["id"] = entity.SelectToken(idFromData);
-
-            Guid.TryParse(entity["id"].ToString(), out var id);
+           Guid.TryParse(entity["id"].ToString(), out var id);
 
             if (id == default)
             {
-                //Subscribe log with the error
+                entity["id"] = Guid.NewGuid().ToString();
             }
 
             try
             {
-                var throughput = ThroughputProperties.CreateManualThroughput(400);
-
-                var containerResponse = await container.Database.CreateContainerIfNotExistsAsync(new ContainerProperties()
-                {
-                    Id = _settings.CurrentEntity,
-                    PartitionKeyPath = $"/{partitionKey}"
-                }, throughput);
-
-                if (containerResponse.StatusCode != HttpStatusCode.Created && containerResponse.StatusCode != HttpStatusCode.OK)
-                {
-                    throw new DbOperationException(containerResponse.StatusCode.ToString(), $"Error to create {_settings.CurrentEntity}");
-                }
+                var partitionKey = _settings.CurrentEntity.Attributes.FirstOrDefault(w => w.Key == "PartitionKey")?.Value?.Replace("/", string.Empty);
 
                 if (!string.IsNullOrEmpty(partitionKey))
                 {
@@ -194,10 +191,27 @@ namespace Migration.Infrastructure.CosmosDb
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
-                throw;
+                throw new DbOperationException("DB-9999", e.Message);
             }
-         
+        }
+
+        public async Task CreateTable()
+        {
+            var partitionKey = _settings.CurrentEntity.Attributes.FirstOrDefault(w => w.Key == "PartitionKey")?.Value?.Replace("/", string.Empty);
+
+            var throughput = ThroughputProperties.CreateManualThroughput(400);
+
+            var containerResponse = await container.Database.CreateContainerIfNotExistsAsync(
+                new ContainerProperties()
+            {
+                Id = _settings.CurrentEntity.Name,
+                PartitionKeyPath = $"/{partitionKey}"
+            }, throughput);
+
+            if (containerResponse.StatusCode != HttpStatusCode.Created && containerResponse.StatusCode != HttpStatusCode.OK)
+            {
+                throw new DbOperationException(containerResponse.StatusCode.ToString(), $"Error to create {_settings.CurrentEntity}");
+            }
         }
     }
 }

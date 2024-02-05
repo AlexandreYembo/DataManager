@@ -26,28 +26,40 @@ namespace Migration.Services.Helpers
 
                 if (dataMapping.DataQueryMappingType == DataQueryMappingType.UpdateAnotherCollection)
                 {
-                    foreach (var d in destination)
+                    if (dataMapping.OperationType == OperationType.Import)
                     {
-                        var originalData = JObject.Parse(d.Data);
+                        var originalData = new JObject();
 
-                        if (dataMapping.OperationType == OperationType.Delete)
+                        var objectToBeUpdated = UpdateDataHelper.UpdateObject("{}", mappingMergeFields, sourceObj, ref hasChange);
+                        if (!hasChange) continue;
+
+                        result.Add(s.Entity + originalData["id"], DifferenceHelper.FindDifferences(originalData, objectToBeUpdated));
+                    }
+                    else
+                    {
+                        foreach (var d in destination)
                         {
-                            List<Difference> differences = new()
+                            var originalData = JObject.Parse(d.Data);
+
+                            if (dataMapping.OperationType == OperationType.Delete)
                             {
-                                new Difference()
+                                List<Difference> differences = new()
                                 {
-                                    Object1Value = d.Data,
-                                    OperationType = dataMapping.OperationType
-                                }
-                            };
-                            result.Add(d.Entity + originalData["id"], differences);
-                        }
-                        else
-                        {
-                            var objectToBeUpdated = UpdateDataHelper.UpdateObject(d.Data, mappingMergeFields, sourceObj, ref hasChange);
-                            if (!hasChange) continue;
+                                    new Difference()
+                                    {
+                                        Object1Value = d.Data,
+                                        OperationType = dataMapping.OperationType
+                                    }
+                                };
+                                result.Add(d.Entity + originalData["id"], differences);
+                            }
+                            else
+                            {
+                                var objectToBeUpdated = UpdateDataHelper.UpdateObject(d.Data, mappingMergeFields, sourceObj, ref hasChange);
+                                if (!hasChange) continue;
 
-                            result.Add(d.Entity + originalData["id"], DifferenceHelper.FindDifferences(originalData, objectToBeUpdated));
+                                result.Add(d.Entity + originalData["id"], DifferenceHelper.FindDifferences(originalData, objectToBeUpdated));
+                            }
                         }
                     }
                 }

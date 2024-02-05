@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Migration.Repository.Models;
+using Newtonsoft.Json;
 
 namespace Migration.Repository.LogModels
 {
@@ -9,7 +10,10 @@ namespace Migration.Repository.LogModels
         public LogType Type { get; set; }
         public bool Display { get; set; }
         public List<string> Descriptions { get; set; } = new();
-        public List<ActionsLog> ActionsLogs { get; set; } = new();
+
+        public List<ActionsLog>? ActionsLogs { get; set; } = new();
+        public OperationType OperationType { get; set; }
+        public DateTime LogDateTime { get; set; }
     }
 
     public class ActionsLog

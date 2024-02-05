@@ -18,7 +18,7 @@ namespace Migration.Infrastructure.AzureTableStorage
         public TestRepository(DataSettings settings)
         {
             _tableServiceClient = new(CreateConnectionString(settings));
-            _tableClient = _tableServiceClient.GetTableClient(settings.CurrentEntity);
+            _tableClient = _tableServiceClient.GetTableClient(settings.CurrentEntity.Name);
 
         }
 
@@ -66,7 +66,12 @@ namespace Migration.Infrastructure.AzureTableStorage
             throw new NotImplementedException();
         }
 
-        public Task Insert(JObject entity)
+        public Task Insert(JObject entity, List<DataFieldsMapping> fieldMappings = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task CreateTable()
         {
             throw new NotImplementedException();
         }

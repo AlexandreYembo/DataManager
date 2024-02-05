@@ -6,5 +6,6 @@ namespace Migration.Services
     {
         Task<Jobs> GetOrCreateJob(Profile profile, int jobId);
         Task UpdateJob(Jobs job);
+        Task CreateAndAddToTheQueue(Profile profile);
     }
 }

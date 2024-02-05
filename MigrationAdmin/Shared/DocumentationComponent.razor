@@ -1,0 +1,69 @@
+﻿@using Markdig
+@using System.Reflection.Metadata
+
+<button type="button" class="btn" style="color:#ff0000" @onclick="RenderHTMLFromMD"><i class="nav-icon fas fa-info-circle"></i></button>
+
+@if (_displayDocumentation)
+{
+    <div class="modal fade show" id="logDetailsModal" style="display: block" aria-modal="true" role="dialog">
+        <div class="modal-dialog" style="max-width: 900px;">
+            <div class="modal-content">
+
+                <!-- Modal Header -->
+                <div class="modal-header">
+                    <h4 class="modal-title"></h4>
+                </div>
+
+                <!-- Modal body -->
+                <div class="modal-body" style="height: 600px; overflow: scroll">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div class="form-group">
+                                @((MarkupString)_documentRendered)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal footer -->
+                <div class="modal-footer">
+                    <button type="button" style="margin-top: 15px;" class="btn btn-close" @onclick="Close">Close</button>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string DocumentationPath { get; set; }
+
+    MarkdownPipeline _pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().UseBootstrap().Build();
+    
+    private string _documentRendered;
+
+    private bool _displayDocumentation;
+   
+    private void RenderHTMLFromMD()
+    {
+        _displayDocumentation = true;
+
+        try
+        {
+            string Document = File.ReadAllText(AppDomain.CurrentDomain.BaseDirectory + "/Documentations/" + DocumentationPath);
+
+            _documentRendered = Markdown.ToHtml(Document, _pipeline);
+        }
+        catch
+        {
+            _documentRendered = Markdown.ToHtml("#### Sorry :( there is no document available at the moment", _pipeline);
+        }
+    }
+
+    private void Close()
+    {
+        _displayDocumentation = false;
+    }
+}

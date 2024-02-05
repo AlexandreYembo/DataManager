@@ -32,7 +32,7 @@ namespace Migration.Services.Helpers
                 return FindDifferences(objRight, objLeft, true, fieldsMappings);
             }
 
-            foreach (var property in objLeft.Properties())
+            foreach (var property in objLeft.Properties().Where(FilterProperties()))
             {
                 string propertyName = string.Empty;
 
@@ -73,12 +73,13 @@ namespace Migration.Services.Helpers
 
                         if (d.Any())
                         {
-                            var v2 = string.Join("\n ", d.Select(s => $"<div>{s.PropertyName} : <span style='color:red'> " + s.Object2Value + "</span> </div>"));
+                            var v1 = string.Join("", d.Select(s => $"<div class=\"col-sm-6\">{s.PropertyName} : <span style='color:red'> " + s.Object1Value+ "</span> </div>"));
+                            var v2 = string.Join("", d.Select(s => $"<div class=\"col-sm-6\">{s.PropertyName} : <span style='color:red'> " + s.Object2Value + "</span> </div>"));
                             differences.Add(new Difference()
                             {
                                 PropertyName = propertyName,
-                                Object1Value = value1.ToString(),
-                                Object2Value = value2 + v2
+                                Object1Value = v1,//value1.ToString(),
+                                Object2Value = v2//value2 + v2
                             });
                         }
 
@@ -163,6 +164,11 @@ namespace Migration.Services.Helpers
             }
 
             return differences;
+        }
+
+        private static Func<JProperty, bool> FilterProperties()
+        {
+            return w => w.Name != "id" && w.Name != "PartitionKey" && w.Name != "ETag" && w.Name != "RowKey";
         }
     }
 }

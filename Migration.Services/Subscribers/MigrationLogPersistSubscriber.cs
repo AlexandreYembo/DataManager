@@ -1,67 +1,94 @@
 ﻿using Migration.Infrastructure.Redis.Entities;
 using Migration.Infrastructure.Redis;
 using Migration.Repository.LogModels;
-using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 
 namespace Migration.Services.Subscribers
 {
     public class MigrationLogPersistSubscriber
     {
-        private readonly IRepository<JObject> _migrationProcessRepository;
+        private readonly IRepository<LogResult> _logRepository;
 
-        public MigrationLogPersistSubscriber(IRepository<JObject> migrationProcessRepository)
+        public MigrationLogPersistSubscriber(IRepository<LogResult> logRepository)
         {
-            _migrationProcessRepository = migrationProcessRepository;
+            _logRepository = logRepository;
         }
 
         public void LogResultPublisher_OnEntityChanged(object? sender, Repository.Delegates.LogResultEventArgs e)
         {
-            Task.Run(() =>
+            var redisValue = _logRepository.FindByKeyAsync(new RedisData<LogResult>()
             {
-                _migrationProcessRepository.SaveAsync(new RedisData<JObject>()
+                RedisValue = "Job:" + e.LogResult.JobId + "_Operation:" + e.LogResult.OperationType
+            }).GetAwaiter().GetResult();
+
+            if (redisValue.HasValue)
+            {
+                var log = JsonConvert.DeserializeObject<LogResult>(redisValue);
+
+                log.FinishedIn = DateTime.Now;
+                log.TotalRecords = e.LogResult.TotalRecords;
+
+                _logRepository.SaveAsync(new RedisData<LogResult>()
                 {
-                    Data = JObject.FromObject(e.LogResult),
-                    RedisValue = e.LogResult.JobId.ToString(),
-                    RedisKey = "Logs"
-                });
-            });
+                    Data = log,
+                    RedisValue = "Job:" + e.LogResult.JobId + "_Operation:" + e.LogResult.OperationType
+                }).GetAwaiter().GetResult();
+            }
+            else
+            {
+                _logRepository.SaveAsync(new RedisData<LogResult>()
+                {
+                    Data = e.LogResult,
+                    RedisValue = "Job:" + e.LogResult.JobId + "_Operation:" + e.LogResult.OperationType
+                }).GetAwaiter().GetResult();
+            }
         }
 
         public void LogDetailsPublisher_OnEntityChanged(object? sender, Repository.Delegates.LogDetailsEventArgs e)
         {
-            Task.Run(async () =>
+            e.LogDetail.LogDateTime = DateTime.Now;
+
+            var redisValue = _logRepository.FindByKeyAsync(new RedisData<LogResult>()
             {
-                var redisValue = await _migrationProcessRepository.FindByKeyAsync(new RedisData<JObject>()
+                RedisValue = "Job:" + e.LogDetail.JobId + "_Operation:" + e.LogDetail.OperationType
+            }).GetAwaiter().GetResult();
+
+            var log = JsonConvert.DeserializeObject<LogResult>(redisValue.ToString());
+
+            if (log == null) return;
+
+            if ((!log.Details.Any() ||
+                log.Details.FirstOrDefault(w => w.Title == e.LogDetail.Title) == null) ||
+                !log.Details.FirstOrDefault(w => w.Title == e.LogDetail.Title).Descriptions.Any())
+            {
+                var details = new LogDetails()
                 {
-                    RedisKey = "Logs",
-                    RedisValue = e.LogDetail.JobId.ToString()
-                });
+                    LogDateTime = e.LogDetail.LogDateTime,
+                    OperationType = e.LogDetail.OperationType,
+                    Descriptions = e.LogDetail.Descriptions,
+                    Display = e.LogDetail.Display,
+                    JobId = e.LogDetail.JobId,
+                    Title = e.LogDetail.Title,
+                    Type = e.LogDetail.Type
+                };
 
-                var log = JsonConvert.DeserializeObject<LogResult>(redisValue.ToString());
+                log.Details.Add(details);
+            }
+            else
+            {
+                var descriptions = log.Details.FirstOrDefault(w => w.Title == e.LogDetail.Title).Descriptions;
 
-                if (!log.Details.Any() ||
-                    log.Details.FirstOrDefault(w => w.Title == e.LogDetail.Title) == null ||
-                    !log.Details.FirstOrDefault(w => w.Title == e.LogDetail.Title).Descriptions.Any())
-                {
-                    log.Details.Add(e.LogDetail);
-                }
-                else
-                {
-                    var descriptions = log.Details.FirstOrDefault(w => w.Title == e.LogDetail.Title).Descriptions;
+                descriptions.AddRange(e.LogDetail.Descriptions);
 
-                    descriptions.AddRange(e.LogDetail.Descriptions);
+                log.Details.FirstOrDefault(w => w.Title == e.LogDetail.Title).Descriptions = descriptions;
+                log.Details.FirstOrDefault(w => w.Title == e.LogDetail.Title).LogDateTime = DateTime.Now;
+            }
 
-                    log.Details.FirstOrDefault(w => w.Title == e.LogDetail.Title).Descriptions = descriptions;
-                }
-
-                await _migrationProcessRepository.SaveAsync(new RedisData<JObject>()
-                {
-                    Data = JObject.FromObject(log),
-                    RedisValue = e.LogDetail.JobId.ToString(),
-                    RedisKey = "Logs"
-                });
-            });
+            _logRepository.SaveAsync(new RedisData<LogResult>()
+            {
+                Data = log,
+                RedisValue = "Job:" + e.LogDetail.JobId + "_Operation:" + e.LogDetail.OperationType
+            }).GetAwaiter().GetResult();
         }
     }
 }

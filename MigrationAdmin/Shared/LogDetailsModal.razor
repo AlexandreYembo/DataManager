@@ -6,14 +6,14 @@
 @inject ActionsPublisher ActionsPublisher
 
 <div class="modal fade show" id="logDetailsModal" style="display:block" aria-modal="true" role="dialog">
-    <div class="modal-dialog" style="max-width:100%;">
+    <div class="modal-dialog" style="max-width:90%;">
         <div class="modal-content">
             <!-- Modal Header -->
             <div class="modal-header">
                 <h4 class="modal-title">@ModalTitle</h4>
             </div>
             <!-- Modal body -->
-            <div class="modal-body" style="height: 900px; overflow: scroll">
+            <div class="modal-body" style="height:600px; overflow:scroll">
                 <div class="card">
                     <div class="card-header">
                         <h4 class="card-title">Log Details</h4>
@@ -25,7 +25,7 @@
                                     <table id="logs_details" class="table table-bordered table-striped">
                                         <thead>
                                             <tr>
-                                                <th>Details</th>
+                                                <th>Details - @LogDetails.LogDateTime</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -35,7 +35,7 @@
                                                 {
                                                     <tr>
                                                         <td>
-                                                            @description
+                                                            @((MarkupString)description)
                                                         </td>
                                                     </tr>
                                                 }
@@ -92,7 +92,7 @@
 
     protected override void OnInitialized()
     {
-        ActionsPublisher.OnEntityChanged += OnActionReceived;
+        ActionsPublisher.OnEventPublished += OnActionReceived;
     }
 
     private void OnActionReceived(object sender, ActionsEventArgs e)

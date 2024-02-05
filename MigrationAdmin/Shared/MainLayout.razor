@@ -1,4 +1,15 @@
-﻿@inherits LayoutComponentBase
+﻿@using Migration.Repository.LogModels
+@using Migration.Repository.Publishers
+@using Migration.Repository.Subscribers
+@using Migration.Repository.Delegates
+@using Migration.Services.Subscribers
+@inherits LayoutComponentBase
+@inject LogResultSubscriber LogSubscriber
+@inject LogPublisher LogPublisher
+@inject LogDetailsPublisher LogDetailsPublisher
+@inject MigrationLogPersistSubscriber _LogPersistSubscriber;
+@inject ActionsPublisher _actionsPublisher;
+@inject IJSRuntime jsRuntime
 
 <PageTitle>Migration tool</PageTitle>
 <div class="wrapper">
@@ -7,6 +18,7 @@
         @Body
     </div>
     <footer class="main-footer">
+        <Log LogResult="_logResult"></Log>
         <strong>Copyright &copy; 2023 <a href="#"></a>.</strong>
         All rights reserved.
         <div class="float-right d-none d-sm-inline-block">
@@ -14,3 +26,48 @@
         </div>
     </footer>
 </div>
+
+@code{
+    private LogResult _logResult;
+
+    protected override async Task OnInitializedAsync()
+    {
+        LogPublisher.OnEventPublished += LogSubscriber.OnEventChanged;
+        LogPublisher.OnEventPublished += OnLogUpdated;
+        LogDetailsPublisher.OnEventPublished += LogSubscriber.OnEventChanged;
+
+        LogPublisher.OnEventPublished += _LogPersistSubscriber.LogResultPublisher_OnEntityChanged;
+        LogDetailsPublisher.OnEventPublished += _LogPersistSubscriber.LogDetailsPublisher_OnEntityChanged;
+
+        _actionsPublisher.OnEventPublished += OnActionCompleted;
+    }
+
+    private void OnLogUpdated(object sender, LogResultEventArgs e)
+    {
+        _logResult = e.LogResult;
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnActionCompleted(object sender, ActionsEventArgs e)
+    {
+        if (e.Actions.ActionType == ActionEventType.Success)
+        {
+            ShowSuccessAlert(e.Actions.Message).GetAwaiter().GetResult();
+        }
+        else
+        {
+            ShowErrorAlert(e.Actions.Message).GetAwaiter().GetResult();
+        }
+    }
+
+    private async Task ShowSuccessAlert(string message)
+    {
+        await jsRuntime.InvokeAsync<object>("ShowSuccessAlert", message);
+    }
+
+    private async Task ShowErrorAlert(string message)
+    {
+        await jsRuntime.InvokeAsync<object>("ShowErrorAlert", message);
+    }
+ }

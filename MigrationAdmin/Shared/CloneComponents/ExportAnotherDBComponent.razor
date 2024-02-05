@@ -5,53 +5,62 @@
 @using Migration.Infrastructure.Redis
 @inject IMigrationService _migrateService;
 @inject IRepository<DataSettings> _redis;
-<div class="modal fade show" id="logDetailsModal" style="display:block" aria-modal="true" role="dialog">
-    <div class="modal-dialog" style="max-width: 900px; ">
-        <div class="modal-content">
 
-            <!-- Modal Header -->
-            <div class="modal-header">
-                <h4 class="modal-title">Export Data To Another DB</h4>
-            </div>
+@if (ShowPopup)
+{
+    <div class="modal fade show" id="logDetailsModal" style="display:block" aria-modal="true" role="dialog">
+        <div class="modal-dialog" style="max-width: 900px; ">
+            <div class="modal-content">
 
-            <!-- Modal body -->
-            <div class="modal-body" style="overflow:scroll;max-height:900px">
+                <!-- Modal Header -->
+                <div class="modal-header">
+                    <h4 class="modal-title">Export Data To Another DB</h4>
+                </div>
 
-                <DatabaseSelectorComponent Title="Select the DB you want to import the data"
-                                           ConnectionStrings="_dataSettings?.ToDictionary(kvp => kvp.FullName, kvp => kvp.FullName)"
-                                           DataSettings="_dataSetting"
-                                           OnDbSettingsChanged="(dataSettings) => AddDataSettings(dataSettings)"
-                                           DisplayQuery="false"
-                                           NewContainer="true"></DatabaseSelectorComponent>
-                <div class="row">
-                    <div class="col-sm-6">
-                        <div class="form-group">
-                            <label>Partition Key</label>
-                            <input class="form-control" id="query" data-keeper-edited="yes" @bind="@_partitionKey" />
+                <!-- Modal body -->
+                <div class="modal-body" style="overflow:scroll;max-height:900px">
+
+                    <DatabaseSelectorComponent Title="Select the DB you want to import the data"
+                                               ConnectionStrings="_dataSettings?.ToDictionary(kvp => kvp.FullName, kvp => kvp.FullName)"
+                                               DataSettings="_dataSetting"
+                                               OnDbSettingsChanged="(dataSettings) => AddDataSettings(dataSettings)"
+                                               DisplayQuery="false"
+                                               TypeOfOperation="OperationType.Import"></DatabaseSelectorComponent>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label>Partition Key</label>
+                                <input class="form-control" id="query" data-keeper-edited="yes" @bind="@_partitionKey" />
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-sm-6">
-                        <div class="form-group">
-                            <label>Inform the property you want to use as ID from the Data that you are importing</label>
-                            <input class="form-control" id="query" data-keeper-edited="yes" @bind="@_fieldMapping" />
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label>Inform the property you want to use as ID from the Data that you are importing</label>
+                                <input class="form-control" id="query" data-keeper-edited="yes" @bind="@_fieldMapping" />
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Modal footer -->
-            <div class="modal-footer">
-                <button class="btn btn-default" @onclick="ImportData"> <i class="nav-icon fas fa-file-import"></i> Import</button>
-                <button type="button" style="margin-top: 15px;" class="btn btn-close" @onclick=ModalOk>Close</button>
-            </div>
+                <!-- Modal footer -->
+                <div class="modal-footer">
+                    <button class="btn btn-default" @onclick="ImportData"> <i class="nav-icon fas fa-file-import"></i> Import</button>
+                    <button type="button" style="margin-top: 15px;" class="btn btn-close" @onclick=ModalOk>Close</button>
+                </div>
 
+            </div>
         </div>
     </div>
-</div>
+}
+
 
 @code {
     [Parameter]
+    public bool ShowPopup { get; set; }
+
+    [Parameter]
     public List<JObject> Data { get; set; }
+
     [Parameter]
     public EventCallback ModalOk { get; set; }
 

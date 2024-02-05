@@ -4,49 +4,61 @@
 
 <div class="card card-default">
     <div class="card-header">
-        <h3 class="card-title">Configure the Fields you want to merge the value based on Condition</h3>
+        <h3 class="card-title"><DocumentationComponent DocumentationPath="QueriesConditions.md"></DocumentationComponent> Configure the Fields you want to merge the value based on Condition</h3>
     </div>
     <div class="card-body">
         <div class="row">
             <div class="col-sm-12">
                 <div class="form-group">
-                    <label>Source Condition</label>
+                    <label>Condition</label>
                     <table class="table table-bordered table-striped">
                         <thead>
-                        <tr>
-                            <th>Value Type</th>
-                            <th>Source Condition</th>
-                            <th>
-                                    <button class="btn btn-success" @onclick="() => AddCondition(DataFieldsMapping.Conditions)">+</button>
-                            </th>
-                        </tr>
+                            <tr>
+                                <th>Direction</th>
+                                <th>Value Type</th>
+                                <th>Conditions</th>
+                                <th>
+                                    <button class="btn btn-default" @onclick="() => AddCondition(DataFieldsMapping.Conditions)">+</button>
+                                </th>
+                            </tr>
                         </thead>
                         <tbody>
                             @foreach (var sourceCondition in DataFieldsMapping.Conditions)
-                        {
-                            <tr>
-                                <td>
-                                    @if (sourceCondition.Type != null)
-                                    {
-                                        <select class="form-control" id="fieldType" data-keeper-edited="yes" @bind="@sourceCondition.Type">
-                                            @foreach (var fieldType in Enum.GetValues<SearchConditionType>())
-                                            {
-                                                <option value="@fieldType">@fieldType</option>
-                                            }
-                                        </select>
-                                    }
-                                </td>
-                                <td>
-                                    <input class="form-control" id="command" data-keeper-edited="yes" @bind="@sourceCondition.Query" />
-                                </td>
-                                <td>
-                                    @if (sourceCondition.Type != null)
-                                    {
-                                            <button class="btn btn-danger" @onclick="() => RemoveCondition(DataFieldsMapping.Conditions, sourceCondition)">-</button>
-                                    }
-                                </td>
-                            </tr>
-                        }
+                            {
+                                <tr>
+                                    <td>
+                                        @if (sourceCondition.ConditionDirection != null)
+                                        {
+                                            <select class="form-control" id="fieldType" data-keeper-edited="yes" @bind="@sourceCondition.ConditionDirection">
+                                                @foreach (var directionType in Enum.GetValues<MappingDirectionType>())
+                                                {
+                                                    <option value="@directionType">@directionType</option>
+                                                }
+                                            </select>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (sourceCondition.Type != null)
+                                        {
+                                            <select class="form-control" id="fieldType" data-keeper-edited="yes" @bind="@sourceCondition.Type">
+                                                @foreach (var fieldType in Enum.GetValues<SearchConditionType>())
+                                                {
+                                                    <option value="@fieldType">@fieldType</option>
+                                                }
+                                            </select>
+                                        }
+                                    </td>
+                                    <td>
+                                        <input class="form-control" id="command" data-keeper-edited="yes" @bind="@sourceCondition.Query"/>
+                                    </td>
+                                    <td>
+                                        @if (sourceCondition.Type != null)
+                                        {
+                                            <button class="btn btn-default" @onclick="() => RemoveCondition(DataFieldsMapping.Conditions, sourceCondition)">-</button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
                         </tbody>
                     </table>
                 </div>
@@ -55,7 +67,7 @@
         <div class="row">
             <div class="col-sm-12">
                 <div class="form-group">
-                    <label>Source Field</label>
+                    <label>[@DataFieldsMapping.SourceEntity]</label>[Field]
                     <input class="form-control" data-keeper-edited="yes" @bind="DataFieldsMapping.SourceField" />
                 </div>
             </div>
@@ -63,7 +75,7 @@
         <div class="row">
             <div class="col-sm-12">
                 <div class="form-group">
-                    <label>Destination Field</label>
+                    <label>[@DataFieldsMapping.DestinationEntity]</label>[Field]
                     <input class="form-control" data-keeper-edited="yes" @bind="DataFieldsMapping.DestinationField" />
                 </div>
             </div>

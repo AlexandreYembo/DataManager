@@ -12,9 +12,11 @@ namespace Migration.Repository.Helpers
         /// <param name="fieldArr"></param>
         /// <param name="value"></param>
         /// <returns></returns>
-        public static JObject GetObject(JObject json, List<string> fieldArr, dynamic value)
+        public static JObject UpdateObject(JObject json, List<string> fieldArr, dynamic value)
         {
             var firstProp = fieldArr.FirstOrDefault();
+
+            var fieldArrSize = fieldArr.Count;
 
             if (fieldArr.Count > 0)
                 fieldArr.RemoveAt(0);
@@ -46,7 +48,7 @@ namespace Migration.Repository.Helpers
                         // It's an object, so you can safely cast it to JObject
                         JObject obj = (JObject)json[firstProp];
 
-                        json[firstProp] = GetObject(obj, fieldArr, value);
+                        json[firstProp] = UpdateObject(obj, fieldArr, value);
                         break;
                     }
                 //Check if the property type is an array, then it need to call recursively to the next level
@@ -68,7 +70,7 @@ namespace Migration.Repository.Helpers
                                 else
                                 {
                                     JObject obj = JObject.FromObject(jtoken);
-                                    arr[index] = GetObject(obj, fieldArr, value);
+                                    arr[index] = UpdateObject(obj, fieldArr, value);
                                 }
                             }
                             else
@@ -86,7 +88,14 @@ namespace Migration.Repository.Helpers
                         break;
                     }
                 default:
-                    ((JValue)json[firstProp]).Value = value;
+                    if (fieldArrSize > 1)
+                    {
+                        json[firstProp] = UpdateObject(new JObject(), fieldArr, value);
+                    }
+                    else
+                    {
+                        ((JValue)json[firstProp]).Value = value;
+                    }
                     break;
             }
             return json;
@@ -95,6 +104,8 @@ namespace Migration.Repository.Helpers
         public static dynamic? GetValueFromObject(JObject json, List<string> fieldArr)
         {
             var firstProp = fieldArr.FirstOrDefault();
+
+            var fieldArrSize = fieldArr.Count;
 
             if (fieldArr.Count > 0)
                 fieldArr.RemoveAt(0);
@@ -115,6 +126,11 @@ namespace Migration.Repository.Helpers
                 index = int.Parse(r);
 
                 firstProp = firstProp.Substring(0, firstIndex - 1);
+            }
+
+            if (json[firstProp] == null)
+            {
+                return value;
             }
 
             switch (json[firstProp].Type)
@@ -167,7 +183,20 @@ namespace Migration.Repository.Helpers
                         break;
                     }
                 default:
-                    value = ((JValue)json[firstProp]).Value;
+
+                    if (fieldArrSize > 1)
+                    {
+                        if (json[firstProp] == null)
+                        {
+                            JObject obj = new JObject();
+                            obj.Add(firstProp);
+                            value = GetValueFromObject(obj, fieldArr);
+                        }
+                    }
+                    else
+                    {
+                        value = ((JValue)json[firstProp]).Value;
+                    }
                     break;
             }
             return value;

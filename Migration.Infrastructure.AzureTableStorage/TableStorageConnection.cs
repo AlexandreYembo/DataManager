@@ -29,7 +29,20 @@ namespace Migration.Infrastructure.AzureTableStorage
 
             foreach (var table in listTables)
             {
-                _settings.Entities.Add(table.Name);
+                _settings.Entities.Add(new (table.Name)
+                {
+                    Attributes = new()
+                    {
+                        new()
+                        {
+                            Key = "PartitionKey"
+                        },
+                        new()
+                        {
+                            Key = "RowKey"
+                        }
+                    }
+                });
             }
 
             return Task.FromResult(_settings);

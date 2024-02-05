@@ -1,4 +1,6 @@
-﻿namespace Migration.Repository.LogModels
+﻿using Migration.Repository.Models;
+
+namespace Migration.Repository.LogModels
 {
     public class LogResult
     {
@@ -14,6 +16,7 @@
         public string EntityName { get; set; }
         public string Description { get; set; }
         public List<LogDetails> Details { get; set; } = new();
+        public OperationType OperationType { get; set; }
 
         private string GetTimeConsume()
         {

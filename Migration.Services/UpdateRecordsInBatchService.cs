@@ -119,7 +119,7 @@ namespace Migration.Services
                     var fieldsArr = command.Key.Split(".").ToList();
 
                     //Apply the change to the current property
-                    objectToBeUpdated = JObjectHelper.GetObject(objectToBeUpdated, fieldsArr, command.Value);
+                    objectToBeUpdated = JObjectHelper.UpdateObject(objectToBeUpdated, fieldsArr, command.Value);
 
                     hasChange = true;
                 }
@@ -148,7 +148,7 @@ namespace Migration.Services
                 {
                     var fieldsArr = command.Key.Split(".").ToList();
 
-                    objectToBeUpdated = JObjectHelper.GetObject(objectToBeUpdated, fieldsArr, command.Value);
+                    objectToBeUpdated = JObjectHelper.UpdateObject(objectToBeUpdated, fieldsArr, command.Value);
 
                     hasChange = true;
                 }

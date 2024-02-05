@@ -7,7 +7,7 @@
 
 <div class="card card-default">
     <div class="card-header">
-        <h3 class="card-title">Select the profile type </h3>
+        <h3 class="card-title"><DocumentationComponent DocumentationPath="DataMapping.md"></DocumentationComponent> Select the profile type </h3>
         <div class="card-tools">
             <button type="button" class="btn btn-tool" data-card-widget="collapse">
                 <i class="fas fa-minus"></i>
@@ -35,6 +35,7 @@
                         <option value="@operationType">@operationType</option>
                     }
                 </select>
+
             </div>
         </div>
         <div class="row">
@@ -55,8 +56,10 @@
                                                OnDbSettingsChanged="(sourceDbSettings) => AddDestinationDbSettings(sourceDbSettings)"
                                                Query="@DataMapping.Destination.Query"
                                                OnQueryAdded="async (query) => await AddDestinationQuery(query)"
-                                               DisplayQuery="true">
+                                               DisplayQuery="DisplayQuery()"
+                                               TypeOfOperation="@DataMapping.OperationType">
                     </DatabaseSelectorComponent>
+
                 }
                 else
                 {
@@ -66,7 +69,8 @@
                                                OnDbSettingsChanged="(sourceDbSettings) => AddSourceDbSettings(sourceDbSettings)"
                                                Query="@DataMapping.Source.Query"
                                                OnQueryAdded="async (query) => await AddSourceQuery(query)"
-                                               DisplayQuery="true">
+                                               DisplayQuery="true"
+                                               TypeOfOperation="@DataMapping.OperationType">
                     </DatabaseSelectorComponent>
                 }
             </div>
@@ -90,6 +94,7 @@
     [Parameter]
     public Action<DataMapping> WhenNewConnectIsAdded { get; set; }
 
+
     private Dictionary<string, DataQueryMappingType> _dataQueryMappingType = new()
     {
     {"Update the same collection", DataQueryMappingType.UpdateSameCollection},
@@ -105,17 +110,17 @@
 
         DataSettings = redisData;
 
-        if (DataMapping.Source.Settings == null)
-        {
-            DataMapping.Source.Settings = DataSettings.FirstOrDefault();
-            DataMapping.Source.Settings.CurrentEntity = DataMapping.Source.Settings.Entities.FirstOrDefault();
-        }
+        // if (DataMapping.Source.Settings == null)
+        // {
+        //     DataMapping.Source.Settings = DataSettings.FirstOrDefault();
+        //     DataMapping.Source.Settings.CurrentEntity = DataMapping.Source.Settings.Entities.FirstOrDefault();
+        // }
         
-        if (DataMapping.Destination.Settings == null)
-        {
-            DataMapping.Destination.Settings = DataSettings.FirstOrDefault();
-            DataMapping.Destination.Settings.CurrentEntity = DataMapping.Destination.Settings.Entities.FirstOrDefault();
-        }
+        // if (DataMapping.Destination.Settings == null)
+        // {
+        //     DataMapping.Destination.Settings = DataSettings.FirstOrDefault();
+        //     DataMapping.Destination.Settings.CurrentEntity = DataMapping.Destination.Settings.Entities.FirstOrDefault();
+        // }
     }
 
     public async Task ChangeDataQueryMappingType(ChangeEventArgs e)
@@ -176,4 +181,8 @@
     {
         await jsRuntime.InvokeAsync<object>("ShowErrorAlert", message);
     }
+
+    private bool DisplayQuery() => DataMapping.OperationType != OperationType.Import;
+    private bool IsImport() => DataMapping.OperationType == OperationType.Import;
+
 }

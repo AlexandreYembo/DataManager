@@ -1,4 +1,6 @@
-﻿@page "/updateRecordsInBatch"
+﻿@* This page will be delete in the future and further clean ups in codes related to this one - first version of the migration presented in the ARB in September received enhancement *@
+
+@page "/updateRecordsInBatch"
 @using Migration.Repository
 @using Migration.Repository.DbOperations
 @using Migration.Services
@@ -171,7 +173,6 @@
             </div>
         }
     </div>
-    <Log LogResult="LogResult" IsLoading="Loading"></Log>
 </div>
 @if (ShowModalDataDifference)
 {
@@ -216,16 +217,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        LogPublisher.OnEntityChanged += LogSubscriber.OnEventChanged;
-        LogPublisher.OnEntityChanged += OnLogUpdated;
-        LogDetailsPublisher.OnEntityChanged += LogSubscriber.OnEventChanged;
         AddCommand();
-    }
-
-    private void OnLogUpdated(object sender, LogResultEventArgs e)
-    {
-        LogResult = e.LogResult;
-        InvokeAsync(StateHasChanged);
     }
 
     public void ModalOk()

@@ -69,7 +69,7 @@
         var redisData = new RedisData<Profile>()
             {
                 Data = _profile,
-                RedisValue = _profile.DataMappings[0].Id,
+                RedisValue = ProfileId,
                 RedisKey = _profile.JobCategoryId
             };
 

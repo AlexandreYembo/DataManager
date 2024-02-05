@@ -13,9 +13,11 @@ namespace Migration.Services.Extensions
         {
             List<DataFieldsMapping> fieldMappings = new();
             foreach (var mapping in values
-                         .Where(w => w.MappingType != MappingType.TableJoin && w.DirectionType == MappingDirectionType.Source))
+                         .Where(w => w.MappingType != MappingType.TableJoin))
             {
-                if (!fieldMappings.Any(a => a.DestinationField == mapping.DestinationField))
+                if (mapping.MappingType == MappingType.MergeField ||
+                    mapping.MappingType == MappingType.MergeFieldWithCondition)
+                {
                     fieldMappings.Add(new DataFieldsMapping
                     {
                         MappingType = MappingType.MergeField,
@@ -23,20 +25,33 @@ namespace Migration.Services.Extensions
                         SourceField = mapping.DestinationField,
                         ValueType = mapping.ValueType,
                     });
-            }
-
-            foreach (var mapping in values
-                         .Where(w => w.MappingType != MappingType.TableJoin &&
-                                     w.DirectionType == MappingDirectionType.Destination))
-            {
-                if (!fieldMappings.Any(a => a.SourceField == mapping.SourceField))
-                    fieldMappings.Add(new DataFieldsMapping
+                }
+                else
+                {
+                    if (mapping.DestinationField != null &&
+                        !fieldMappings.Any(a => a.DestinationField == mapping.DestinationField))
                     {
-                        MappingType = MappingType.MergeField,
-                        DestinationField = mapping.SourceField,
-                        SourceField = mapping.SourceField,
-                        ValueType = mapping.ValueType,
-                    });
+                        fieldMappings.Add(new DataFieldsMapping
+                        {
+                            MappingType = MappingType.MergeField,
+                            DestinationField = mapping.DestinationField,
+                            SourceField = mapping.DestinationField,
+                            ValueType = mapping.ValueType,
+                        });
+                    }
+
+
+                    if (mapping.SourceField != null && !fieldMappings.Any(a => a.SourceField == mapping.SourceField))
+                    {
+                        fieldMappings.Add(new DataFieldsMapping
+                        {
+                            MappingType = MappingType.MergeField,
+                            DestinationField = mapping.SourceField,
+                            SourceField = mapping.SourceField,
+                            ValueType = mapping.ValueType,
+                        });
+                    }
+                }
             }
 
             return fieldMappings;

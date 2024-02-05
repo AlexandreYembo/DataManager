@@ -5,20 +5,14 @@
 @using Migration.Infrastructure.Redis.Entities
 @using Newtonsoft.Json
 @using System.Text
-@using Migration.Repository.Delegates
 @using Migration.Repository.Models
-@using Migration.Repository.Publishers
-@using Migration.Repository.Subscribers
 @using Migration.Services
 @inherits CustomComponents;
 @inject IJSRuntime jsRuntime
 @inject IRepository<JObject> _localRepository
-@inject IRepository<Migration.Repository.Models.Jobs> _jobRepository
+@inject IRepository<Jobs> _jobRepository
 @inject IRevertMigrationService _revertMigrateService;
 @inject IRepository<Profile> _profileRepository;
-@inject LogResultSubscriber LogSubscriber
-@inject LogPublisher LogPublisher
-@inject LogDetailsPublisher LogDetailsPublisher
 
 <div class="card card-default">
     <div class="card-header">
@@ -31,8 +25,7 @@
                 <input class="form-control" data-keeper-edited="yes" @bind="@_entity" />
             </div>
             <div class="col-sm-4">
-                <label>Environment</label>
-                <input class="form-control" data-keeper-edited="yes" @bind="@_jobCategory" />
+                <JobCategoryComponent OnJobCategorySelected="(jobCategory) =>_jobCategory = jobCategory"></JobCategoryComponent>
             </div>
             <div class="col-sm-4">
                 <label>Job Id</label>
@@ -123,6 +116,21 @@
                                                 <pre>@JValue.Parse(values.SelectToken("Report").ToString()).ToString(Formatting.Indented) </pre>
                                             </div>
                                         }
+                                        @if (values.SelectToken("Inserted") != null)
+                                        {
+                                            <div class="col-sm-12">
+                                                <b>Inserted</b>
+                                                <pre>@JValue.Parse(values.SelectToken("Inserted").ToString()).ToString(Formatting.Indented) </pre>
+                                            </div>
+                                        }
+
+                                        @if (values.SelectToken("Deleted") != null)
+                                        {
+                                            <div class="col-sm-12">
+                                                <b>Deleted</b>
+                                                <pre>@JValue.Parse(values.SelectToken("Deleted").ToString()).ToString(Formatting.Indented) </pre>
+                                            </div>
+                                        }
                                     </div>
                                 </div>
                             </div>
@@ -134,18 +142,19 @@
     </div>
 </div>
 
-<Log LogResult="LogResult" IsLoading="Loading"></Log>
-
-@if (_exportAnotherDb)
+@if (Loading)
 {
-    <ExportAnotherDBComponent Data="@_data" ModalOk="ModalOk"></ExportAnotherDBComponent>
+    <div class="col-sm-12">
+        <Loading />
+    </div>
 }
 
-@if (_confirmRevertMigration)
-{
-    <ConfirmComponent Title="Revert Migration" Description="Do you want to revert the records to the original version? This will apply the version that was at the time this job was processed."
-                      OnConfirmed="OnRevertMigrationConfirmed"></ConfirmComponent>
-}
+
+<ExportAnotherDBComponent Data="@_data" ShowPopup="_exportAnotherDb" ModalOk="ModalOk"></ExportAnotherDBComponent>
+
+
+<ConfirmComponent Title="Revert Migration" ShowPopup="_confirmRevertMigration" Description="Do you want to revert the records to the original version? This will apply the version that was at the time this job was processed."
+                  OnConfirmed="OnRevertMigrationConfirmed"></ConfirmComponent>
 
 @code {
     private string _entity;
@@ -155,20 +164,17 @@
     private string _filterValue;
     private string _entityName;
 
+    // Reference to the div that will display the difference
+    private ElementReference diffResultBefore;
+    private ElementReference diffResultAfter;
+
     private bool _exportAnotherDb;
 
     private bool _confirmRevertMigration;
 
     private List<JObject> _data;
 
-    private Migration.Repository.Models.Jobs _job;
-
-    protected override async Task OnInitializedAsync()
-    {
-        LogPublisher.OnEntityChanged += LogSubscriber.OnEventChanged;
-        LogPublisher.OnEntityChanged += OnLogUpdated;
-        LogDetailsPublisher.OnEntityChanged += LogSubscriber.OnEventChanged;
-    }
+    private Jobs _job;
 
     public async Task GetData()
     {
@@ -179,7 +185,7 @@
                 RedisKey = _entityName
             });
 
-        var redisValue = await _jobRepository.FindByKeyAsync(new RedisData<Migration.Repository.Models.Jobs>()
+        var redisValue = await _jobRepository.FindByKeyAsync(new RedisData<Jobs>()
             {
                 RedisValue = _jobId
             });
@@ -188,18 +194,40 @@
         {
             await ShowErrorAlert("No job found");
         }
-        _job = JsonConvert.DeserializeObject<Migration.Repository.Models.Jobs>(redisValue);
+        _job = JsonConvert.DeserializeObject<Jobs>(redisValue);
+
+        // await jsRuntime.InvokeVoidAsync("getDiffBefore", diffResultBefore, _data[0].SelectToken("Backup").ToString(), _data[0].SelectToken("Updated").ToString());
+        // await jsRuntime.InvokeVoidAsync("getDiffAfter", diffResultAfter, _data[0].SelectToken("Backup").ToString(), _data[0].SelectToken("Updated").ToString());
     }
 
+    private string getDiffBefore(string before, string after)
+    {
+        // Include the JavaScript interop for the getDiffBefore method here
+        // You can use JSInterop to call your JavaScript methods from C# in Blazor
+        // For simplicity, let's assume you already have a JSInterop implemented.
+        try
+        {
+            return jsRuntime.InvokeAsync<string>("getDiffBefore", before, after).Result;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+    }
+
+    private string getDiffAfter(string before, string after)
+    {
+        // Include the JavaScript interop for the getDiffAfter method here
+        // You can use JSInterop to call your JavaScript methods from C# in Blazor
+        // For simplicity, let's assume you already have a JSInterop implemented.
+        return jsRuntime.InvokeAsync<string>("getDiffAfter", before, after).Result;
+    }
     private async Task ShowErrorAlert(string message)
     {
         await jsRuntime.InvokeAsync<object>("ShowErrorAlert", message);
     }
 
-    private async Task ShowSuccessAlert(string message)
-    {
-        await jsRuntime.InvokeAsync<object>("ShowSuccessAlert", message);
-    }
 
     private async Task DownloadJsonData()
     {
@@ -217,12 +245,6 @@
         }
     }
 
-    private void OnLogUpdated(object sender, LogResultEventArgs e)
-    {
-        LogResult = e.LogResult;
-
-        InvokeAsync(StateHasChanged);
-    }
 
     private async Task DownloadCSVData()
     {
@@ -283,6 +305,8 @@
 
         if (!confirmed) return;
 
+        Loading = true;
+
         var redisValue = await _profileRepository.FindByKeyAsync(new RedisData<Profile>()
             {
                 RedisKey = _jobCategory,
@@ -294,11 +318,12 @@
         try
         {
             await _revertMigrateService.Revert(profile, _data, _job.JobId);
-            await ShowSuccessAlert("Data reverted successfully. Please check to see the logs if there is anything to review");
         }
-        catch 
+        catch
         {
             await ShowErrorAlert("Error to revert the previous version of the data");
         }
+
+        Loading = false;
     }
 }
