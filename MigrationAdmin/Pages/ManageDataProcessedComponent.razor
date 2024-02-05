@@ -315,14 +315,8 @@
 
         var profile = JsonConvert.DeserializeObject<Profile>(redisValue);
 
-        try
-        {
-            await _revertMigrateService.Revert(profile, _data, _job.JobId);
-        }
-        catch
-        {
-            await ShowErrorAlert("Error to revert the previous version of the data");
-        }
+
+        await _revertMigrateService.Revert(profile, _data, _job.JobId);
 
         Loading = false;
     }

@@ -1,6 +1,7 @@
 ﻿using Migration.Infrastructure.Redis;
 using Migration.Infrastructure.Redis.Entities;
 using Migration.Repository;
+using Migration.Repository.Delegates;
 using Migration.Repository.Exceptions;
 using Migration.Repository.Extensions;
 using Migration.Repository.LogModels;
@@ -24,18 +25,21 @@ namespace Migration.Services
         private readonly LogPublisher _logResultPublisher;
         private readonly LogDetailsPublisher _logDetailsPublisher;
         private readonly IJobService _jobService;
+        private readonly ActionsPublisher _actionsPublisher;
 
         public MigrationService(Func<DataSettings, IGenericRepository> genericRepository,
             IRepository<JObject> migrationProcessRepository,
             IJobService jobService,
             LogPublisher logPublisher,
-            LogDetailsPublisher logDetailsPublisher)
+            LogDetailsPublisher logDetailsPublisher,
+            ActionsPublisher actionsPublisher)
         {
             _genericRepository = genericRepository;
             _migrationProcessRepository = migrationProcessRepository;
             _jobService = jobService;
             _logResultPublisher = logPublisher;
             _logDetailsPublisher = logDetailsPublisher;
+            _actionsPublisher = actionsPublisher;
         }
 
         public async Task ImportData(List<JObject> listData, DataSettings dataSettings)
@@ -50,6 +54,7 @@ namespace Migration.Services
 
         public async Task Migrate(Profile profile, Jobs job)
         {
+
             List<Task> processTasks = new();
 
             var dataMapping = profile.DataMappings[0];
@@ -63,74 +68,105 @@ namespace Migration.Services
                 JobId = job.JobId,
                 OperationType = profile.DataMappings[0].OperationType
             };
-
             await _logResultPublisher.PublishAsync(log);
 
-            job.Start();
-            await _jobService.UpdateJob(job);
-
-            bool hasRecord;
-            int skip = job.SourceProcessed;
-
-            int take = 15;
-
-            var sourceRepository = _genericRepository(dataMapping.Source.Settings);
-            var destinationRepository = _genericRepository(dataMapping.Destination.Settings);
-
-            if (dataMapping.DataQueryMappingType == DataQueryMappingType.UpdateAnotherCollection && dataMapping.OperationType == OperationType.Import)
+            try
             {
-                //Create new table for the destination
-                await destinationRepository.CreateTable();
-            }
+                job.Start();
+                await _jobService.UpdateJob(job);
 
-            do
-            {
-                var source = await sourceRepository.Get(dataMapping.Source.Query, null, null, take, skip);
-                log.TotalRecords += source.Count;
+                bool hasRecord;
+                int skip = job.SourceProcessed;
 
-                if (source.Any())
+                int take = 15;
+
+                var sourceRepository = _genericRepository(dataMapping.Source.Settings);
+                var destinationRepository = _genericRepository(dataMapping.Destination.Settings);
+
+                if (dataMapping.DataQueryMappingType == DataQueryMappingType.UpdateAnotherCollection && dataMapping.OperationType == OperationType.Import)
                 {
-                    if (dataMapping.DataQueryMappingType == DataQueryMappingType.UpdateAnotherCollection)
-                    {
-                        foreach (var sourceData in source.Where(w => w.Value != "{}" || w.Value != "null"))
-                        {
-                            await ProcessDestinationRecordsAsync(destinationRepository, dataMapping, sourceData, job);
-                        }
+                    //Create new table for the destination
+                    await destinationRepository.CreateTable();
+                }
 
-                        skip = job.SourceProcessed;
-                        //TODO: Subscribe an event to add the records already processed, can save pagination OFFSET <offset_amount> LIMIT <limit_amount>
-                        //https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/query/offset-limit
+                do
+                {
+                    var source = await sourceRepository.Get(dataMapping.Source.Query, null, null, take, skip);
+                    log.TotalRecords += source.Count;
+
+                    if (source.Any())
+                    {
+                        if (dataMapping.DataQueryMappingType == DataQueryMappingType.UpdateAnotherCollection)
+                        {
+                            foreach (var sourceData in source.Where(w => w.Value != "{}" || w.Value != "null"))
+                            {
+                                await ProcessDestinationRecordsAsync(destinationRepository, dataMapping, sourceData, job);
+                            }
+
+                            skip = job.SourceProcessed;
+                            //TODO: Subscribe an event to add the records already processed, can save pagination OFFSET <offset_amount> LIMIT <limit_amount>
+                            //https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/query/offset-limit
+                        }
+                        else
+                        {
+                            foreach (var sourceData in source)
+                            {
+                                processTasks.Add(ProcessSourceRecordsAsync(sourceRepository, dataMapping, sourceData, job));
+                            }
+
+                            await Task.WhenAll(processTasks);
+
+                            skip = job.SourceProcessed;
+
+                            skip += take;
+                            job.SourceProcessed = skip;
+                            await _jobService.UpdateJob(job);
+                        }
+                        hasRecord = true;
                     }
                     else
                     {
-                        foreach (var sourceData in source)
-                        {
-                            processTasks.Add(ProcessSourceRecordsAsync(sourceRepository, dataMapping, sourceData, job));
-                        }
-
-                        await Task.WhenAll(processTasks);
-
-                        skip = job.SourceProcessed;
-
-                        skip += take;
-                        job.SourceProcessed = skip;
-                        await _jobService.UpdateJob(job);
+                        hasRecord = false;
                     }
-                    hasRecord = true;
-                }
-                else
-                {
-                    hasRecord = false;
-                }
-            } while (hasRecord);
+                } while (hasRecord);
 
+                job.Complete();
+
+                await _jobService.UpdateJob(job);
+
+                await _actionsPublisher.PublishAsync(new Actions()
+                {
+                    ActionType = ActionEventType.Success,
+                    Message = "Migration completed!"
+                });
+            }
+            catch (Exception ex)
+            {
+                await _actionsPublisher.PublishAsync(new Actions()
+                {
+                    ActionType = ActionEventType.Error,
+                    Message = "Error during the migration, check the logs for more details!"
+                });
+
+                LogDetails detailsError = new()
+                {
+                    LogDateTime = DateTime.Now,
+                    Title = "Error Migration",
+                    Descriptions = new()
+                    {
+                        ex.Message
+                    },
+                    Display = true,
+                    JobId = job.JobId,
+                    Type = LogType.Error,
+                    OperationType = profile.DataMappings[0].OperationType
+                };
+
+                await _logDetailsPublisher.PublishAsync(detailsError);
+            }
 
             log.FinishedIn = DateTime.Now;
             await _logResultPublisher.PublishAsync(log);
-
-            job.Complete();
-
-            await _jobService.UpdateJob(job);
         }
 
         private async Task ProcessSourceRecordsAsync(IGenericRepository repository, DataMapping dataMapping,
@@ -278,7 +314,7 @@ namespace Migration.Services
                     ? destinationData["id"].ToString()
                     : destinationData.SelectToken(dataMapping.Destination.Settings.CurrentEntity.Attributes.FirstOrDefault().Value.Replace("/", string.Empty)).ToString();
             }
-               
+
             LogDetails logDetails = new()
             {
                 Display = true,

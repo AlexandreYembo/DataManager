@@ -42,108 +42,143 @@ namespace Migration.Services
 
             await _logResultPublisher.PublishAsync(log);
 
-            var settings = GetDataSettings(profile);
-
-            var repository = _genericRepository(settings);
-
-            foreach (var data in listData)
+            try
             {
-                var currentEntity = profile.DataMappings[0].Destination.Settings.CurrentEntity;
-                var idField = currentEntity.Attributes.FirstOrDefault().Value.Replace("/", string.Empty);
+                var settings = GetDataSettings(profile);
 
-                bool hasChange = false;
-                var id = data.SelectToken("id").ToString();
-                LogDetails logDetails = new()
+                var repository = _genericRepository(settings);
+
+                foreach (var data in listData)
                 {
-                    Display = true,
-                    Title = id,
-                    JobId = jobId,
-                    OperationType = GetOperationTypeReverting(profile)
-                };
+                    var currentEntity = profile.DataMappings[0].Destination.Settings.CurrentEntity;
+                    var idField = currentEntity.Attributes.FirstOrDefault().Value.Replace("/", string.Empty);
 
-                if (profile.DataMappings[0].OperationType == OperationType.Update)
-                {
-                    var backupData = data.SelectToken("Backup");
-                    var updatedData = data.SelectToken("Updated");
-
-                    if (backupData != null && updatedData != null)
+                    bool hasChange = false;
+                    var id = data.SelectToken("id").ToString();
+                    LogDetails logDetails = new()
                     {
-                        var liveData = await repository.Get($"select * from c where c.{idField} = '{id}'");
-                        var liveDataObject = JObject.Parse(liveData.Values.FirstOrDefault());
-                        profile.DataMappings[0].FieldsMapping = profile.DataMappings[0].FieldsMapping.RevertMapping();
+                        Display = true,
+                        Title = id,
+                        JobId = jobId,
+                        OperationType = GetOperationTypeReverting(profile)
+                    };
 
-                        var revertValidationResult = await CheckDifferencesAllowToRevert(profile, jobId, liveDataObject, updatedData, logDetails, backupData, hasChange, 0);
-
-                        if (!revertValidationResult.allowChange) continue;
-
-                        await repository.Update(revertValidationResult.objectToBeUpdated, profile.DataMappings[0].FieldsMapping);
-                        //update db
-                    }
-                }
-                else if (profile.DataMappings[0].OperationType == OperationType.Delete)
-                {
-                    var deletedData = data.SelectToken("Deleted");
-
-                    var liveData = await repository.Get($"select * from c where c.{idField} = '{id}'");
-
-                    if (liveData.Any())
+                    if (profile.DataMappings[0].OperationType == OperationType.Update)
                     {
-                        var liveDataObject = JObject.Parse(liveData.Values.FirstOrDefault());
+                        var backupData = data.SelectToken("Backup");
+                        var updatedData = data.SelectToken("Updated");
 
-                        await CheckDifferencesAllowToRevert(profile, jobId, liveDataObject, null, logDetails, deletedData, hasChange, 0);
-                    }
-                    else
-                    {
-                        await repository.Insert(JObject.FromObject(deletedData), profile.DataMappings[0].FieldsMapping);
-
-                        logDetails.Descriptions.Add("Record inserted");
-
-                        await _logDetailsPublisher.PublishAsync(logDetails);
-                    }
-                }
-                else if (profile.DataMappings[0].OperationType == OperationType.Import)
-                {
-                    var insertedData = data.SelectToken("Inserted");
-
-                    var liveData = await repository.Get($"select * from c where c.{idField} = '{id}'");
-
-                    if (!liveData.Any())
-                    {
-                        logDetails.Descriptions.Add("There isn't any record to be deleted");
-
-                        await _logDetailsPublisher.PublishAsync(logDetails);
-                    }
-                    else
-                    {
-                        await _logResultPublisher.PublishAsync(log);
-
-                        var liveDataObject = JObject.Parse(liveData.Values.FirstOrDefault());
-
-                        var allowDelete = await CheckDifferencesAllowToDelete(profile, jobId, liveDataObject, insertedData, logDetails, 0);
-
-                        if (allowDelete)
+                        if (backupData != null && updatedData != null)
                         {
-                            await repository.Delete(liveDataObject);
+                            var liveData = await repository.Get($"select * from c where c.{idField} = '{id}'");
 
-                            logDetails.Descriptions.Add("Record deleted");
+                            if (!liveData.Any())
+                            {
+                                logDetails.Descriptions.Add($"Record not found for {idField}='{id}', skipping");
+
+                                await _logDetailsPublisher.PublishAsync(logDetails);
+                                continue;
+                            }
+
+                            var liveDataObject = JObject.Parse(liveData.Values.FirstOrDefault());
+                            profile.DataMappings[0].FieldsMapping = profile.DataMappings[0].FieldsMapping.RevertMapping();
+
+                            var revertValidationResult = await CheckDifferencesAllowToRevert(profile, jobId, liveDataObject, updatedData, logDetails, backupData, hasChange, 0);
+
+                            if (!revertValidationResult.allowChange) continue;
+
+                            await repository.Update(revertValidationResult.objectToBeUpdated, profile.DataMappings[0].FieldsMapping);
+                            //update db
+                        }
+                    }
+                    else if (profile.DataMappings[0].OperationType == OperationType.Delete)
+                    {
+                        var deletedData = data.SelectToken("Deleted");
+
+                        var liveData = await repository.Get($"select * from c where c.{idField} = '{id}'");
+
+                        if (liveData.Any())
+                        {
+                            var liveDataObject = JObject.Parse(liveData.Values.FirstOrDefault());
+
+                            await CheckDifferencesAllowToRevert(profile, jobId, liveDataObject, null, logDetails, deletedData, hasChange, 0);
+                        }
+                        else
+                        {
+                            await repository.Insert(JObject.FromObject(deletedData), profile.DataMappings[0].FieldsMapping);
+
+                            logDetails.Descriptions.Add("Record inserted");
+
+                            await _logDetailsPublisher.PublishAsync(logDetails);
+                        }
+                    }
+                    else if (profile.DataMappings[0].OperationType == OperationType.Import)
+                    {
+                        var insertedData = data.SelectToken("Inserted");
+
+                        var liveData = await repository.Get($"select * from c where c.{idField} = '{id}'");
+
+                        if (!liveData.Any())
+                        {
+                            logDetails.Descriptions.Add("There isn't any record to be deleted");
 
                             await _logDetailsPublisher.PublishAsync(logDetails);
                         }
                         else
                         {
-                            logDetails.Descriptions.Add("There was another change on this data");
+                            await _logResultPublisher.PublishAsync(log);
+
+                            var liveDataObject = JObject.Parse(liveData.Values.FirstOrDefault());
+
+                            var allowDelete = await CheckDifferencesAllowToDelete(profile, jobId, liveDataObject, insertedData, logDetails, 0);
+
+                            if (allowDelete)
+                            {
+                                await repository.Delete(liveDataObject);
+
+                                logDetails.Descriptions.Add("Record deleted");
+
+                                await _logDetailsPublisher.PublishAsync(logDetails);
+                            }
+                            else
+                            {
+                                logDetails.Descriptions.Add("There was another change on this data");
+                            }
                         }
                     }
                 }
+
+                await _actionsPublisher.PublishAsync(new Actions()
+                {
+                    Message = "Reverting data completed. Please check the logs to see if there is anything to review!"
+                });
+            }
+            catch (Exception ex)
+            {
+                await _actionsPublisher.PublishAsync(new Actions()
+                {
+                    Message = "Error to revert the previous version of the data, check the logs for more details!"
+                });
+
+                LogDetails detailsError = new()
+                {
+                    LogDateTime = DateTime.Now,
+                    Title = "Error Migration",
+                    Descriptions = new()
+                    {
+                        ex.Message
+                    },
+                    Display = true,
+                    JobId = jobId,
+                    Type = LogType.Error,
+                    OperationType = profile.DataMappings[0].OperationType
+                };
+
+                await _logDetailsPublisher.PublishAsync(detailsError);
             }
 
             log.FinishedIn = DateTime.Now;
             await _logResultPublisher.PublishAsync(log);
-
-            await _actionsPublisher.PublishAsync(new Actions()
-            {
-                Message = "Reverting data completed. Please check the logs to see if there is anything to review!"
-            });
         }
 
         private static OperationType GetOperationTypeReverting(Profile profile)
