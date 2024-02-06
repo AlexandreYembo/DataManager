@@ -1,0 +1,45 @@
+﻿@using Migration.Repository.Validations
+@if (ValidationMessages.Any())
+{
+    <div class="modal fade show" id="logDetailsModal" style="display:block" aria-modal="true" role="dialog">
+        <div class="modal-dialog" style="max-width: 500px;">
+            <div class="modal-content">
+
+                <!-- Modal Header -->
+                <div class="modal-header">
+                    <h4 class="modal-title warning"><i class="nav-icon fas fa-warning"></i> Validation error, please check the errors </h4>
+                </div>
+
+                <!-- Modal body -->
+                <div class="modal-body" style="max-height: 250px">
+                    @foreach (var validation in ValidationMessages)
+                    {
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <div class="form-group">
+                                    <label>@validation.Message</label>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Modal footer -->
+                <div class="modal-footer">
+                    <button type="button" style="margin-top:15px;" class="btn btn-close" @onclick=ModalOk>Close</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+@code {
+
+    [Parameter]
+    public List<ValidationMessage> ValidationMessages { get; set; } = new();
+
+    public void ModalOk()
+    {
+        ValidationMessages = new();
+    }
+}

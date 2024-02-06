@@ -14,11 +14,13 @@
     <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
     <!-- Theme style -->
     <link rel="stylesheet" href="dist/css/adminlte.min.css">
-    
+
     <!-- SweetAlert2 -->
     <link rel="stylesheet" href="../../plugins/sweetalert2-theme-bootstrap-4/bootstrap-4.min.css">
 
-    <title>Migration tool</title>
+    <link rel="icon" type="image/x-icon" href="/dist/img/cubic-ico.ico">
+
+    <title>DATA MIGRATION MANAGEMENT</title>
 </head>
 <body class="hold-transition sidebar-mini">
     @RenderBody()
@@ -39,12 +41,13 @@
     <script src="plugins/datatables-buttons/js/buttons.html5.min.js"></script>
     <script src="plugins/datatables-buttons/js/buttons.print.min.js"></script>
     <script src="plugins/datatables-buttons/js/buttons.colVis.min.js"></script>
-        
+    <script src="dist/js/diff.js"></script>
+
     <!-- SweetAlert2 -->
     <script src="../../plugins/sweetalert2/sweetalert2.min.js"></script>
 
-<script>
-        $(function() {
+    <script>
+        $(function () {
             $("#example1").DataTable({
                 "responsive": true, "lengthChange": false, "autoWidth": false,
                 "buttons": ["copy", "csv", "excel", "pdf", "print", "colvis"]
@@ -128,6 +131,67 @@
             link.click();
             document.body.removeChild(link);
         }
+
+        // diff.js
+        // var diffChars = Diff.diffChars();
+
+        function getDiffBefore(element, before, after) {
+            before = before ?? '';
+            after = after ?? '';
+
+            var diff = Diff.diffChars(before, after);
+
+            if (diff[0].value !== '') {
+                var text = '';
+                diff.forEach((part) => {
+                    text += part.value;
+                    // var sanitizedPartValue = this.sanitizer.sanitize(
+                    //     SecurityContext.HTML,
+                    //     part.value
+                    // );
+                     if (part.removed) {
+                        text +=
+                            '<span style="color:darkred; background-color:lightsalmon; font-weight:bold;">' +
+                            text +
+                            '</span>';
+                    } else if (!part.added) text += text;
+                });
+                element.innerHTML = '<pre>' + text + '</pre>';
+            } else {
+                element.innerHTML = before;
+            }
+        };
+
+        function getDiffAfter(element, before, after) {
+            before = before ?? '';
+            after = after ?? '';
+
+            var diff = Diff.diffChars(before, after);
+
+            if (diff[0].value !== '') {
+                var text = '';
+                diff.forEach((part) => {
+                    text += part.value;
+                    // var sanitizedPartValue = this.sanitizer.sanitize(
+                    //     SecurityContext.HTML,
+                    //     part.value
+                    // );
+                    if (part.added) {
+                        text +=
+                            '<span style="color:green; background-color:greenyellow; font-weight:bold;">' +
+                            text +
+                            '</span>';
+                    } else if (!part.removed) text += text;
+                });
+                element.innerHTML = '<pre>' + text + '</pre>';
+            } else {
+                element.innerHTML = before;
+            }
+        };
+
+
+
     </script>
+
 </body>
 </html>

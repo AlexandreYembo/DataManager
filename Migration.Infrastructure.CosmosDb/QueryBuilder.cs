@@ -7,70 +7,63 @@ namespace Migration.Infrastructure.CosmosDb
     {
         public static string Build(string rawQuery, List<DataFieldsMapping>? fieldMappings = null, string? data = null, int? take = 0, int skip = 0)
         {
-            try
+            var joins = fieldMappings?.Where(w => w.MappingType == MappingType.TableJoin).ToList();
+
+            string query;
+
+            if (rawQuery.Contains("*") || rawQuery.Contains("c.id"))
+                query = rawQuery;
+            else
             {
-                var joins = fieldMappings?.Where(w => w.MappingType == MappingType.TableJoin).ToList();
+                query = rawQuery.Replace("from c".ToLower(), ", c.id from c");
+            }
 
-                string query;
-
-                if (rawQuery.Contains("*") || rawQuery.Contains("c.id"))
-                    query = rawQuery;
+            if (joins != null && joins.Any() && !string.IsNullOrEmpty(data))
+            {
+                if (!query.Contains("where")) //need to create where if does not exist because there are joins to be considered in the query
+                {
+                    query = query.Replace("from c".ToLower(), "from c where ");
+                }
                 else
                 {
-                    query = rawQuery.Replace("from c".ToLower(), ", c.id from c");
-                }
-
-                if (joins != null && joins.Any() && !string.IsNullOrEmpty(data))
-                {
-                    if (!query.Contains("where")) //need to create where if does not exist because there are joins to be considered in the query
+                    var whereValueRecovered = string.Empty;
+                    if (query.IndexOf("order by", StringComparison.CurrentCultureIgnoreCase) > -1)
                     {
-                        query = query.Replace("from c".ToLower(), "from c where ");
+                        var query1 = query.Split("order by").FirstOrDefault();
+                        whereValueRecovered = query1.Substring(query1.IndexOf("where", StringComparison.CurrentCultureIgnoreCase) + 5); //if there are already values for the where, need to recover and replace with and, because the list of joins will start the value after the where clause
                     }
                     else
                     {
-                        var whereValueRecovered = string.Empty;
-                        if (query.IndexOf("order by", StringComparison.CurrentCultureIgnoreCase) > -1)
-                        {
-                            var query1 = query.Split("order by").FirstOrDefault();
-                            whereValueRecovered = query1.Substring(query1.IndexOf("where", StringComparison.CurrentCultureIgnoreCase) + 5); //if there are already values for the where, need to recover and replace with and, because the list of joins will start the value after the where clause
-                        }
-                        else
-                        {
-                            whereValueRecovered = query.Substring(query.IndexOf("where", StringComparison.CurrentCultureIgnoreCase) + 5); //if there are already values for the where, need to recover and replace with and, because the list of joins will start the value after the where clause
-                        }
-                        query = query.Replace(whereValueRecovered, $"and ({whereValueRecovered})");
+                        whereValueRecovered = query.Substring(query.IndexOf("where", StringComparison.CurrentCultureIgnoreCase) + 5); //if there are already values for the where, need to recover and replace with and, because the list of joins will start the value after the where clause
                     }
+                    query = query.Replace(whereValueRecovered, $"and ({whereValueRecovered})");
+                }
 
-                    var relationshipData = JObject.Parse(data);
+                var relationshipData = JObject.Parse(data);
 
-                    var value = ConvertOperator(joins[0], relationshipData);
+                var value = ConvertOperator(joins[0], relationshipData);
+
+                if (!string.IsNullOrEmpty(value))
+                    query = query.Replace("where", $"where {value} #joins# ");
+
+                for (int i = 1; i < joins.Count; i++)
+                {
+                    value = ConvertOperator(joins[i], relationshipData);
 
                     if (!string.IsNullOrEmpty(value))
-                        query = query.Replace("where", $"where {value} #joins# ");
-
-                    for (int i = 1; i < joins.Count; i++)
-                    {
-                        value = ConvertOperator(joins[i], relationshipData);
-
-                        if (!string.IsNullOrEmpty(value))
-                            query = query.Replace("#joins#", $"and {value} #joins# ");
-                    }
-
-                    //Remove the mark after resolving all the joins from the Source table to the dynamic table
-                    query = query.Replace("#joins#", string.Empty);
+                        query = query.Replace("#joins#", $"and {value} #joins# ");
                 }
 
-                if (take > 0) //pagination query
-                {
-                    query += $" OFFSET {skip} LIMIT {take}";
-                }
-
-                return query;
+                //Remove the mark after resolving all the joins from the Source table to the dynamic table
+                query = query.Replace("#joins#", string.Empty);
             }
-            catch
+
+            if (take > 0) //pagination query
             {
-                return string.Empty;
+                query += $" OFFSET {skip} LIMIT {take}";
             }
+
+            return query;
         }
 
         //Convert operator to make dynamic queries

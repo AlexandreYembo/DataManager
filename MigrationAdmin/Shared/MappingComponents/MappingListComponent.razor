@@ -10,7 +10,7 @@
                 </li>
             }
 
-            @if (DataMapping.OperationType == OperationType.Update || DataMapping.OperationType == OperationType.Insert)
+            @if (DataMapping.OperationType == OperationType.Update || DataMapping.OperationType == OperationType.Import)
             {
                 <li class="nav-item">
                     <a class="nav-link" id="custom-tabs-one-ValueUpdate-tab" data-toggle="pill" href="#custom-tabs-one-ValueUpdate" role="tab" aria-controls="custom-tabs-one-ValueUpdate" aria-selected="false">Update Value</a>
@@ -19,10 +19,10 @@
                     <a class="nav-link" id="custom-tabs-one-ValueMerge-tab" data-toggle="pill" href="#custom-tabs-one-ValueMerge" role="tab" aria-controls="custom-tabs-one-ValueMerge" aria-selected="false">Merge Field</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" id="custom-tabs-one-ValueMergeWithCondition-tab" data-toggle="pill" href="#custom-tabs-one-ValueMergeWithCondition" role="tab" aria-controls="custom-tabs-one-ValueMergeWithCondition" aria-selected="false">Merge Value With Condition</a>
+                    <a class="nav-link" id="custom-tabs-one-ValueWithCondition-tab" data-toggle="pill" href="#custom-tabs-one-ValueWithCondition" role="tab" aria-controls="custom-tabs-one-ValueWithCondition" aria-selected="false">Update Value With Condition</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" id="custom-tabs-one-ValueWithCondition-tab" data-toggle="pill" href="#custom-tabs-one-ValueWithCondition" role="tab" aria-controls="custom-tabs-one-ValueWithCondition" aria-selected="false">Update Value With Condition</a>
+                    <a class="nav-link" id="custom-tabs-one-ValueMergeWithCondition-tab" data-toggle="pill" href="#custom-tabs-one-ValueMergeWithCondition" role="tab" aria-controls="custom-tabs-one-ValueMergeWithCondition" aria-selected="false">Merge Value With Condition</a>
                 </li>
             }
         </ul>
@@ -36,6 +36,7 @@
                         <thead>
                             <tr>
                                 <th>Mapping Type</th>
+                                <th>Ignore Case Sensitive</th>
                                 <th>Operator Type</th>
                                 <th>Source</th>
                                 <th>Destination</th>
@@ -50,13 +51,16 @@
                                         @destMap.MappingType
                                     </td>
                                     <td>
+                                        @destMap.IgnoreCaseSensitive
+                                    </td>
+                                    <td>
                                         @destMap.OperatorType
                                     </td>
                                     <td>
-                                        @destMap.SourceField
+                                        @destMap.SourceEntity.@destMap.SourceField
                                     </td>
                                     <td>
-                                        @destMap.DestinationField
+                                        @destMap.DestinationEntity.@destMap.DestinationField
                                     </td>
                                     <td>
                                         <a class="btn btn-app" @onclick="() => Edit(destMap)">
@@ -73,7 +77,7 @@
                 </div>
             }
 
-            @if (DataMapping.OperationType == OperationType.Update || DataMapping.OperationType == OperationType.Insert)
+            @if (DataMapping.OperationType == OperationType.Update || DataMapping.OperationType == OperationType.Import)
             {
                 <div class="tab-pane fade" id="custom-tabs-one-ValueUpdate" role="tabpanel" aria-labelledby="custom-tabs-one-ValueUpdate-tab">
                     <table class="table table-bordered table-striped">
@@ -93,7 +97,7 @@
                                         @destMap.MappingType
                                     </td>
                                     <td>
-                                        @destMap.DestinationField
+                                        @destMap.DestinationEntity.@destMap.DestinationField
                                     </td>
                                     <td>
                                         @destMap.ValueField
@@ -130,76 +134,10 @@
                                         @destMap.MappingType
                                     </td>
                                     <td>
-                                        @destMap.SourceField
+                                        @destMap.SourceEntity.@destMap.SourceField
                                     </td>
                                     <td>
-                                        @destMap.DestinationField
-                                    </td>
-                                    <td>
-                                        <a class="btn btn-app" @onclick="() => Edit(destMap)">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <a class="btn btn-app" @onclick="() => Remove(destMap)">
-                                            <i class="fas fa-trash"></i>
-                                        </a>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="tab-pane fade" id="custom-tabs-one-ValueMergeWithCondition" role="tabpanel" aria-labelledby="custom-tabs-one-ValueMergeWithCondition-tab">
-                    <table class="table table-bordered table-striped">
-                        <thead>
-                            <tr>
-                                <th>Mapping Type</th>
-                                <th>Source Condition</th>
-                                <th>Source</th>
-                                <th>Destination</th>
-                                <th>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var destMap in DataMapping.FieldsMapping.Where(w => w.MappingType == MappingType.MergeFieldWithCondition))
-                            {
-                                <tr>
-                                    <td>
-                                        @destMap.MappingType
-                                    </td>
-                                    <td>
-                                        <table class="table table-bordered table-striped">
-                                            <thead>
-                                                <tr>
-                                                    <th>Value Type</th>
-                                                    <th>Source Condition</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                @foreach (var sourceCondition in destMap.Conditions)
-                                                {
-                                                    <tr>
-                                                        <td>
-                                                            @if (sourceCondition.Type != null)
-                                                            {
-                                                                @sourceCondition.Type
-                                                            }
-                                                        </td>
-                                                        <td>
-                                                            @sourceCondition.Query
-                                                        </td>
-
-                                                    </tr>
-                                                }
-                                            </tbody>
-                                        </table>
-                                    </td>
-                                    <td>
-                                        @destMap.SourceField
-                                    </td>
-                                    <td>
-                                        @destMap.DestinationField
+                                        @destMap.DestinationEntity.@destMap.DestinationField
                                     </td>
                                     <td>
                                         <a class="btn btn-app" @onclick="() => Edit(destMap)">
@@ -214,7 +152,6 @@
                         </tbody>
                     </table>
                 </div>
-
                 <div class="tab-pane fade" id="custom-tabs-one-ValueWithCondition" role="tabpanel" aria-labelledby="custom-tabs-one-ValueWithCondition-tab">
                     <table class="table table-bordered table-striped">
                         <thead>
@@ -238,6 +175,7 @@
                                         <table class="table table-bordered table-striped">
                                             <thead>
                                                 <tr>
+                                                    <th>Direction</th>
                                                     <th>Value Type</th>
                                                     <th>Source Condition</th>
                                                 </tr>
@@ -246,6 +184,9 @@
                                                 @foreach (var sourceCondition in destMap.Conditions)
                                                 {
                                                     <tr>
+                                                        <td>
+                                                            @sourceCondition.ConditionDirection
+                                                        </td>
                                                         <td>
                                                             @if (sourceCondition.Type != null)
                                                             {
@@ -262,10 +203,78 @@
                                         </table>
                                     </td>
                                     <td>
-                                        @destMap.DestinationField
+                                        @destMap.DestinationEntity.@destMap.DestinationField
                                     </td>
                                     <td>
                                         @destMap.ValueField
+                                    </td>
+                                    <td>
+                                        <a class="btn btn-app" @onclick="() => Edit(destMap)">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a class="btn btn-app" @onclick="() => Remove(destMap)">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="tab-pane fade" id="custom-tabs-one-ValueMergeWithCondition" role="tabpanel" aria-labelledby="custom-tabs-one-ValueMergeWithCondition-tab">
+                    <table class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th>Mapping Type</th>
+                                <th>Source Condition</th>
+                                <th>Source</th>
+                                <th>Destination</th>
+                                <th>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var destMap in DataMapping.FieldsMapping.Where(w => w.MappingType == MappingType.MergeFieldWithCondition))
+                            {
+                                <tr>
+                                    <td>
+                                        @destMap.MappingType
+                                    </td>
+                                    <td>
+                                        <table class="table table-bordered table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>Direction</th>
+                                                    <th>Value Type</th>
+                                                    <th>Source Condition</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var sourceCondition in destMap.Conditions)
+                                                {
+                                                    <tr>
+                                                        <td>
+                                                            @sourceCondition.ConditionDirection
+                                                        </td>
+                                                        <td>
+                                                            @if (sourceCondition.Type != null)
+                                                            {
+                                                                @sourceCondition.Type
+                                                            }
+                                                        </td>
+                                                        <td>
+                                                            @sourceCondition.Query
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                    <td>
+                                        @destMap.SourceEntity.@destMap.SourceField
+                                    </td>
+                                    <td>
+                                        @destMap.DestinationEntity.@destMap.DestinationField
                                     </td>
                                     <td>
                                         <a class="btn btn-app" @onclick="() => Edit(destMap)">

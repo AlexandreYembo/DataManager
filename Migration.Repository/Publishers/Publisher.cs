@@ -6,7 +6,7 @@ namespace Migration.Repository.Publishers
                                                         where TEntity : class, new()
                                                         where TEventArgs : EventArgs
     {
-        public event EventHandler<TEventArgs>? OnEntityChanged;
+        public event EventHandler<TEventArgs>? OnEventPublished;
 
         public void Publish(TEntity entity)
         {
@@ -20,30 +20,43 @@ namespace Migration.Repository.Publishers
 
         protected virtual void OnEventChanged(TEntity entity)
         {
-            if (OnEntityChanged == null) return;
+            HasEventSubscribed();
 
-            Type classType = typeof(TEventArgs);
-            ConstructorInfo? classConstructor = classType.GetConstructor(new[] { entity.GetType() });
+            var classInstance = GetClassInstance(entity);
 
-            if (classConstructor == null) return;
-
-            TEventArgs classInstance = (TEventArgs)classConstructor.Invoke(new object[] { entity });
-
-            OnEntityChanged(this, classInstance);
+            OnEventPublished(this, classInstance);
         }
 
         protected virtual async Task OnEventChangedAsync(TEntity entity)
         {
-            if (OnEntityChanged == null) return;
+            HasEventSubscribed();
 
+            var classInstance = GetClassInstance(entity);
+
+            await Task.Run(() => OnEventPublished(this, classInstance));
+        }
+
+        private void HasEventSubscribed()
+        {
+            if (OnEventPublished == null)
+            {
+                throw new ArgumentException("No event subscribed for this Publisher, you must need to subscribe at least one event in order to publish it");
+            }
+        }
+
+        private static TEventArgs GetClassInstance(TEntity entity)
+        {
             Type classType = typeof(TEventArgs);
             ConstructorInfo? classConstructor = classType.GetConstructor(new[] { entity.GetType() });
 
-            if (classConstructor == null) return;
+            if (classConstructor == null)
+            {
+                throw new ArgumentException("You must need to provide your EventArgs class with a constructor with one parameter. Example: public ActionsEventArgs(Actions actions)");
+            }
 
             TEventArgs classInstance = (TEventArgs)classConstructor.Invoke(new object[] { entity });
 
-            await Task.Run(() => OnEntityChanged(this, classInstance));
+            return classInstance;
         }
     }
 }

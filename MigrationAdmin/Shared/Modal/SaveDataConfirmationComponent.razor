@@ -53,7 +53,7 @@
         var redisData = new RedisData<object>()
         {
             Data = Data,
-            Key = _name
+            RedisValue = _name
         };
 
         await _redis.SaveAsync(redisData);

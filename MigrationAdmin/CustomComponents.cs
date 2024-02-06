@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Components;
+using Migration.Repository;
 using Migration.Repository.LogModels;
 using Migration.Repository.Models;
 using Migration.Services.Models;
@@ -57,15 +58,32 @@ namespace MigrationAdmin
 
         public void AddCondition(List<SearchCondition> searchConditions)
         {
-            searchConditions.Add(new SearchCondition()
+            if (searchConditions.Any())
             {
-                Type = SearchConditionType.And
-            });
+                searchConditions.Add(new SearchCondition()
+                {
+                    Type = SearchConditionType.And
+                });
+            }
+            else
+            {
+                searchConditions.Add(new SearchCondition());
+            }
         }
 
         public void RemoveCondition(List<SearchCondition> searchConditions, SearchCondition searchCondition)
         {
             searchConditions.Remove(searchCondition);
+        }
+
+        public List<CustomAttributes> UpdateCustomAttribute(List<CustomAttributes> existingCustomAttributes,
+            CustomAttributes newCustomAttribute)
+        {
+            existingCustomAttributes.RemoveAll(r => r.Key == newCustomAttribute.Key);
+
+            existingCustomAttributes.Add(newCustomAttribute);
+
+            return existingCustomAttributes;
         }
     }
 }

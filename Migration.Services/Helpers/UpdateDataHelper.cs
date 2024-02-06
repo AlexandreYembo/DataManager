@@ -23,7 +23,7 @@ namespace Migration.Services.Helpers
                     {
                         var fieldArr = mappingMergeField.SourceField.Split(".").ToList();
                         objectToBeUpdated =
-                            JObjectHelper.GetObject(objectToBeUpdated, fieldArr, mappingMergeField.ValueField);
+                            JObjectHelper.UpdateObject(objectToBeUpdated, fieldArr, mappingMergeField.ValueField);
                         hasChange = true;
                     }
                 }
@@ -33,7 +33,7 @@ namespace Migration.Services.Helpers
 
                     var fieldArr = mappingMergeField.DestinationField.Split(".").ToList();
 
-                    objectToBeUpdated = JObjectHelper.GetObject(objectToBeUpdated, fieldArr, newValue);
+                    objectToBeUpdated = JObjectHelper.UpdateObject(objectToBeUpdated, fieldArr, newValue);
                     hasChange = true;
                 }
                 else
@@ -43,7 +43,7 @@ namespace Migration.Services.Helpers
                     var fieldsFromDestinationArr = mappingMergeField.DestinationField.Split(".").ToList();
 
                     objectToBeUpdated =
-                        JObjectHelper.GetObject(objectToBeUpdated, fieldsFromDestinationArr, valueFromSource);
+                        JObjectHelper.UpdateObject(objectToBeUpdated, fieldsFromDestinationArr, valueFromSource);
                     hasChange = true;
                 }
             }
@@ -60,9 +60,17 @@ namespace Migration.Services.Helpers
                 if (mappingMergeField.MappingType == MappingType.MergeFieldWithCondition ||
                     mappingMergeField.MappingType == MappingType.UpdateValueWithCondition)
                 {
-                    var meetCriteria = mappingMergeField.DirectionType == MappingDirectionType.Source ?
-                        sourceObj.MeetCriteriaSearch(mappingMergeField.Conditions.Select(s => s)) :
-                        objectToBeUpdated.MeetCriteriaSearch(mappingMergeField.Conditions.Select(s => s));
+                    var sourceConditions = mappingMergeField.Conditions
+                        .Where(w => w.ConditionDirection == MappingDirectionType.Source).Select(s => s);
+
+                    var destinationConditions = mappingMergeField.Conditions
+                        .Where(w => w.ConditionDirection == MappingDirectionType.Destination).Select(s => s);
+
+
+                    var meetCriteria =
+                        sourceConditions.Any(a => a.Type == SearchConditionType.Or) || destinationConditions.Any(a => a.Type == SearchConditionType.Or)
+                            ? sourceObj.MeetCriteriaSearch(sourceConditions) || objectToBeUpdated.MeetCriteriaSearch(destinationConditions)
+                            : sourceObj.MeetCriteriaSearch(sourceConditions) && objectToBeUpdated.MeetCriteriaSearch(destinationConditions);
 
                     if (meetCriteria)
                     {
@@ -72,7 +80,7 @@ namespace Migration.Services.Helpers
                             ? MapFieldTypes.GetType(mappingMergeField)
                             : JObjectHelper.GetValueFromObject(sourceObj, mappingMergeField.SourceField.Split(".").ToList());
 
-                        objectToBeUpdated = JObjectHelper.GetObject(objectToBeUpdated, fieldsArr, value);
+                        objectToBeUpdated = JObjectHelper.UpdateObject(objectToBeUpdated, fieldsArr, value);
                         hasChange = true;
                     }
                 }
@@ -85,7 +93,7 @@ namespace Migration.Services.Helpers
                     //? mappingMergeField.DestinationField.Split(".").ToList()
                     //: mappingMergeField.SourceField.Split(".").ToList();
 
-                    objectToBeUpdated = JObjectHelper.GetObject(objectToBeUpdated, fieldsFromDestinationArr, newValue);
+                    objectToBeUpdated = JObjectHelper.UpdateObject(objectToBeUpdated, fieldsFromDestinationArr, newValue);
                     hasChange = true;
                 }
                 else
@@ -94,11 +102,11 @@ namespace Migration.Services.Helpers
                         JObjectHelper.GetValueFromObject(sourceObj, mappingMergeField.SourceField.Split(".").ToList());
 
                     var fieldsFromDestinationArr = mappingMergeField.DestinationField.Split(".").ToList();
-                        //dataQueryMappingType == DataQueryMappingType.UpdateAnotherCollection
-                        //? mappingMergeField.DestinationField.Split(".").ToList()
-                        //    : mappingMergeField.SourceField.Split(".").ToList();
+                    //dataQueryMappingType == DataQueryMappingType.UpdateAnotherCollection
+                    //? mappingMergeField.DestinationField.Split(".").ToList()
+                    //    : mappingMergeField.SourceField.Split(".").ToList();
 
-                    objectToBeUpdated = JObjectHelper.GetObject(objectToBeUpdated, fieldsFromDestinationArr, valueFromSource);
+                    objectToBeUpdated = JObjectHelper.UpdateObject(objectToBeUpdated, fieldsFromDestinationArr, valueFromSource);
                     hasChange = true;
                 }
             }

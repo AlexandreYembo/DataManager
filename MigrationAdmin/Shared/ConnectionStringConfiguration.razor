@@ -256,7 +256,7 @@
 
             if (result.Entities.Any())
             {
-                settings.Container = result.Entities.FirstOrDefault();
+                settings.Container = result.Entities.FirstOrDefault().Name;
 
                 ConnectionsSettings = await LocalStorageDbSettings.GetAll();
 

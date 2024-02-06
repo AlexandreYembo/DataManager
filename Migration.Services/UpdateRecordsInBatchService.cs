@@ -65,9 +65,9 @@ namespace Migration.Services
                 _logDetailsPublisher.Publish(new LogDetails()
                 {
                     Display = true,
-                    Details = new List<string>()
+                    Descriptions = new ()
                     {
-                        $"{settings.Container} - {result} records obtained"
+                       new($"{settings.Container} - {result} records obtained")
                     },
                     Title = $"{result} Records obtained",
                     Type = LogType.Success,
@@ -81,9 +81,9 @@ namespace Migration.Services
                 _logDetailsPublisher.Publish(new LogDetails()
                 {
                     Display = true,
-                    Errors = new List<string>()
+                    Descriptions = new ()
                     {
-                        e.Message
+                        new(e.Message)
                     },
                     Title = "Error to get the record",
                     Type = LogType.Error,
@@ -119,7 +119,7 @@ namespace Migration.Services
                     var fieldsArr = command.Key.Split(".").ToList();
 
                     //Apply the change to the current property
-                    objectToBeUpdated = JObjectHelper.GetObject(objectToBeUpdated, fieldsArr, command.Value);
+                    objectToBeUpdated = JObjectHelper.UpdateObject(objectToBeUpdated, fieldsArr, command.Value);
 
                     hasChange = true;
                 }
@@ -148,7 +148,7 @@ namespace Migration.Services
                 {
                     var fieldsArr = command.Key.Split(".").ToList();
 
-                    objectToBeUpdated = JObjectHelper.GetObject(objectToBeUpdated, fieldsArr, command.Value);
+                    objectToBeUpdated = JObjectHelper.UpdateObject(objectToBeUpdated, fieldsArr, command.Value);
 
                     hasChange = true;
                 }
@@ -158,9 +158,9 @@ namespace Migration.Services
                     _logDetailsPublisher.Publish(new LogDetails()
                     {
                         Display = true,
-                        Details = new List<string>()
+                        Descriptions = new()
                         {
-                            "Record skip"
+                            new("Record skip")
                         },
                         Title = $"Skip update {entity.Id}",
                         Type = LogType.Warn,
@@ -171,9 +171,9 @@ namespace Migration.Services
                     _logDetailsPublisher.Publish(new LogDetails()
                     {
                         Display = true,
-                        Details = new List<string>()
+                        Descriptions = new()
                         {
-                            "Record updated"
+                           new("Record updated")
                         },
                         Title = $"Record updated {entity.Id}",
                         Type = LogType.Success,
@@ -189,9 +189,9 @@ namespace Migration.Services
                     _logDetailsPublisher.Publish(new LogDetails()
                     {
                         Display = true,
-                        Details = new List<string>()
+                        Descriptions = new()
                         {
-                            e.ErrorCode + e.ErrorMessage
+                            new(e.ErrorCode + e.ErrorMessage)
                         },
                         Title = $"Error to update the record {entity.Id}",
                         Type = LogType.Error,

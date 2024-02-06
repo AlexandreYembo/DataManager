@@ -5,7 +5,9 @@ using Migration.Infrastructure.Redis;
 using Migration.Repository;
 using Migration.Repository.Publishers;
 using Migration.Repository.Subscribers;
+using Migration.Repository.Validations;
 using Migration.Services;
+using Migration.Services.Subscribers;
 using MigrationAdmin.Extensions;
 using MigrationAdmin.Infrastructure;
 
@@ -24,8 +26,11 @@ builder.Services.AddTransient(typeof(IPublisher<,>), typeof(Publisher<,>));
 
 builder.Services.AddScoped<LogPublisher>();
 builder.Services.AddScoped<LogDetailsPublisher>();
+builder.Services.AddScoped<ActionsPublisher>();
+builder.Services.AddScoped<JobsPublisher>();
 
 builder.Services.AddScoped<LogResultSubscriber>();
+builder.Services.AddScoped<MigrationLogPersistSubscriber>();
 
 #endregion
 
@@ -33,6 +38,12 @@ builder.Services.AddScoped<LogResultSubscriber>();
 builder.Services.AddScoped<IUpdateRecordsInBatchService, UpdateRecordsInBatchService>();
 builder.Services.AddScoped<IQueryService, MutipleQueriesService>();
 builder.Services.AddScoped<IMigrationService, MigrationService>();
+builder.Services.AddScoped<IRevertMigrationService, RevertMigrationService>();
+builder.Services.AddScoped<IJobService, JobService>();
+#endregion
+
+#region validation
+builder.Services.AddScoped<ProfileValidation>();
 #endregion
 
 

@@ -151,6 +151,14 @@
 
     private IBrowserFile _uploadedFile;
 
+    protected override void OnInitialized()
+    {
+        if (DataSettings.ConnectionType == ConnectionType.CosmosDb)
+        {
+            DataSettings.ChangeType();
+        }
+    }
+
     private void AddParameter()
     {
         DataSettings.Parameters.Add(new CustomAttributes());
@@ -171,12 +179,12 @@
         {
             DataSettings = await _testConnection(DataSettings).Test();
             _error = false;
-            _message = "Connected to Cosmos DB";
+            _message = $"Connected to {DataSettings.ConnectionType}";
 
             var redisData = new RedisData<DataSettings>()
                 {
                     Data = DataSettings,
-                    Key = DataSettings.FullName
+                    RedisValue = DataSettings.FullName
                 };
 
             await _redis.SaveAsync(redisData);
@@ -188,7 +196,7 @@
         catch (Exception e)
         {
             _error = true;
-            _message = $"Error to connect to Cosmos DB. Details: {e.Message}";
+            _message = $"Error to connect to {DataSettings.ConnectionType}. Details: {e.Message}";
         }
 
         Loading = false;
@@ -225,9 +233,8 @@
             var redisData = new RedisData<DataSettings>()
                 {
                     Data = DataSettings,
-                    Key = DataSettings.FullName
+                    RedisValue = DataSettings.FullName
                 };
-
 
             await _redis.SaveAsync(redisData);
 
@@ -241,7 +248,7 @@
         catch (Exception e)
         {
             _error = true;
-            _message = $"Error to connect to Cosmos DB. Details: {e.Message}";
+            _message = $"Error to connect to {DataSettings.ConnectionType}. Details: {e.Message}";
         }
 
         Loading = false;

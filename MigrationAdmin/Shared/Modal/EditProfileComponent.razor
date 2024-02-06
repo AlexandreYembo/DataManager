@@ -8,7 +8,7 @@
 @if (_profile != null)
 {
     <div class="modal fade show" id="dataDifferenceModal" style="display:block" aria-modal="true" role="dialog">
-        <div class="modal-dialog" style="max-width:100%;">
+        <div class="modal-dialog" style="max-width:95%;">
             <div class="modal-content">
 
                 <!-- Modal Header -->
@@ -17,10 +17,10 @@
                 </div>
 
                 <!-- Modal body -->
-                <div class="modal-body" style="height: 900px; overflow: scroll">
+                <div class="modal-body" style="height: 600px; overflow: scroll">
                     <DataQueryComponent DataMapping="_profile.DataMappings[0]"
                                         DataSettings="_dataSettings"></DataQueryComponent>
-                
+
                     @if (_profile.DataMappings[0].DataQueryMappingType == DataQueryMappingType.UpdateAnotherCollection)
                     {
                         <DataMappingDestinationComponent DataMapping="_profile.DataMappings[0]"
@@ -46,7 +46,7 @@
 @code {
     [Parameter]
     public string ProfileId { get; set; }
-    
+
     [Parameter]
     public string Environment { get; set; }
 
@@ -67,12 +67,13 @@
     private async Task SaveProfile()
     {
         var redisData = new RedisData<Profile>()
-        {
+            {
                 Data = _profile,
-                Key = _profile.Name
-        };
+                RedisValue = ProfileId,
+                RedisKey = _profile.JobCategoryId
+            };
 
-        await _profileRepository.SaveAsync(redisData, _profile.EnvironmentName);
+        await _profileRepository.SaveAsync(redisData);
 
         await ShowSuccessAlert();
     }

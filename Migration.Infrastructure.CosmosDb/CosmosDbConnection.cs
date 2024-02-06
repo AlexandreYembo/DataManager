@@ -24,7 +24,17 @@ namespace Migration.Infrastructure.CosmosDb
             foreach (var container in containers)
             {
                 // do what you want with the container
-                _settings.Entities.Add(container.Id);
+                _settings.Entities.Add(new Entity(container.Id)
+                {
+                    Attributes = new ()
+                    {
+                        new()
+                        {
+                            Key = "PartitionKey",
+                            Value = container.PartitionKeyPath
+                        }
+                    }
+                });
             }
 
             return _settings;

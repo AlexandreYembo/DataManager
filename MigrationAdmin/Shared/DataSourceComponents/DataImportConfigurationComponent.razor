@@ -1,0 +1,109 @@
+﻿@using Microsoft.AspNetCore.Components
+@using Migration.Repository
+<div class="card card-default">
+    <div class="card-header">
+        <h3 class="card-title"> <DocumentationComponent DocumentationPath="DataImportConfiguration.md"></DocumentationComponent> Attributes necessary to import data to the new table</h3>
+        <div class="card-tools">
+            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                <i class="fas fa-minus"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body" style="display: block;">
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label>Key</label>
+                                <input class="form-control" id="query" data-keeper-edited="yes" @bind="_dataAttributes.Key" />
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label>Value</label>
+                                <input class="form-control" id="query" data-keeper-edited="yes" @bind="@_dataAttributes.Value" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-footer">
+        <button class="btn btn-default" @onclick="() => AddAttributes()"> <i class="nav-icon fas fa-plus"></i> Add</button>
+    </div>
+</div>
+<div class="card card-default">
+    <div class="card-header">
+        <h3 class="card-title">Attributes</h3>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-sm-12">
+                <table id="dataGeneral" class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>Profile</th>
+                            <th>Description</th>
+                            <th>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (DataAttributes != null)
+                        {
+                            foreach (var dataAttributes in DataAttributes)
+                            {
+                                <tr>
+                                    <td>
+                                        @dataAttributes.Key
+                                    </td>
+                                    <td>
+                                        @dataAttributes.Value
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-default" @onclick="() => Edit(dataAttributes)"> <i class="nav-icon fas fa-edit"></i> Edit</button>
+                                        <button class="btn btn-default" @onclick="() => Delete(dataAttributes)"> <i class="nav-icon fas fa-trash"></i> Delete</button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private CustomAttributes _dataAttributes = new();
+
+    [Parameter]
+    public List<CustomAttributes> DataAttributes { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<CustomAttributes> OnCustomAttributesAdded { get; set; }
+
+    public async Task AddAttributes()
+    {
+        DataAttributes.Remove(_dataAttributes);
+
+        DataAttributes.Add(_dataAttributes);
+
+        await OnCustomAttributesAdded.InvokeAsync(_dataAttributes);
+        
+        _dataAttributes = new();
+    }
+
+    private void Edit(CustomAttributes dataAttributes)
+    {
+        _dataAttributes = dataAttributes;
+    }
+
+    private void Delete(CustomAttributes dataAttributes)
+    {
+        DataAttributes.Remove(dataAttributes);
+    }
+}

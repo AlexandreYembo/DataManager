@@ -90,5 +90,15 @@ namespace Migration.Repository
         {
             throw new NotImplementedException();
         }
+
+        public Task Insert(JObject entity, List<DataFieldsMapping> fieldMappings = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task CreateTable()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

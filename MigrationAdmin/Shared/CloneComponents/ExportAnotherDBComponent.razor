@@ -1,52 +1,73 @@
 ﻿@using Newtonsoft.Json.Linq
 @using Migration.Repository.Models
 @using Migration.Repository
+@using Migration.Services
 @using Migration.Infrastructure.Redis
+@inject IMigrationService _migrateService;
 @inject IRepository<DataSettings> _redis;
-<div class="modal fade show" id="logDetailsModal" style="display:block" aria-modal="true" role="dialog">
-    <div class="modal-dialog" style="max-width: 900px; ">
-        <div class="modal-content">
 
-            <!-- Modal Header -->
-            <div class="modal-header">
-                <h4 class="modal-title">Export Data To Another DB</h4>
-            </div>
+@if (ShowPopup)
+{
+    <div class="modal fade show" id="logDetailsModal" style="display:block" aria-modal="true" role="dialog">
+        <div class="modal-dialog" style="max-width: 900px; ">
+            <div class="modal-content">
 
-            <!-- Modal body -->
-            <div class="modal-body" style="overflow:scroll;max-height:900px">
+                <!-- Modal Header -->
+                <div class="modal-header">
+                    <h4 class="modal-title">Export Data To Another DB</h4>
+                </div>
 
-                <div class="card card-info">
-                    <div class="card-header">
-                        <h3 class="card-title">Select your Data base</h3>
-                    </div>
-                    <div class="card-body">
-                        <DatabaseSelectorComponent Title="Select the source"
-                                                   ConnectionStrings="_dataSettings?.ToDictionary(kvp => kvp.FullName, kvp => kvp.FullName)"
-                                                   DataSettings="_dataSetting"
-                                                   OnDbSettingsChanged="(sourceDbSettings) => AddSourceDbSettings(sourceDbSettings)"
-                                                   DisplayQuery="false"></DatabaseSelectorComponent>
+                <!-- Modal body -->
+                <div class="modal-body" style="overflow:scroll;max-height:900px">
+
+                    <DatabaseSelectorComponent Title="Select the DB you want to import the data"
+                                               ConnectionStrings="_dataSettings?.ToDictionary(kvp => kvp.FullName, kvp => kvp.FullName)"
+                                               DataSettings="_dataSetting"
+                                               OnDbSettingsChanged="(dataSettings) => AddDataSettings(dataSettings)"
+                                               DisplayQuery="false"
+                                               TypeOfOperation="OperationType.Import"></DatabaseSelectorComponent>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label>Partition Key</label>
+                                <input class="form-control" id="query" data-keeper-edited="yes" @bind="@_partitionKey" />
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label>Inform the property you want to use as ID from the Data that you are importing</label>
+                                <input class="form-control" id="query" data-keeper-edited="yes" @bind="@_fieldMapping" />
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-            </div>
+                <!-- Modal footer -->
+                <div class="modal-footer">
+                    <button class="btn btn-default" @onclick="ImportData"> <i class="nav-icon fas fa-file-import"></i> Import</button>
+                    <button type="button" style="margin-top: 15px;" class="btn btn-close" @onclick=ModalOk>Close</button>
+                </div>
 
-            <!-- Modal footer -->
-            <div class="modal-footer">
-                <button type="button" style="margin-top:15px;" class="btn btn-close" @onclick=ModalOk>Ok</button>
             </div>
-
         </div>
     </div>
-</div>
+}
+
 
 @code {
     [Parameter]
+    public bool ShowPopup { get; set; }
+
+    [Parameter]
     public List<JObject> Data { get; set; }
+
     [Parameter]
     public EventCallback ModalOk { get; set; }
 
     private IEnumerable<DataSettings> _dataSettings { get; set; }
     private DataSettings _dataSetting { get; set; }
+    private string _partitionKey;
+    private string _fieldMapping;
 
     protected override async Task OnInitializedAsync()
     {
@@ -60,9 +81,17 @@
 
     }
 
-    private void AddSourceDbSettings(DataSettings sourceDbSettings)
+    private void AddDataSettings(DataSettings dataSettings)
     {
-        throw new NotImplementedException();
+        _dataSetting = dataSettings;
     }
 
+    private async Task ImportData()
+    {
+        _dataSetting.Parameters.RemoveAll(r => r.Key == "PartitionKey");
+        _dataSetting.Parameters.RemoveAll(r => r.Key == "IdentityKey");
+        _dataSetting.Parameters.Add(new CustomAttributes() { Key = "PartitionKey", Value = _partitionKey }); // move this to a configurable field
+        _dataSetting.Parameters.Add(new CustomAttributes() { Key = "IdentityKey", Value = _fieldMapping }); // move this to a configurable field
+        await _migrateService.ImportData(Data, _dataSetting);
+    }
 }

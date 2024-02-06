@@ -50,11 +50,16 @@
                                                             @((MarkupString)difference.Object2Value)
                                                         </td>
 
-                                                        @if (difference.OperationType == OperationType.Delete)
+                                                        @switch (difference.OperationType)
                                                         {
-                                                            <td style="color:red"> <i style="color:red" class="nav-icon fas fa-trash"></i> Destination record will be deleted</td>
-                                                        }else{
-                                                            <td></td>
+                                                            case OperationType.Delete:
+                                                                <td style="color:red"> <i style="color:red" class="nav-icon fas fa-trash"></i> Destination record will be deleted</td>
+                                                                break;
+                                                            case OperationType.Import:
+                                                                <td style="color:blue"> <i style="color:blue" class="nav-icon fas fa-plus"></i> Destination record will be Imported</td>
+                                                                break;
+                                                            default:
+                                                                break;
                                                         }
                                                     </tr>
                                                 }

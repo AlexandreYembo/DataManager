@@ -1,6 +1,4 @@
-﻿//using Microsoft.Azure.Cosmos.Table;
-
-using Microsoft.WindowsAzure.Storage;
+﻿using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Table;
 using Migration.Repository;
 using Migration.Repository.Exceptions;
@@ -9,6 +7,8 @@ using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 using System.Dynamic;
 using System.Text;
+using System.Runtime;
+using System;
 
 namespace Migration.Infrastructure.AzureTableStorage
 {
@@ -19,17 +19,20 @@ namespace Migration.Infrastructure.AzureTableStorage
         private readonly CloudStorageAccount _storageAccount;
         private readonly CloudTableClient _tableClient;
         private readonly CloudTable _table;
+        private readonly DataSettings _settings;
 
         public TableStorageGenericRepository(DataSettings settings)
         {
-            if (!string.IsNullOrEmpty(settings.CurrentEntity))
+            if (!string.IsNullOrEmpty(settings.CurrentEntity.Name))
             {
+                _settings = settings;
+
                 _storageAccount = settings.Parameters.Any(p => p.Key == "Is Emulator" && p.Value == "True") ?
                     CloudStorageAccount.DevelopmentStorageAccount :
                     CloudStorageAccount.Parse(CreateConnectionString(settings));
 
                 _tableClient = _storageAccount.CreateCloudTableClient();
-                _table = _tableClient.GetTableReference(settings.CurrentEntity);
+                _table = _tableClient.GetTableReference(settings.CurrentEntity.Name);
             }
         }
 
@@ -51,9 +54,9 @@ namespace Migration.Infrastructure.AzureTableStorage
                 string partitionKey = entity.PartitionKey;
                 string rowKey = entity.RowKey;
 
-                jo.Add("id", $"{partitionKey}:{rowKey}");
+                jo.Add("id", $"{partitionKey}");
                 jo.Add("PartitionKey", partitionKey);
-                jo.Add("RowKey", partitionKey);
+                jo.Add("RowKey", rowKey);
                 jo.Add("ETag", entity.ETag);
 
                 foreach (KeyValuePair<string, EntityProperty> property in entity.Properties)
@@ -88,7 +91,7 @@ namespace Migration.Infrastructure.AzureTableStorage
                 string partitionKey = entity.PartitionKey;
                 string rowKey = entity.RowKey;
 
-                jo.Add("id", $"{partitionKey}:{rowKey}");
+                jo.Add("id", $"{partitionKey}");
 
                 jo.Add("PartitionKey", partitionKey);
                 jo.Add("RowKey", rowKey);
@@ -154,7 +157,7 @@ namespace Migration.Infrastructure.AzureTableStorage
             }
             catch (Exception e)
             {
-                throw new DbOperationException("Error-0001", e.Message);
+                throw new DbOperationException("Error-0002", e.Message);
             }
         }
 
@@ -203,6 +206,76 @@ namespace Migration.Infrastructure.AzureTableStorage
 
         }
 
+        public async Task Insert(JObject entity, List<DataFieldsMapping> fieldMappings = null)
+        {
+            try
+            {
+                var structure = GetTableStructure();
+
+                if (!structure.ContainsKey("id"))
+                {
+                    entity.Remove("id"); // this is not used if is not part of the table schema
+                }
+
+                ElasticTableEntity tEntity = new ElasticTableEntity();
+
+                var id = Guid.NewGuid().ToString();
+
+                tEntity.PartitionKey = entity["PartitionKey"] != null ? entity["PartitionKey"].ToString() : id;
+                tEntity.RowKey = entity["RowKey"] != null ? entity["RowKey"].ToString() : id;
+                tEntity.ETag = $"W/\"datetime'{DateTime.Now:yyyy-MM-ddTHH%3Amm%3Ass.fffZ}'\""; ;
+
+                foreach (var e in entity)
+                {
+                    if (e.Key != "PartitionKey" && e.Key != "RowKey" && e.Key != "ETag")
+                    {
+                        if (structure.Any())
+                        {
+                            EdmType fieldType;
+
+                            var mappingType = fieldMappings?.Where(w => w.MappingType != MappingType.TableJoin).FirstOrDefault(a => a.DestinationField == e.Key);
+                            if (mappingType != null)
+                            {
+                                fieldType = structure[mappingType.DestinationField];
+                            }
+                            else
+                            {
+                                fieldType = structure[e.Key];
+                            }
+                            tEntity.Properties.Add(e.Key, GetEntityProperty(e.Key, e.Value.ToString(), fieldType));
+                        }
+                        else
+                        {
+                            //TODO: to improve in the future we can add the property type here if we do not want to create all records as string
+                            tEntity.Properties.Add(e.Key, GetEntityProperty(e.Key, e.Value.ToString(), EdmType.String));
+                        }
+                    }
+                }
+
+                foreach (var s in structure.Where(s => entity.SelectToken(s.Key) == null))
+                {
+                    tEntity.Properties.Add(s.Key, GetEntityProperty(s.Key, null, structure[s.Key]));
+                }
+
+                TableOperation replaceOperation = TableOperation.InsertOrMerge(tEntity);
+                var response = await _table.ExecuteAsync(replaceOperation);
+
+                if (response.HttpStatusCode != 204)
+                {
+                    throw new DbOperationException(response.HttpStatusCode.ToString(), JsonConvert.SerializeObject(response.Result));
+                }
+            }
+            catch (Exception e)
+            {
+                throw new DbOperationException("Error-0001", e.Message);
+            }
+        }
+
+        public async Task CreateTable()
+        {
+            await _table.CreateIfNotExistsAsync();
+        }
+
         private static string CreateConnectionString(DataSettings settings)
         {
             return $"{nameof(DefaultEndpointsProtocol)}={DefaultEndpointsProtocol};" +
@@ -213,17 +286,18 @@ namespace Migration.Infrastructure.AzureTableStorage
 
         private EntityProperty GetEntityProperty(string key, string value, EdmType type)
         {
-            if (type == EdmType.Binary) return new EntityProperty(Encoding.ASCII.GetBytes(value));
-            if (type == EdmType.Boolean) return new EntityProperty(bool.Parse(value));
-            if (type == EdmType.DateTime) return new EntityProperty(DateTimeOffset.Parse(value));
-            if (type == EdmType.Double) return new EntityProperty(double.Parse(value));
-            if (type == EdmType.Guid) return new EntityProperty(Guid.Parse(value));
-            if (type == EdmType.Int32) return new EntityProperty(int.Parse(value));
-            if (type == EdmType.Int64) return new EntityProperty(long.Parse(value));
+            if (type == EdmType.Binary) return new EntityProperty(!string.IsNullOrEmpty(value) ? Encoding.ASCII.GetBytes(value) : new byte[] { });
+            if (type == EdmType.Boolean) return new EntityProperty(!string.IsNullOrEmpty(value) ? bool.Parse(value) : null);
+            if (type == EdmType.DateTime) return new EntityProperty(!string.IsNullOrEmpty(value) ? DateTimeOffset.Parse(value) : null);
+            if (type == EdmType.Double) return new EntityProperty(!string.IsNullOrEmpty(value) ? double.Parse(value) : null);
+            if (type == EdmType.Guid) return new EntityProperty(!string.IsNullOrEmpty(value) ? Guid.Parse(value) : null);
+            if (type == EdmType.Int32) return new EntityProperty(!string.IsNullOrEmpty(value) ? int.Parse(value) : null);
+            if (type == EdmType.Int64) return new EntityProperty(!string.IsNullOrEmpty(value) ? long.Parse(value) : null);
             if (type == EdmType.String) return new EntityProperty(value);
             throw new Exception("not supported " + value.GetType() + " for " + key);
         }
     }
+
 
 
     public class ElasticTableEntity : DynamicObject, ITableEntity

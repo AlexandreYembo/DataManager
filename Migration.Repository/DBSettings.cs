@@ -12,9 +12,9 @@
 
         public List<CustomAttributes> Parameters { get; set; } = new();
 
-        public List<string> Entities { get; set; } = new();
+        public List<Entity> Entities { get; set; } = new();
 
-        public string CurrentEntity { get; set; }
+        public Entity CurrentEntity { get; set; } = new();
 
         public bool AllowAddCustomParameters { get; set; }
 
@@ -81,6 +81,19 @@
         public string GetAccountName() => Parameters?.FirstOrDefault(f => f.Key == "AccountName")?.Value ?? string.Empty;
     }
 
+    public class Entity
+    {
+        public Entity(){}
+
+        public Entity(string name)
+        {
+            Name = name;
+        }
+
+        public string Name { get; set; }
+        public List<CustomAttributes> Attributes { get; set; }
+    }
+
     public class CustomAttributes
     {
         public string Key { get; set; }
@@ -92,7 +105,6 @@
     {
         CosmosDb,
         File,
-        //TableStorage, //TODO
         //Api,//TODO
         TableStorage
     }

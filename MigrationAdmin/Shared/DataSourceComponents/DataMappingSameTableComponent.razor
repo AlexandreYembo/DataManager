@@ -19,7 +19,7 @@
         </div>
         <div class="row">
             <div class="col-sm-12">
-                @if (DataMapping.OperationType == OperationType.Update || DataMapping.OperationType == OperationType.Insert)
+                @if (DataMapping.OperationType == OperationType.Update || DataMapping.OperationType == OperationType.Import)
                 {
                     @switch (_dataFieldsMapping.MappingType)
                     {
@@ -52,72 +52,6 @@
     </div>
 </div>
 
-@* <div class="card card-default">
-    <div class="card-header">
-        <h3 class="card-title">Configure the Fields you want to merge the value</h3>
-    </div>
-    <div class="card-body">
-        <div class="row">
-            <div class="col-sm-12">
-                <div class="form-group">
-                    <label>Field</label>
-                    <input class="form-control" data-keeper-edited="yes" @bind="_dataFieldsMapping.SourceField" />
-                </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-sm-12">
-                <div class="form-group">
-                    <label>Value</label>
-                    <input class="form-control" data-keeper-edited="yes" @bind="_dataFieldsMapping.ValueField" />
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="card-footer">
-        <button class="btn btn-default" @onclick="async () => await AddFieldsMapping(_dataFieldsMapping)">Add</button>
-    </div>
-
-    <div class="card-header">
-        <h3 class="card-title">Mapping</h3>
-    </div>
-    <div class="card-body">
-        <div class="row">
-            <div class="col-sm-12">
-                <table class="table table-bordered table-striped">
-                    <thead>
-                        <tr>
-                            <th>Field</th>
-                            <th>Value</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var destMap in DataMapping.FieldsMapping)
-                        {
-                            <tr>
-                                <td>
-                                    @destMap.SourceField
-                                </td>
-                                <td>
-                                    @destMap.ValueField
-                                </td>
-                                <td>
-                                    <a class="btn btn-app" @onclick="() => Edit(destMap)">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <a class="btn btn-app" @onclick="() => Remove(destMap)">
-                                        <i class="fas fa-trash"></i>
-                                    </a>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div> *@
 @code
 {
     [Parameter]
@@ -130,8 +64,6 @@
 
     private async Task AddFieldsMapping(DataFieldsMapping dataFieldMapping)
     {
-        dataFieldMapping.DirectionType = MappingDirectionType.Source;
-
         DataMapping.FieldsMapping.Remove(dataFieldMapping);
         DataMapping.FieldsMapping.Add(dataFieldMapping);
         _dataFieldsMapping = new DataFieldsMapping();

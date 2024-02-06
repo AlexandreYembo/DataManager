@@ -41,14 +41,14 @@ namespace Migration.Services
 
                 if (jsonObject["id"] != null)
                 {
-                    dataSource.Add($"{dataMapping.Source.Settings.CurrentEntity}:{jsonObject["id"]}", jsonObject);
+                    dataSource.Add($"{dataMapping.Source.Settings.CurrentEntity.Name}:{jsonObject["id"]}", jsonObject);
                 }
                 else
                 {
-                    dataSource.Add($"{dataMapping.Source.Settings.CurrentEntity}:{Guid.NewGuid()}", jsonObject);
+                    dataSource.Add($"{dataMapping.Source.Settings.CurrentEntity.Name}:{Guid.NewGuid()}", jsonObject);
                 }
 
-                if (dataMapping.DataQueryMappingType == DataQueryMappingType.UpdateAnotherCollection)
+                if (dataMapping.DataQueryMappingType == DataQueryMappingType.UpdateAnotherCollection && dataMapping.OperationType != OperationType.Import)
                 {
                     var destination = await _genericRepository(dataMapping.Destination.Settings)
                         .Get(dataMapping.Destination.Query, dataMapping.FieldsMapping, sourceData.Value, take, 0);
@@ -59,19 +59,19 @@ namespace Migration.Services
                         //To avoid add duplicated record
                         if (!result.Values.Any(a => a.Any(a1 => destination.ContainsValue(a1.Data))))
                         {
-                            dataDestination.Add(dataMapping.Destination.Settings.CurrentEntity, destination.ApplyJoin(sourceData, dataMapping.FieldsMapping));
-                            result.Add($"{dataMapping.Source.Settings.CurrentEntity}:{sourceData.Key}", dataDestination.ToDynamicDataList(sourceData, dataMapping.Source.Settings.CurrentEntity, dataMapping.OperationType));
+                            dataDestination.Add(dataMapping.Destination.Settings.CurrentEntity.Name, destination.ApplyJoin(sourceData, dataMapping.FieldsMapping));
+                            result.Add($"{dataMapping.Source.Settings.CurrentEntity.Name}:{sourceData.Key}", dataDestination.ToDynamicDataList(sourceData, dataMapping.Source.Settings.CurrentEntity.Name, dataMapping.OperationType));
                         }
                     }
                 }
                 else
                 {
-                        result.Add($"{dataMapping.Source.Settings.CurrentEntity}:{sourceData.Key}", dataSource.LastOrDefault().ToDynamicDataList());
+                        result.Add($"{dataMapping.Source.Settings.CurrentEntity.Name}:{sourceData.Key}", dataSource.LastOrDefault().ToDynamicDataList());
                 }
 
                 //else
                 //{
-                //    result.Add($"{dataMapping.Source.Settings.CurrentEntity}:{sourceData.Key}", dataSource.LastOrDefault().ToDynamicDataList(DataType.Source));
+                //    result.Add($"{dataMapping.Source.Settings.CurrentEntity.Name}:{sourceData.Key}", dataSource.LastOrDefault().ToDynamicDataList(DataType.Source));
                 //}
             }
 

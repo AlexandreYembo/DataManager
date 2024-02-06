@@ -70,7 +70,22 @@ namespace Migration.Infrastructure.AzureTableStorage
 
                 if (string.IsNullOrEmpty(operation)) continue;
 
-                var filterCondition = ParseQuery(propertyCondition, operation, queryResult.Results.FirstOrDefault().Properties.FirstOrDefault(w => w.Key == propertyCondition).Value.PropertyType, valueCondition);
+                EdmType propertyType;
+
+                if (propertyCondition == "PartitionKey")
+                {
+                    propertyType = EdmType.String;
+                }
+                else if (propertyCondition == "RowKey")
+                {
+                    propertyType = EdmType.String;
+                }
+                else
+                {
+                    propertyType = queryResult.Results.FirstOrDefault().Properties.FirstOrDefault(w => w.Key == propertyCondition).Value.PropertyType;
+                }
+
+                var filterCondition = ParseQuery(propertyCondition, operation, propertyType, valueCondition);
 
                 if (!string.IsNullOrEmpty(query))
                 {

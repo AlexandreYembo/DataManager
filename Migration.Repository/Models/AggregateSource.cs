@@ -6,7 +6,7 @@ namespace Migration.Repository.Models
     {
         public string? Name { get; set; }
         public string? Description { get; set; }
-        public string? EnvironmentName { get; set; }
+        public string? JobCategoryId { get; set; }
         public List<DataMapping> DataMappings { get; set; } = new();
         public bool Selected { get; set; }
     }
@@ -18,7 +18,7 @@ namespace Migration.Repository.Models
         public List<CommandModel> Commands { get; set; } = new();
         public List<DataFieldsMapping> FieldsMapping { get; set; } = new();
         public OperationType OperationType { get; set; }
-
+        
         public string Id { get; set; }
         public DataQueryMappingType DataQueryMappingType { get; set; }
     }
@@ -34,8 +34,9 @@ namespace Migration.Repository.Models
 
     public class DataFieldsMapping
     {
-        public MappingDirectionType DirectionType {get;set;}
-        public MappingType MappingType { get; set; }
+        public string SourceEntity { get; set; }
+        public string DestinationEntity { get; set; }
+        public MappingType? MappingType { get; set; }
         public OperatorType? OperatorType { get; set; }
         public bool IgnoreCaseSensitive { get; set; }
         public string? SourceField { get; set; }
@@ -49,6 +50,7 @@ namespace Migration.Repository.Models
     {
         public SearchConditionType? Type { get; set; }
         public string Query { get; set; }
+        public MappingDirectionType ConditionDirection { get; set; }
     }
 
 
@@ -91,7 +93,7 @@ namespace Migration.Repository.Models
 
     public enum OperationType
     {
-        Insert,
+        Import,
         Update,
         Delete,
         Report

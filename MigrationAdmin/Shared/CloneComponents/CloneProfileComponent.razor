@@ -8,7 +8,7 @@
 @if (_profile != null)
 {
     <div class="modal fade show" id="dataDifferenceModal" style="display:block" aria-modal="true" role="dialog">
-        <div class="modal-dialog" style="max-width:100%;">
+        <div class="modal-dialog" style="max-width:50%;">
             <div class="modal-content">
 
                 <!-- Modal Header -->
@@ -17,17 +17,20 @@
                 </div>
 
                 <!-- Modal body -->
-                <div class="modal-body" style="height: 200px; overflow: scroll">
+                <div class="modal-body" style="height: 300px;">
                     <div class="row">
-                        <div class="col-sm-2">
-                            <label>Environment Name</label>
-                            <input class="form-control" data-keeper-edited="yes" @bind="@_profile.EnvironmentName" />
+                        <div class="col-sm-12">
+                            <JobCategoryComponent OnJobCategorySelected="(jobCategory) => _profile.JobCategoryId = jobCategory"></JobCategoryComponent>
                         </div>
-                        <div class="col-sm-2">
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-12">
                             <label>Name</label>
                             <input class="form-control" data-keeper-edited="yes" @bind="@_profile.Name" />
                         </div>
-                        <div class="col-sm-2">
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-12">
                             <label>Description</label>
                             <input class="form-control" data-keeper-edited="yes" @bind="@_profile.Description" />
                         </div>
@@ -37,7 +40,7 @@
                 <!-- Modal footer -->
                 <div class="modal-footer">
                     <button class="btn btn-default" @onclick="CloneProfile"> <i class="nav-icon fas fa-clone"></i> Clone</button>
-                    <button type="button" style="margin-top: 15px;" class="btn btn-close" @onclick="ModalOk">Close</button>
+                    <button type="button" class="btn btn-default" @onclick="ModalOk">Close</button>
                 </div>
             </div>
         </div>
@@ -49,7 +52,7 @@
     public string ProfileId { get; set; }
 
     [Parameter]
-    public string Environment { get; set; }
+    public string JobCategory { get; set; }
 
     private Profile _profile { get; set; }
 
@@ -60,7 +63,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var profiles = await _profileRepository.FindAsync(Environment);
+        var profiles = await _profileRepository.FindAsync(JobCategory);
 
         _profile = profiles.FirstOrDefault(f => f.DataMappings[0].Id == ProfileId);
         _profile.Name = "Clone-" + _profile.Name;
@@ -68,14 +71,17 @@
 
     private async Task CloneProfile()
     {
-        _profile.DataMappings[0].Id = Guid.NewGuid().ToString();
+        var newId = Guid.NewGuid().ToString();
+        _profile.DataMappings[0].Id = newId;
+
         var redisData = new RedisData<Profile>()
             {
                 Data = _profile,
-                Key = _profile.Name
+                RedisValue = newId,
+                RedisKey = _profile.JobCategoryId
             };
 
-        await _profileRepository.SaveAsync(redisData, _profile.EnvironmentName);
+        await _profileRepository.SaveAsync(redisData);
 
         await ShowSuccessAlert();
     }

@@ -3,8 +3,8 @@ namespace Migration.Infrastructure.Redis.Entities
 {
     public class RedisData<TEntity>
     {
-        public string Key { get; set; }
+        public string RedisValue { get; set; }
         public TEntity Data { get; set; }
-        public string Id { get; set; }
+        public string RedisKey { get; set; }
     }
 }

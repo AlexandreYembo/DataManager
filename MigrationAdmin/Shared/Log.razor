@@ -7,7 +7,7 @@
     </div>
 }
 
-<div class="card card-warning collapsed-card">
+<div class="card card-default collapsed-card">
 
     <div class="card-header">
         <h4 class="card-title">Logs</h4>
@@ -20,7 +20,7 @@
     <div class="card-body">
         <div class="row">
             <div class="col-sm-12">
-                <div class="card card-info">
+                <div class="card card-default">
                     <div class="card-header">
                         <h4 class="card-title">Summary</h4>
                     </div>
@@ -36,7 +36,7 @@
                                 Finished In: <label> @LogResult?.FinishedIn</label>
                             </div>
                             <div class="col-sm-2">
-                                Time consumed: <label> @LogResult?.ConsumeTime</label>
+                                Time consumed: <label> @LogResult?.TimeConsumed</label>
                             </div>
                         </div>
                         <div class="row">
@@ -60,11 +60,11 @@
                         </div>
                     </div>
                     <div class="card-footer">
-                        <button class="btn btn-success" @onclick="() => ShowLogsGrouped()">Show grouped logs</button>
+                        <button class="btn btn-default" @onclick="() => ShowLogsGrouped()">Show grouped logs</button>
                     </div>
                 </div>
 
-                <div class="card card-info">
+                <div class="card card-default">
                     <div class="card-header">
                         <h4 class="card-title">Logs Details</h4>
                     </div>
@@ -104,7 +104,7 @@
                                                 <td><span class="badge bg-danger"> To Review</span></td>
                                             }
                                             <td>
-                                                <button class="btn btn-success" @onclick="() => GetLogDetails(logDetails)">Details</button>
+                                                <button class="btn btn-default" @onclick="() => GetLogDetails(logDetails)">Details</button>
                                             </td>
                                         </tr>
                                     }

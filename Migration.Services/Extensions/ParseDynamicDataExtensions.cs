@@ -34,7 +34,7 @@ namespace Migration.Services.Extensions
         {
             List<ActionType> actionTypes = new();
 
-            if (operationType == OperationType.Insert)
+            if (operationType == OperationType.Import)
             {
                 actionTypes.Add(ActionType.Insert);
             }

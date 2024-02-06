@@ -1,0 +1,323 @@
+﻿@page "/ManageDataProcessed"
+@using Newtonsoft.Json.Linq
+@using Migration.Infrastructure.Redis
+@using Microsoft.AspNetCore.Components
+@using Migration.Infrastructure.Redis.Entities
+@using Newtonsoft.Json
+@using System.Text
+@using Migration.Repository.Models
+@using Migration.Services
+@inherits CustomComponents;
+@inject IJSRuntime jsRuntime
+@inject IRepository<JObject> _localRepository
+@inject IRepository<Jobs> _jobRepository
+@inject IRevertMigrationService _revertMigrateService;
+@inject IRepository<Profile> _profileRepository;
+
+<div class="card card-default">
+    <div class="card-header">
+        <h3 class="card-title">Manage Data Migrated</h3>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-sm-4">
+                <label>Entity</label>
+                <input class="form-control" data-keeper-edited="yes" @bind="@_entity" />
+            </div>
+            <div class="col-sm-4">
+                <JobCategoryComponent OnJobCategorySelected="(jobCategory) =>_jobCategory = jobCategory"></JobCategoryComponent>
+            </div>
+            <div class="col-sm-4">
+                <label>Job Id</label>
+                <input class="form-control" data-keeper-edited="yes" @bind="@_jobId" />
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-6">
+                <label>Filter Name</label>
+                <input class="form-control" data-keeper-edited="yes" @bind="@_filterName" />
+            </div>
+            <div class="col-sm-6">
+                <label>Filter Value</label>
+                <input class="form-control" data-keeper-edited="yes" @bind="@_filterValue" />
+            </div>
+        </div>
+        <div class="card-footer">
+            <button class="btn btn-default" @onclick="() => GetData()"> <i class="nav-icon fas fa-search"></i>Get Data</button>
+        </div>
+    </div>
+</div>
+
+<div class="card card-default">
+    <div class="card-header">
+        <h3 class="card-title">Query Result</h3>
+    </div>
+    <div class="card-body">
+        <div class="input-group input-group-lg mb-3">
+            <div class="input-group-prepend">
+                <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+                    Action
+                </button>
+                <ul class="dropdown-menu">
+                    <li class="dropdown-item"><a @onclick="() => RevertMigration()"> <i class="nav-icon fas fa-database"></i> Revert Migration</a></li>
+                    <li class="dropdown-item"><a @onclick="() => DownloadJsonData()"><i class="nav-icon fas fa-download"></i> Save Json</a></li>
+                    <li class="dropdown-item"><a @onclick="() => DownloadCSVData()"><i class="nav-icon fas fa-download"></i> Save Csv</a></li>
+                    <li class="dropdown-item"><a @onclick="() => ExportToAnotherDb()"><i class="nav-icon fas fa-file-export"></i> Export to another DB</a></li>
+                </ul>
+            </div>
+            <div class="col-sm-1">
+                <label>Total</label>
+                @if (_data != null)
+                {
+                    <p> @_data.Where(w => !string.IsNullOrEmpty(_filterName) && !string.IsNullOrEmpty(_filterValue) ? w.SelectToken(_filterName).ToString() == _filterValue : true).Count()</p>
+                }
+                else
+                {
+                    <p>0</p>
+                }
+            </div>
+        </div>
+        <div class="row">
+            @if (_data != null)
+            {
+                foreach (var values in _data.Where(w => !string.IsNullOrEmpty(_filterName) && !string.IsNullOrEmpty(_filterValue) ? w.SelectToken(_filterName).ToString() == _filterValue : true))
+                {
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div class="card collapsed-card">
+                                <div class="card-header">
+                                    <h3 class="card-title"> @values["id"]</h3>
+                                    <div class="card-tools">
+                                        <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        @if (values.SelectToken("Backup") != null)
+                                        {
+                                            <div class="col-sm-6">
+                                                <b>Backup</b>
+                                                <pre>@JValue.Parse(values.SelectToken("Backup").ToString()).ToString(Formatting.Indented) </pre>
+                                            </div>
+                                        }
+                                        @if (values.SelectToken("Updated") != null)
+                                        {
+                                            <div class="col-sm-6">
+                                                <b>Updated</b>
+                                                <pre>@JValue.Parse(values.SelectToken("Updated").ToString()).ToString(Formatting.Indented) </pre>
+                                            </div>
+                                        }
+                                        @if (values.SelectToken("Report") != null)
+                                        {
+                                            <div class="col-sm-6">
+                                                <b>Report</b>
+                                                <pre>@JValue.Parse(values.SelectToken("Report").ToString()).ToString(Formatting.Indented) </pre>
+                                            </div>
+                                        }
+                                        @if (values.SelectToken("Inserted") != null)
+                                        {
+                                            <div class="col-sm-12">
+                                                <b>Inserted</b>
+                                                <pre>@JValue.Parse(values.SelectToken("Inserted").ToString()).ToString(Formatting.Indented) </pre>
+                                            </div>
+                                        }
+
+                                        @if (values.SelectToken("Deleted") != null)
+                                        {
+                                            <div class="col-sm-12">
+                                                <b>Deleted</b>
+                                                <pre>@JValue.Parse(values.SelectToken("Deleted").ToString()).ToString(Formatting.Indented) </pre>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@if (Loading)
+{
+    <div class="col-sm-12">
+        <Loading />
+    </div>
+}
+
+
+<ExportAnotherDBComponent Data="@_data" ShowPopup="_exportAnotherDb" ModalOk="ModalOk"></ExportAnotherDBComponent>
+
+
+<ConfirmComponent Title="Revert Migration" ShowPopup="_confirmRevertMigration" Description="Do you want to revert the records to the original version? This will apply the version that was at the time this job was processed."
+                  OnConfirmed="OnRevertMigrationConfirmed"></ConfirmComponent>
+
+@code {
+    private string _entity;
+    private string _jobCategory;
+    private string _jobId;
+    private string _filterName;
+    private string _filterValue;
+    private string _entityName;
+
+    // Reference to the div that will display the difference
+    private ElementReference diffResultBefore;
+    private ElementReference diffResultAfter;
+
+    private bool _exportAnotherDb;
+
+    private bool _confirmRevertMigration;
+
+    private List<JObject> _data;
+
+    private Jobs _job;
+
+    public async Task GetData()
+    {
+        _entityName = _entity + "$" + _jobCategory + "$" + _jobId + "$";
+
+        _data = await _localRepository.FindAsync(new RedisData<JObject>()
+            {
+                RedisKey = _entityName
+            });
+
+        var redisValue = await _jobRepository.FindByKeyAsync(new RedisData<Jobs>()
+            {
+                RedisValue = _jobId
+            });
+
+        if (!redisValue.HasValue)
+        {
+            await ShowErrorAlert("No job found");
+        }
+        _job = JsonConvert.DeserializeObject<Jobs>(redisValue);
+
+        // await jsRuntime.InvokeVoidAsync("getDiffBefore", diffResultBefore, _data[0].SelectToken("Backup").ToString(), _data[0].SelectToken("Updated").ToString());
+        // await jsRuntime.InvokeVoidAsync("getDiffAfter", diffResultAfter, _data[0].SelectToken("Backup").ToString(), _data[0].SelectToken("Updated").ToString());
+    }
+
+    private string getDiffBefore(string before, string after)
+    {
+        // Include the JavaScript interop for the getDiffBefore method here
+        // You can use JSInterop to call your JavaScript methods from C# in Blazor
+        // For simplicity, let's assume you already have a JSInterop implemented.
+        try
+        {
+            return jsRuntime.InvokeAsync<string>("getDiffBefore", before, after).Result;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+    }
+
+    private string getDiffAfter(string before, string after)
+    {
+        // Include the JavaScript interop for the getDiffAfter method here
+        // You can use JSInterop to call your JavaScript methods from C# in Blazor
+        // For simplicity, let's assume you already have a JSInterop implemented.
+        return jsRuntime.InvokeAsync<string>("getDiffAfter", before, after).Result;
+    }
+    private async Task ShowErrorAlert(string message)
+    {
+        await jsRuntime.InvokeAsync<object>("ShowErrorAlert", message);
+    }
+
+
+    private async Task DownloadJsonData()
+    {
+        // Convert the JSON string to bytes
+        byte[] jsonBytes = Encoding.UTF8.GetBytes(String.Join(",", _data.Select(s => s.ToString())));
+
+        // Generate a unique filename (you can customize this as needed)
+        string fileName = $"{_entityName}.json";
+
+        // Create a memory stream from the JSON bytes
+        using (MemoryStream ms = new MemoryStream(jsonBytes))
+        {
+            // Trigger the download
+            await jsRuntime.InvokeAsync<object>("saveAsFile", fileName, Convert.ToBase64String(ms.ToArray()));
+        }
+    }
+
+
+    private async Task DownloadCSVData()
+    {
+        string fileName = $"{_entityName}.json";
+
+        var csvContent = ConvertJsonToCsv();
+
+        await jsRuntime.InvokeVoidAsync("downloadCsv", csvContent, $"{fileName}.csv");
+    }
+
+    private string ConvertJsonToCsv()
+    {
+        // Extract column names from JSON properties
+        List<string> columns = new List<string>();
+
+
+        foreach (JProperty property in _data.FirstOrDefault().Properties().Where(w => !w.Name.Equals("Id", StringComparison.InvariantCultureIgnoreCase)))
+        {
+            columns.Add(property.Name);
+        }
+
+        // Build CSV header
+        StringBuilder csvBuilder = new StringBuilder();
+        csvBuilder.AppendLine(string.Join(",", columns));
+
+        foreach (var d in _data)
+        {
+            List<string> rowData = new List<string>();
+
+            foreach (JProperty property in d.Properties().Where(w => !w.Name.Equals("Id", StringComparison.InvariantCultureIgnoreCase)))
+            {
+                rowData.Add(property.Value.ToString());
+            }
+            csvBuilder.AppendLine(string.Join(",", rowData) + ",");
+        }
+
+        return csvBuilder.ToString();
+    }
+
+    private void RevertMigration()
+    {
+        _confirmRevertMigration = true;
+    }
+
+    private void ExportToAnotherDb()
+    {
+        _exportAnotherDb = true;
+    }
+
+    public void ModalOk()
+    {
+        _exportAnotherDb = false;
+    }
+
+    private async Task OnRevertMigrationConfirmed(bool confirmed)
+    {
+        _confirmRevertMigration = false;
+
+        if (!confirmed) return;
+
+        Loading = true;
+
+        var redisValue = await _profileRepository.FindByKeyAsync(new RedisData<Profile>()
+            {
+                RedisKey = _jobCategory,
+                RedisValue = _job.ProfileId
+            });
+
+        var profile = JsonConvert.DeserializeObject<Profile>(redisValue);
+
+
+        await _revertMigrateService.Revert(profile, _data, _job.JobId);
+
+        Loading = false;
+    }
+}
