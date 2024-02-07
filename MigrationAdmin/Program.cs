@@ -57,7 +57,7 @@ builder.Services.AddTransient<Func<DataSettings, IGenericRepository>>(_ => setti
 {
     ConnectionType.CosmosDb => new CosmosDbGenericRepository(settings),
     ConnectionType.File => new FileRepository(settings),
-    ConnectionType.TableStorage => new TableStorageGenericRepository(settings),
+    ConnectionType.TableStorage => new WindowsAzureGenericRepository(settings),
     _ => throw new ArgumentException(string.Empty, "Invalid Db Type")
 });
 
@@ -77,7 +77,7 @@ builder.Services.AddTransient<Func<DBSettings, IGenericRepository>>(_ => setting
     return settings?.DbType switch
     {
         DbType.Cosmos => new CosmosDbGenericRepository(dataSettings),
-        DbType.TableStorage => new TableStorageGenericRepository(dataSettings),
+        DbType.TableStorage => new WindowsAzureGenericRepository(dataSettings),
         _ => throw new ArgumentException(string.Empty, "Invalid Db Type")
     };
 });

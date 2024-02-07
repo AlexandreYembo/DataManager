@@ -20,6 +20,10 @@ namespace Migration.Repository.Validations
                         return HasValidAttributesConfiguration(dataMapping);
                     }
 
+                    if (dataMapping.OperationType == OperationType.Report)
+                    {
+                        return true;
+                    }
                     return HasValidMapping(dataMapping);
                 case 4:
                     if (dataMapping.OperationType == OperationType.Import)
@@ -37,7 +41,7 @@ namespace Migration.Repository.Validations
         {
             if (dataMapping.Destination.Settings.ConnectionType == ConnectionType.CosmosDb)
             {
-                if (!dataMapping.Destination.Settings.CurrentEntity.Attributes.Any(f => f.Key == TableAttributesType.PartitionKey.ToString()) 
+                if (!dataMapping.Destination.Settings.CurrentEntity.Attributes.Any(f => f.Key == TableAttributesType.PartitionKey.ToString())
                     || string.IsNullOrWhiteSpace(dataMapping.Destination.Settings.CurrentEntity.Attributes.FirstOrDefault(f => f.Key == "PartitionKey").Value))
                 {
                     ValidationMessages.Add(new() { Message = "Provide the Partition Key" });

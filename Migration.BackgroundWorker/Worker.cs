@@ -27,9 +27,9 @@ namespace Migration.BackgroundWorker
             {
                 _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
 
-                _migrationService.Process()
+                await _migrationService.Process("");
 
-                  await Task.Delay(5000, stoppingToken);
+                await Task.Delay(5000, stoppingToken);
             }
         }
     }
