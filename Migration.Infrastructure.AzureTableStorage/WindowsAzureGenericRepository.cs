@@ -96,6 +96,9 @@ namespace Migration.Infrastructure.AzureTableStorage
 
             var currentSegment = await GetRecordByPage(query, take, cancellation);
 
+            if (currentSegment == null)
+                return dictionary;
+
             // Access properties dynamically
             foreach (DynamicTableEntity entity in currentSegment.Results)
             {
@@ -321,6 +324,7 @@ namespace Migration.Infrastructure.AzureTableStorage
             {
                 MoveToNextSegment(tableQuery, currentSegment.ContinuationToken, cancellation);
                 currentSegment = await segmentDownloadTask;
+                currentEntityIndex = 0;
             }
 
             if (currentEntityIndex >= currentSegment.Results.Count && currentSegment.ContinuationToken == null)

@@ -211,8 +211,15 @@ namespace Migration.Services
                 }
                 else if (dataMapping.OperationType == OperationType.Report)
                 {
+                    bool hasChange = false;
+
+                    var objectToBeUpdated =
+                       UpdateDataHelper.UpdateObject(data.Value, dataMapping.FieldsMapping, ref hasChange);
+
+                    if (!hasChange) return;
+
                     backup.Add("id", originalData["id"].ToString());
-                    backup.Add("Report", originalData);
+                    backup.Add("Report", objectToBeUpdated);
                     await SaveCopyInLocal(dataMapping.Source.Settings.CurrentEntity.Name, backup, job);
 
                     logDetails.Descriptions.Add(new("Record exported"));

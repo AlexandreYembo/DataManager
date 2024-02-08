@@ -11,18 +11,22 @@
 	  <Compile Remove="DataProcess\**" />
 	  <Compile Remove="DataSource\**" />
 	  <Compile Remove="Settings\**" />
+	  <Compile Remove="Uploads\**" />
 	  <Content Remove="Backup\**" />
 	  <Content Remove="DataProcess\**" />
 	  <Content Remove="DataSource\**" />
 	  <Content Remove="Settings\**" />
+	  <Content Remove="Uploads\**" />
 	  <EmbeddedResource Remove="Backup\**" />
 	  <EmbeddedResource Remove="DataProcess\**" />
 	  <EmbeddedResource Remove="DataSource\**" />
 	  <EmbeddedResource Remove="Settings\**" />
+	  <EmbeddedResource Remove="Uploads\**" />
 	  <None Remove="Backup\**" />
 	  <None Remove="DataProcess\**" />
 	  <None Remove="DataSource\**" />
 	  <None Remove="Settings\**" />
+	  <None Remove="Uploads\**" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -69,10 +73,6 @@
 	  <ProjectReference Include="..\Migration.Infrastructure.Redis\Migration.Infrastructure.Redis.csproj" />
 	  <ProjectReference Include="..\Migration.Repository\Migration.Repository.csproj" />
 	  <ProjectReference Include="..\Migration.Services\Migration.Services.csproj" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="Uploads\" />
 	</ItemGroup>
 
 </Project>
