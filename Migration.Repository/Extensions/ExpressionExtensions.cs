@@ -53,13 +53,28 @@ namespace Migration.Repository.Extensions
                     if (path2.GetType() == typeof(JArray))
                     {
                         var arr = ((JArray)d[field]);
-                        var jtoken = arr[index];
 
-                        value2 = jtoken.ToString();
-
-                        if (!value2.Contains(value1, StringComparison.InvariantCultureIgnoreCase))
+                        if(arr.Count() > index)
                         {
-                            return false;
+                            var jtoken = arr[index];
+
+                            value2 = jtoken.ToString();
+
+                            if (!value2.Contains(value1, StringComparison.InvariantCultureIgnoreCase))
+                            {
+                                return false;
+                            }
+                        }
+                        else
+                        {
+                            var jtoken = arr[arr.Count() -1];
+
+                            value2 = jtoken.ToString();
+
+                            if (!value2.Contains(value1, StringComparison.InvariantCultureIgnoreCase))
+                            {
+                                return false;
+                            }
                         }
                     }
                     else

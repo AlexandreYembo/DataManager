@@ -10,7 +10,7 @@
                 </li>
             }
 
-            @if (DataMapping.OperationType == OperationType.Update || DataMapping.OperationType == OperationType.Import)
+            @if (DataMapping.OperationType != OperationType.Delete)
             {
                 <li class="nav-item">
                     <a class="nav-link" id="custom-tabs-one-ValueUpdate-tab" data-toggle="pill" href="#custom-tabs-one-ValueUpdate" role="tab" aria-controls="custom-tabs-one-ValueUpdate" aria-selected="false">Update Value</a>
@@ -77,7 +77,7 @@
                 </div>
             }
 
-            @if (DataMapping.OperationType == OperationType.Update || DataMapping.OperationType == OperationType.Import)
+            @if (DataMapping.OperationType != OperationType.Delete)
             {
                 <div class="tab-pane fade" id="custom-tabs-one-ValueUpdate" role="tabpanel" aria-labelledby="custom-tabs-one-ValueUpdate-tab">
                     <table class="table table-bordered table-striped">
@@ -156,7 +156,7 @@
                     <table class="table table-bordered table-striped">
                         <thead>
                             <tr>
-                                <th>Value Type</th>
+                                <th>Mapping Type</th>
                                 <th>Source Condition</th>
                                 <th>Destination Field</th>
                                 <th>Destination Value</th>
@@ -169,14 +169,14 @@
                             {
                                 <tr>
                                     <td>
-                                        @destMap.ValueType
+                                        @destMap.MappingType
                                     </td>
                                     <td>
                                         <table class="table table-bordered table-striped">
                                             <thead>
                                                 <tr>
                                                     <th>Direction</th>
-                                                    <th>Value Type</th>
+                                                    <th>Operator Type</th>
                                                     <th>Source Condition</th>
                                                 </tr>
                                             </thead>
@@ -193,10 +193,18 @@
                                                                 @sourceCondition.Type
                                                             }
                                                         </td>
-                                                        <td>
-                                                            @sourceCondition.Query
-                                                        </td>
-
+                                                        @if (@sourceCondition.ConditionDirection == MappingDirectionType.Source)
+                                                        {
+                                                            <td>
+                                                                @destMap.SourceEntity.@sourceCondition.Query
+                                                            </td>
+                                                        }
+                                                        else
+                                                        {
+                                                            <td>
+                                                                @destMap.DestinationEntity.@sourceCondition.Query
+                                                            </td>
+                                                        }
                                                     </tr>
                                                 }
                                             </tbody>
@@ -245,7 +253,7 @@
                                             <thead>
                                                 <tr>
                                                     <th>Direction</th>
-                                                    <th>Value Type</th>
+                                                    <th>Operator Type</th>
                                                     <th>Source Condition</th>
                                                 </tr>
                                             </thead>
@@ -262,9 +270,18 @@
                                                                 @sourceCondition.Type
                                                             }
                                                         </td>
-                                                        <td>
-                                                            @sourceCondition.Query
-                                                        </td>
+                                                        @if (@sourceCondition.ConditionDirection == MappingDirectionType.Source)
+                                                        {
+                                                            <td>
+                                                                @destMap.SourceEntity.@sourceCondition.Query
+                                                            </td>
+                                                        }
+                                                        else
+                                                        {
+                                                            <td>
+                                                                @destMap.DestinationEntity.@sourceCondition.Query
+                                                            </td>
+                                                        }
                                                     </tr>
                                                 }
                                             </tbody>

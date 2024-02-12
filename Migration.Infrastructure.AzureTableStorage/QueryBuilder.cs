@@ -144,15 +144,15 @@ namespace Migration.Infrastructure.AzureTableStorage
                 upperCaseOperation = "lower(#value#)";
             }
 
-            switch (dataFieldsMapping.OperatorType)
+            switch (dataFieldsMapping.JoinType)
             {
-                case OperatorType.ArrayContains: throw new DbOperationException("ERROR-001", "Array Contains operator is not supported by Table Storage. Choose another one.");
-                case OperatorType.Eq:
+                case JoinType.ArrayContains: throw new DbOperationException("ERROR-001", "Array Contains operator is not supported by Table Storage. Choose another one.");
+                case JoinType.Eq:
                     if (!string.IsNullOrEmpty(upperCaseOperation))
                         return $"{upperCaseOperation.Replace("#value#", "c." + dataFieldsMapping.DestinationField)} = {upperCaseOperation.Replace("#value#", value)}";
 
                     return $"c.{dataFieldsMapping.DestinationField} = {value}";
-                case OperatorType.In: return $"c.{dataFieldsMapping.DestinationField} in({value})";
+                case JoinType.In: return $"c.{dataFieldsMapping.DestinationField} in({value})";
                 default: return string.Empty;
             }
         }

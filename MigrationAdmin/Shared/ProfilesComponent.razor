@@ -1,0 +1,45 @@
+﻿@using Migration.Repository.Models
+@using Migration.Infrastructure.Redis
+@inject IRepository<Profile> _profileRepository;
+
+<label>Profiles</label>
+<select class="form-control" id="profile" data-keeper-edited="yes" @onchange="ChangeProfile">
+    @if (_listProfiles != null)
+    {
+        foreach (var profile in _listProfiles)
+        {
+            <option value="@profile.DataMappings[0].Id">@profile.Name</option>
+        }
+    }
+</select>
+
+@code {
+    private List<Profile> _listProfiles;
+
+    [Parameter]
+    public JobsCategory JobsCategory { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnProfileSelected { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (JobsCategory == null) return;
+
+        _listProfiles = await _profileRepository.FindAsync(JobsCategory.CategoryName);
+
+        if (_listProfiles.Any())
+        {
+            var profileId = _listProfiles.FirstOrDefault().DataMappings[0].Id;
+
+            await OnProfileSelected.InvokeAsync(profileId);
+        }
+    }
+
+    private async Task ChangeProfile(ChangeEventArgs e)
+    {
+        var profileId = e.Value.ToString();
+
+        await OnProfileSelected.InvokeAsync(profileId);
+    }
+}

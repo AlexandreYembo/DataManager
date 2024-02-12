@@ -2,8 +2,8 @@
 @using Migration.Infrastructure.Redis
 @inject IRepository<JobsCategory> _jobsCategoryRepository;
 
-<label>JobCategory</label>
-<select class="form-control" id="connectionString" data-keeper-edited="yes" @onchange="ChangeJobCategory">
+<label>Job Category</label>
+<select class="form-control" id="jobCategory" data-keeper-edited="yes" @onchange="ChangeJobCategory">
     @if (_listJobsCategory != null)
     {
         foreach (var jobsCategory in _listJobsCategory)
@@ -17,7 +17,7 @@
     private List<JobsCategory> _listJobsCategory;
 
     [Parameter]
-    public EventCallback<string> OnJobCategorySelected { get; set; }
+    public EventCallback<JobsCategory> OnJobCategorySelected { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -25,7 +25,7 @@
 
         if (_listJobsCategory.Any())
         {
-            var jobCategory = _listJobsCategory.FirstOrDefault().CategoryName;
+            var jobCategory = _listJobsCategory.FirstOrDefault();
 
             await OnJobCategorySelected.InvokeAsync(jobCategory);
         }
@@ -33,7 +33,9 @@
 
     private async Task ChangeJobCategory(ChangeEventArgs e)
     {
-        var jobCategory = e.Value.ToString();
+        var jobCategoryName = e.Value.ToString();
+
+        var jobCategory = _listJobsCategory.FirstOrDefault(f => f.CategoryName == jobCategoryName);
 
         await OnJobCategorySelected.InvokeAsync(jobCategory);
     }

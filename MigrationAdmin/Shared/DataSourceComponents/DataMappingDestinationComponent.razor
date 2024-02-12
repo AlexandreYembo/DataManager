@@ -22,7 +22,7 @@
             <div class="col-sm-12">
                 @if (_dataFieldsMapping.MappingType != null)
                 {
-                    @if (DataMapping.OperationType == OperationType.Update || DataMapping.OperationType == OperationType.Import)
+                    @if (DataMapping.OperationType != OperationType.Delete)
                     {
                         @switch (_dataFieldsMapping.MappingType)
                         {

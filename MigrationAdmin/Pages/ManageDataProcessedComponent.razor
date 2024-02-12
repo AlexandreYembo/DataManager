@@ -25,7 +25,7 @@
                 <input class="form-control" data-keeper-edited="yes" @bind="@_entity" />
             </div>
             <div class="col-sm-4">
-                <JobCategoryComponent OnJobCategorySelected="(jobCategory) =>_jobCategory = jobCategory"></JobCategoryComponent>
+                <JobCategoryComponent OnJobCategorySelected="(jobCategory) =>_jobCategory = jobCategory.CategoryName"></JobCategoryComponent>
             </div>
             <div class="col-sm-4">
                 <label>Job Id</label>

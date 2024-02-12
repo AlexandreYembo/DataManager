@@ -41,21 +41,29 @@ namespace Migration.Infrastructure.CosmosDb
 
                 var relationshipData = JObject.Parse(data);
 
-                var value = ConvertOperator(joins[0], relationshipData);
+                var value = " (" + ConvertOperator(joins[0], relationshipData);
 
                 if (!string.IsNullOrEmpty(value))
-                    query = query.Replace("where", $"where {value} #joins# ");
+                    query = query.Replace("where", $"where #joins# ");
+                //query = query.Replace("where", $"where {value} #joins# ");
 
                 for (int i = 1; i < joins.Count; i++)
                 {
-                    value = ConvertOperator(joins[i], relationshipData);
+                    var operatorType = (joins[i].OperatorType == SearchConditionType.And) ? " and " : " or ";
+                    value = value + operatorType + ConvertOperator(joins[i], relationshipData);
 
-                    if (!string.IsNullOrEmpty(value))
-                        query = query.Replace("#joins#", $"and {value} #joins# ");
+                    //if (!string.IsNullOrEmpty(value))
+                    //    query = query.Replace("#joins#", $"{operatorType} {value} #joins# ");
+                }
+
+                if (!string.IsNullOrEmpty(value))
+                {
+                    value += ") ";
+                    query = query.Replace("#joins#", value);
                 }
 
                 //Remove the mark after resolving all the joins from the Source table to the dynamic table
-                query = query.Replace("#joins#", string.Empty);
+                //  query = query.Replace("#joins#", string.Empty);
             }
 
             if (take > 0) //pagination query
@@ -69,6 +77,7 @@ namespace Migration.Infrastructure.CosmosDb
         //Convert operator to make dynamic queries
         private static string ConvertOperator(DataFieldsMapping dataFieldsMapping, JObject relationshipData)
         {
+
             var value = string.Empty;
 
             var fieldPath = relationshipData.SelectToken(dataFieldsMapping.SourceField);
@@ -106,15 +115,15 @@ namespace Migration.Infrastructure.CosmosDb
             if (string.IsNullOrEmpty(value))
                 return string.Empty;
 
-            switch (dataFieldsMapping.OperatorType)
+            switch (dataFieldsMapping.JoinType)
             {
-                case OperatorType.ArrayContains: return $"ARRAY_CONTAINS(c.{dataFieldsMapping.DestinationField},{value})";
-                case OperatorType.Eq:
+                case JoinType.ArrayContains: return $"ARRAY_CONTAINS(c.{dataFieldsMapping.DestinationField},{value})";
+                case JoinType.Eq:
                     if (!string.IsNullOrEmpty(upperCaseOperation))
                         return $"{upperCaseOperation.Replace("#value#", "c." + dataFieldsMapping.DestinationField)} = {upperCaseOperation.Replace("#value#", value)}";
 
                     return $"c.{dataFieldsMapping.DestinationField} = {value}";
-                case OperatorType.In: return $"c.{dataFieldsMapping.DestinationField} in({value})";
+                case JoinType.In: return $"c.{dataFieldsMapping.DestinationField} in({value})";
                 default: return string.Empty;
             }
         }

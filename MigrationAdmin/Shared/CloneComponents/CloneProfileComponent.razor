@@ -5,7 +5,8 @@
 @inject IRepository<DataSettings> _dataSettingsRepository;
 @inject IRepository<Profile> _profileRepository;
 @inject IJSRuntime jsRuntime
-@if (_profile != null)
+
+@if (ShowModal)
 {
     <div class="modal fade show" id="dataDifferenceModal" style="display:block" aria-modal="true" role="dialog">
         <div class="modal-dialog" style="max-width:50%;">
@@ -20,19 +21,19 @@
                 <div class="modal-body" style="height: 300px;">
                     <div class="row">
                         <div class="col-sm-12">
-                            <JobCategoryComponent OnJobCategorySelected="(jobCategory) => _profile.JobCategoryId = jobCategory"></JobCategoryComponent>
+                            <JobCategoryComponent OnJobCategorySelected="(jobCategory) => Profile.JobCategoryId = jobCategory.CategoryName"></JobCategoryComponent>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-sm-12">
                             <label>Name</label>
-                            <input class="form-control" data-keeper-edited="yes" @bind="@_profile.Name" />
+                            <input class="form-control" data-keeper-edited="yes" @bind="@Profile.Name" />
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-sm-12">
                             <label>Description</label>
-                            <input class="form-control" data-keeper-edited="yes" @bind="@_profile.Description" />
+                            <input class="form-control" data-keeper-edited="yes" @bind="@Profile.Description" />
                         </div>
                     </div>
                 </div>
@@ -49,45 +50,39 @@
 
 @code {
     [Parameter]
-    public string ProfileId { get; set; }
+    public bool ShowModal { get; set; }
 
     [Parameter]
-    public string JobCategory { get; set; }
+    public Profile Profile { get; set; }
 
-    private Profile _profile { get; set; }
+    [Parameter]
+    public EventCallback<Profile> OnProfileCloned { get; set; }
 
     [Parameter]
     public EventCallback ModalOk { get; set; }
 
-    private IEnumerable<DataSettings> _dataSettings;
-
-    protected override async Task OnInitializedAsync()
-    {
-        var profiles = await _profileRepository.FindAsync(JobCategory);
-
-        _profile = profiles.FirstOrDefault(f => f.DataMappings[0].Id == ProfileId);
-        _profile.Name = "Clone-" + _profile.Name;
-    }
-
     private async Task CloneProfile()
     {
         var newId = Guid.NewGuid().ToString();
-        _profile.DataMappings[0].Id = newId;
+        Profile.DataMappings[0].Id = newId;
 
         var redisData = new RedisData<Profile>()
             {
-                Data = _profile,
+                Data = Profile,
                 RedisValue = newId,
-                RedisKey = _profile.JobCategoryId
+                RedisKey = Profile.JobCategoryId
             };
 
         await _profileRepository.SaveAsync(redisData);
 
         await ShowSuccessAlert();
+
+        await OnProfileCloned.InvokeAsync(Profile);
     }
 
     private async Task ShowSuccessAlert()
     {
         await jsRuntime.InvokeAsync<object>("ShowSuccessAlert", $"Profile configuration cloned");
+        ShowModal = false;
     }
 }

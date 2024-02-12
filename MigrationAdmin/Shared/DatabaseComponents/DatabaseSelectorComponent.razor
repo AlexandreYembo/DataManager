@@ -152,8 +152,7 @@
 
         if (DataSettings.CurrentEntity != null && string.IsNullOrEmpty(DataSettings.CurrentEntity.Name) && DataSettings.Entities.Any())
             DataSettings.CurrentEntity = DataSettings.Entities.FirstOrDefault();
-        else
-            DataSettings.CurrentEntity = new();
+      
         //     await OnDbSettingsChanged.InvokeAsync(DataSettings);
         // }
 
