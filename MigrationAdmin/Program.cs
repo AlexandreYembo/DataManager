@@ -26,6 +26,7 @@ builder.Services.AddTransient(typeof(IPublisher<,>), typeof(Publisher<,>));
 
 builder.Services.AddScoped<LogPublisher>();
 builder.Services.AddScoped<LogDetailsPublisher>();
+builder.Services.AddScoped<GetLogPublisher>();
 builder.Services.AddScoped<ActionsPublisher>();
 builder.Services.AddScoped<JobsPublisher>();
 

@@ -141,7 +141,9 @@ namespace Migration.Infrastructure.CosmosDb
 
             if (!string.IsNullOrEmpty(partitionKey))
             {
-                response = await container.DeleteItemAsync<JObject>(id, new PartitionKey(id), null, CancellationToken.None);
+                var partitionKeyValue = entity[partitionKey].ToString();
+
+                response = await container.DeleteItemAsync<JObject>(id, new PartitionKey(partitionKeyValue), null, CancellationToken.None);
             }
             else
             {
@@ -164,7 +166,7 @@ namespace Migration.Infrastructure.CosmosDb
                 entity["id"] = Guid.NewGuid().ToString();
             }
 
-           Guid.TryParse(entity["id"].ToString(), out var id);
+            Guid.TryParse(entity["id"].ToString(), out var id);
 
             if (id == default)
             {
@@ -177,7 +179,18 @@ namespace Migration.Infrastructure.CosmosDb
 
                 if (!string.IsNullOrEmpty(partitionKey))
                 {
-                    response = await container.CreateItemAsync(entity, new PartitionKey(entity[partitionKey].ToString()));
+                    var partitionIdValue = string.Empty;
+
+                    if (entity[partitionKey] == null)
+                    {
+                        partitionIdValue = id.ToString();
+                    }
+                    else
+                    {
+                        partitionIdValue = entity[partitionKey].ToString();
+                    }
+
+                    response = await container.CreateItemAsync(entity, new PartitionKey(partitionIdValue));
                 }
                 else
                 {

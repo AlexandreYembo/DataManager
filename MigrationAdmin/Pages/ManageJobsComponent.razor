@@ -5,6 +5,7 @@
 @using Migration.Repository.Models
 @using Migration.Repository.Publishers
 @using Migration.Services
+@using Migration.Services.Subscribers
 @using Newtonsoft.Json
 @inherits CustomComponents;
 @inject IRepository<Profile> _profileRepository;
@@ -13,7 +14,7 @@
 @inject IJSRuntime jsRuntime
 @inject IMigrationService _migrateService;
 @inject JobsPublisher _jobPublisher;
-@inject LogPublisher _logPublisher;
+@inject GetLogPublisher _logPublisher;
 @inject IJobService _jobService;
 
 <div class="content">
@@ -136,7 +137,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _jobPublisher.OnEventPublished += (sender, args) =>
+        _jobPublisher.OnEventPublished += (sender, args) => // Subscribe event when the job completes the task to take the next one
         {
             foreach (var job in _jobs.Where(w => w.JobId == args.Job.JobId))
             {
@@ -170,7 +171,6 @@
         {
         }
     }
-
 
     private async Task CreateJob()
     {

@@ -15,22 +15,12 @@ namespace Migration.Repository.Validations
                 case 2: // DataSettings
                     return HasDataSettingValid(dataMapping);
                 case 3: // Mappings
-                    if (dataMapping.OperationType == OperationType.Import)
-                    {
-                        return HasValidAttributesConfiguration(dataMapping);
-                    }
-
-                    if (dataMapping.OperationType == OperationType.Report)
-                    {
-                        return true;
-                    }
                     return HasValidMapping(dataMapping);
                 case 4:
                     if (dataMapping.OperationType == OperationType.Import)
                     {
-                        return HasValidMapping(dataMapping);
+                        return HasValidAttributesConfiguration(dataMapping);
                     }
-
                     return true;
                 default:
                     return true;

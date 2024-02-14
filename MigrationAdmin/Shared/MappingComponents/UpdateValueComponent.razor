@@ -10,8 +10,19 @@
         <div class="row">
             <div class="col-sm-12">
                 <div class="form-group">
+                    <label>Field Type</label>]
+                    <select class="form-control" id="fieldType" data-keeper-edited="yes" @bind="@DataFieldsMapping.ValueType">
+                        @foreach (var valueType in Enum.GetValues<FieldValueType>())
+                        {
+                            <option value="@valueType">@valueType</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="col-sm-12">
+                <div class="form-group">
                     <label>[@DataFieldsMapping.DestinationEntity]</label>[Field]
-                    <input class="form-control" data-keeper-edited="yes" @bind="DataFieldsMapping.DestinationField"/>
+                    <input class="form-control" data-keeper-edited="yes" @bind="DataFieldsMapping.DestinationField" />
                 </div>
             </div>
         </div>

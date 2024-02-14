@@ -36,8 +36,9 @@
                         <thead>
                             <tr>
                                 <th>Mapping Type</th>
-                                <th>Ignore Case Sensitive</th>
+                                <th>Join Type</th>
                                 <th>Operator Type</th>
+                                <th>Ignore Case Sensitive</th>
                                 <th>Source</th>
                                 <th>Destination</th>
                                 <th></th>
@@ -51,10 +52,13 @@
                                         @destMap.MappingType
                                     </td>
                                     <td>
-                                        @destMap.IgnoreCaseSensitive
+                                        @destMap.JoinType
                                     </td>
                                     <td>
                                         @destMap.OperatorType
+                                    </td>
+                                    <td>
+                                        @destMap.IgnoreCaseSensitive
                                     </td>
                                     <td>
                                         @destMap.SourceEntity.@destMap.SourceField

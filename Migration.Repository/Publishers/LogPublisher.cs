@@ -11,4 +11,8 @@ namespace Migration.Repository.Publishers
     public class LogDetailsPublisher : Publisher<LogDetails, LogDetailsEventArgs>
     {
     }
+
+    public class GetLogPublisher : Publisher<LogResult, LogResultEventArgs>
+    {
+    }
 }

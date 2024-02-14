@@ -1,11 +1,13 @@
 ﻿using Migration.Repository;
 using Migration.Repository.Delegates;
+using Migration.Repository.Helpers;
 using Migration.Repository.LogModels;
 using Migration.Repository.Models;
 using Migration.Repository.Publishers;
 using Migration.Services.Extensions;
 using Migration.Services.Helpers;
 using Newtonsoft.Json.Linq;
+using System;
 
 namespace Migration.Services
 {
@@ -128,21 +130,27 @@ namespace Migration.Services
                         {
                             await _logResultPublisher.PublishAsync(log);
 
-                            var liveDataObject = JObject.Parse(liveData.Values.FirstOrDefault());
-
-                            var allowDelete = await CheckDifferencesAllowToDelete(profile, jobId, liveDataObject, insertedData, logDetails, 0);
-
-                            if (allowDelete)
+                            foreach (var kvp in liveData.Values)
                             {
-                                await repository.Delete(liveDataObject);
+                                var liveDataObject = JObject.Parse(kvp);
 
-                                logDetails.Descriptions.Add("Record deleted");
+                                var allowDelete = await CheckDifferencesAllowToDelete(profile, jobId, liveDataObject, insertedData, logDetails, 0);
+                              
+                                logDetails.Title = liveDataObject.SelectToken("id").ToString();
 
-                                await _logDetailsPublisher.PublishAsync(logDetails);
-                            }
-                            else
-                            {
-                                logDetails.Descriptions.Add("There was another change on this data");
+                                if (allowDelete)
+                                {
+                                    await repository.Delete(liveDataObject);
+
+                                    logDetails.Descriptions.Add("Record deleted");
+
+                                    await _logDetailsPublisher.PublishAsync(logDetails);
+                                }
+                                else
+                                {
+                                    logDetails.Descriptions.Add("There was another change on this data");
+                                    await _logDetailsPublisher.PublishAsync(logDetails);
+                                }
                             }
                         }
                     }
@@ -215,17 +223,37 @@ namespace Migration.Services
                 var differencesUpdatedAndLiveData =
                     DifferenceHelper.FindDifferences(liveDataObject, JObject.Parse(updatedData.ToString()), false, profile.DataMappings[0].FieldsMapping);
 
+                if (!differencesUpdatedAndLiveData.Any()) // If there is no difference, double check just to make sure that there will have nothing updated in live prod
+                {
+                    foreach (var fieldMapping in profile.DataMappings[0].FieldsMapping.Where(w => liveDataObject.SelectTokens(w.SourceField).Any()))
+                    {
+                        var value1 = liveDataObject.SelectToken(fieldMapping.SourceField).ToString();
+                        var value2 = updatedData.SelectToken(fieldMapping.SourceField).ToString();
+
+                        if (value1 != value2)
+                        {
+                            differencesUpdatedAndLiveData.Add(new Difference()
+                            {
+                                PropertyName = fieldMapping.SourceField,
+                                Object1Value = value1 != null ? value1.ToString() : string.Empty,
+                                Object2Value = value2 != null ? value2.ToString() : string.Empty
+                            });
+                        }
+                    }
+                }
+
                 if (differencesUpdatedAndLiveData
                     .Any()) //It means that the version that has been updated during migration is already obsolete, but offers the option to Accept the conflict and update the record
                 {
+                    var message = "Values from migration are not the same from live data. Please check: ";
+                    foreach (var item in differencesUpdatedAndLiveData)
+                    {
+                        message += "<br> Live Data = '" + item.PropertyName + " = " + item.Object1Value + "'" +
+                                  "<br> Data Migrated = '" + item.PropertyName + " = " + item.Object2Value + "'" +
+                                  "<br>";
+                    }
 
-                    logDetails.Descriptions.Add("Values updated are not the same from live data. Please check: " +
-                                                "Live Data = '" + string.Join(",",
-                                                    differencesUpdatedAndLiveData.Select(s =>
-                                                        s.PropertyName + " = " + s.Object1Value)) + "'" +
-                                                "Updated Data = '" + string.Join(",",
-                                                    differencesUpdatedAndLiveData.Select(s =>
-                                                        s.PropertyName + " = " + s.Object2Value)) + "'");
+                    logDetails.Descriptions.Add(message);
 
                     logDetails.Type = LogType.Error;
                     logDetails.Display = true;
@@ -278,8 +306,9 @@ namespace Migration.Services
 
             if (profile.DataMappings[0].FieldsMapping.Any())
             {
-                objectToBeUpdated = UpdateDataHelper.UpdateObject(liveDataObject.ToString(),
-                    profile.DataMappings[0].FieldsMapping, JObject.Parse(backupData.ToString()), ref hasChange);
+                objectToBeUpdated = UpdateObjectsBasedOnMappings(profile, liveDataObject, backupData, ref hasChange);
+
+                //objectToBeUpdated = UpdateDataHelper.UpdateObject(liveDataObject.ToString(),profile.DataMappings[0].FieldsMapping, JObject.Parse(backupData.ToString()), ref hasChange);
             }
             else
             {
@@ -298,6 +327,21 @@ namespace Migration.Services
             return (hasChange, objectToBeUpdated);
         }
 
+        private static JObject UpdateObjectsBasedOnMappings(Profile profile, JObject liveDataObject, JToken backupData, ref bool hasChange)
+        {
+            var objectToBeUpdated = new JObject();
+
+            foreach (var fieldMappings in profile.DataMappings[0].FieldsMapping)
+            {
+                var fieldsFromDestinationArr = fieldMappings.DestinationField.Split(".").ToList();
+
+                var valueFromSource = JObjectHelper.GetValueFromObject(JObject.Parse(backupData.ToString()), fieldMappings.SourceField.Split(".").ToList());
+                objectToBeUpdated = JObjectHelper.UpdateObjectFromOriginal(liveDataObject, JObject.Parse(backupData.ToString()), fieldsFromDestinationArr, valueFromSource);
+                hasChange = true;
+            }
+
+            return objectToBeUpdated;
+        }
 
         private async Task<bool> CheckDifferencesAllowToDelete(Profile profile, int jobId, JObject liveDataObject, JToken insertedData, LogDetails logDetails, int attempts)
         {
@@ -363,7 +407,7 @@ namespace Migration.Services
             var settings = GetDataSettings(profile);
 
             var repository = _genericRepository(settings);
-            
+
             var liveData = await repository.Get($"select * from c where c.{idField} = '{id}'");
             var liveDataObject = JObject.Parse(liveData.Values.FirstOrDefault());
 

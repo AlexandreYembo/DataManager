@@ -11,7 +11,7 @@
             <div class="col-sm-1">
                 <div class="form-group">
                     <label>Join Type</label>
-                    <select class="form-control" id="fieldType" data-keeper-edited="yes" @bind="@DataFieldsMapping.OperatorType">
+                    <select class="form-control" id="fieldType" data-keeper-edited="yes" @bind="@DataFieldsMapping.JoinType">
                         @foreach (var fieldType in Enum.GetValues<SearchConditionType>())
                         {
                             <option value="@fieldType">@fieldType</option>
@@ -22,8 +22,8 @@
             <div class="col-sm-1">
                 <div class="form-group">
                     <label>Operator Type</label>
-                    <select class="form-control" data-keeper-edited="yes" @bind="DataFieldsMapping.JoinType">
-                        @foreach (var operatorType in Enum.GetValues<JoinType>())
+                    <select class="form-control" data-keeper-edited="yes" @bind="DataFieldsMapping.OperatorType">
+                        @foreach (var operatorType in Enum.GetValues<OperatorType>())
                         {
                             <option value="@operatorType">@operatorType</option>
                         }

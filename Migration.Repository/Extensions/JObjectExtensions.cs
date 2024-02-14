@@ -64,7 +64,7 @@ namespace Migration.Repository.Extensions
                 else
                 {
                     var property = condition.Split(op).FirstOrDefault();
-                    var leftValue = condition.Split(op).LastOrDefault().Replace("\"", "");
+                    var leftValue = condition.Split(op).LastOrDefault().Replace("\"", "").Replace("'", "");
                     var rightValue = GetValueByType(data, property.Trim());
                     conditionResults.Add(leftValue == rightValue);
                 }

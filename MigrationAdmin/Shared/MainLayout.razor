@@ -4,10 +4,11 @@
 @using Migration.Repository.Delegates
 @using Migration.Services.Subscribers
 @inherits LayoutComponentBase
-@inject LogResultSubscriber LogSubscriber
-@inject LogPublisher LogPublisher
-@inject LogDetailsPublisher LogDetailsPublisher
-@inject MigrationLogPersistSubscriber _LogPersistSubscriber;
+@inject LogResultSubscriber _logSubscriber
+@inject LogPublisher _logPublisher
+@inject LogDetailsPublisher _logDetailsPublisher
+@inject GetLogPublisher _getLogPublisher;
+@inject MigrationLogPersistSubscriber _logPersistSubscriber;
 @inject ActionsPublisher _actionsPublisher;
 @inject IJSRuntime jsRuntime
 
@@ -32,12 +33,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        LogPublisher.OnEventPublished += LogSubscriber.OnEventChanged;
-        LogPublisher.OnEventPublished += OnLogUpdated;
-        LogDetailsPublisher.OnEventPublished += LogSubscriber.OnEventChanged;
+        _logPublisher.OnEventPublished += _logSubscriber.OnEventChanged;
+        _logPublisher.OnEventPublished += OnLogUpdated;
+        _logDetailsPublisher.OnEventPublished += _logSubscriber.OnEventChanged;
 
-        LogPublisher.OnEventPublished += _LogPersistSubscriber.LogResultPublisher_OnEntityChanged;
-        LogDetailsPublisher.OnEventPublished += _LogPersistSubscriber.LogDetailsPublisher_OnEntityChanged;
+        _logPublisher.OnEventPublished += _logPersistSubscriber.LogResultPublisher_OnEntityChanged;
+        _logDetailsPublisher.OnEventPublished += _logPersistSubscriber.LogDetailsPublisher_OnEntityChanged;
+
+        _getLogPublisher.OnEventPublished += OnLogUpdated;
 
         _actionsPublisher.OnEventPublished += OnActionCompleted;
     }

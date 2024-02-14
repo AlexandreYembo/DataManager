@@ -1,4 +1,6 @@
 ﻿@page "/ManageDataProcessed"
+@using Migration.Repository.Publishers
+@using Migration.Services.Subscribers
 @using Newtonsoft.Json.Linq
 @using Migration.Infrastructure.Redis
 @using Microsoft.AspNetCore.Components
@@ -314,7 +316,6 @@
             });
 
         var profile = JsonConvert.DeserializeObject<Profile>(redisValue);
-
 
         await _revertMigrateService.Revert(profile, _data, _job.JobId);
 

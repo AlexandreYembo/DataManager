@@ -25,23 +25,21 @@
             <li class="nav-item">
                 <a class="nav-link  @GetStep("active", 2)" id="custom-tabs-one-sourceData-tab" role="tab" aria-controls="custom-tabs-one-sourceData" aria-selected="false"><i class="nav-icon fas fa-table"></i> Profile Type</a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link  @GetStep("active", 3)" id="custom-tabs-one-mapping-tab" role="tab" aria-controls="custom-tabs-one-mapping" aria-selected="false"><i class="nav-icon fas fa-map"></i> Mapping</a>
+            </li>
             @if (Profile.DataMappings[0].OperationType == OperationType.Import)
             {
                 <li class="nav-item">
-                    <a class="nav-link  @GetStep("active", 3)" id="custom-tabs-one-dataAttributes-tab" role="tab" aria-controls="custom-tabs-one-dataAttributes" aria-selected="false"><i class="nav-icon fas fa-key"></i> Data Attributes</a>
+                    <a class="nav-link  @GetStep("active", 4)" id="custom-tabs-one-dataAttributes-tab" role="tab" aria-controls="custom-tabs-one-dataAttributes" aria-selected="false"><i class="nav-icon fas fa-key"></i> Data Attributes</a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link  @GetStep("active", 4)" id="custom-tabs-one-mapping-tab" role="tab" aria-controls="custom-tabs-one-mapping" aria-selected="false"><i class="nav-icon fas fa-map"></i> Mapping</a>
-                </li>
+
                 <li class="nav-item">
                     <a class="nav-link  @GetStep("active", 5)" id="custom-tabs-one-preview-tab" role="tab" aria-controls="custom-tabs-one-preview" aria-selected="false"><i class="nav-icon fas fa-list"></i> Summary</a>
                 </li>
             }
             else
             {
-                <li class="nav-item">
-                    <a class="nav-link  @GetStep("active", 3)" id="custom-tabs-one-mapping-tab" role="tab" aria-controls="custom-tabs-one-mapping" aria-selected="false"><i class="nav-icon fas fa-map"></i> Mapping</a>
-                </li>
                 <li class="nav-item">
                     <a class="nav-link  @GetStep("active", 4)" id="custom-tabs-one-preview-tab" role="tab" aria-controls="custom-tabs-one-preview" aria-selected="false"><i class="nav-icon fas fa-list"></i> Summary</a>
                 </li>
@@ -74,10 +72,10 @@
                                     {
                                         <tr>
                                             <td>
-                                                <p>Database Name: <b> @profile.Name</b></p>
+                                                @profile.Name
                                             </td>
                                             <td>
-                                                <p>Database Name: <b> @profile.Description</b></p>
+                                                @profile.Description
                                             </td>
                                             <td>
                                                 <button class="btn btn-default" @onclick="() => EditProfile(profile)"> <i class="nav-icon fas fa-edit"></i> Edit</button>
@@ -97,15 +95,7 @@
                                     DataQueryMappingTypeChangedCallback="(dataType) => Profile.DataMappings[0].DataQueryMappingType = dataType"></DataQueryComponent>
             </div>
 
-            @if (Profile.DataMappings[0].OperationType == OperationType.Import)
-            {
-                <div class="tab-pane fade @GetStep("show active", 3)" id="custom-tabs-one-dataAttributes" role="tabpanel" aria-labelledby="custom-tabs-one-dataAttributes-tab">
-                    <DataImportConfigurationComponent DataAttributes="Profile.DataMappings[0].Destination.Settings.CurrentEntity.Attributes"
-                                                      OnCustomAttributesAdded="(customAttributes) => Profile.DataMappings[0].Destination.Settings.CurrentEntity.Attributes = UpdateCustomAttribute(Profile.DataMappings[0].Destination.Settings.CurrentEntity.Attributes, customAttributes) "></DataImportConfigurationComponent>
-                </div>
-            }
-
-            <div class="tab-pane fade @GetStep("show active", Profile.DataMappings[0].OperationType != OperationType.Import ? 3 : 4)" id="custom-tabs-one-mapping" role="tabpanel" aria-labelledby="custom-tabs-one-mapping-tab">
+            <div class="tab-pane fade @GetStep("show active", 3)" id="custom-tabs-one-mapping" role="tabpanel" aria-labelledby="custom-tabs-one-mapping-tab">
                 @if (Profile.DataMappings[0].DataQueryMappingType == DataQueryMappingType.UpdateAnotherCollection)
                 {
                     <DataMappingDestinationComponent DataMapping="Profile.DataMappings[0]"
@@ -117,6 +107,14 @@
                                                    OnDataMappingChanged="(mappingResult) => _ = mappingResult"></DataMappingSameTableComponent>
                 }
             </div>
+
+            @if (Profile.DataMappings[0].OperationType == OperationType.Import)
+            {
+                <div class="tab-pane fade @GetStep("show active", 4)" id="custom-tabs-one-dataAttributes" role="tabpanel" aria-labelledby="custom-tabs-one-dataAttributes-tab">
+                    <DataImportConfigurationComponent DataAttributes="Profile.DataMappings[0].Destination.Settings.CurrentEntity.Attributes"
+                                                      OnCustomAttributesAdded="(customAttributes) => Profile.DataMappings[0].Destination.Settings.CurrentEntity.Attributes = UpdateCustomAttribute(Profile.DataMappings[0].Destination.Settings.CurrentEntity.Attributes, customAttributes) "></DataImportConfigurationComponent>
+                </div>
+            }
             <div class="tab-pane fade @GetStep("show active", Profile.DataMappings[0].OperationType != OperationType.Import ? 4 : 5)" id="custom-tabs-one-preview" role="tabpanel" aria-labelledby="custom-tabs-one-preview-tab">
                 <div class="card card-default">
                     <div class="card-header">
@@ -258,7 +256,6 @@
                        ModalOk="() => _cloneProfileModalIsEnabled = false"></CloneProfileComponent>
 
 @code {
-
     private bool _cloneProfileModalIsEnabled;
 
     private List<Profile> _profiles;
@@ -404,7 +401,7 @@
 
     private void New()
     {
-         Profile.DataMappings.Add(new DataMapping()
+        Profile.DataMappings.Add(new DataMapping()
             {
                 Id = Guid.NewGuid().ToString(),
             });

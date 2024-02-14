@@ -49,7 +49,7 @@ namespace Migration.Infrastructure.CosmosDb
 
                 for (int i = 1; i < joins.Count; i++)
                 {
-                    var operatorType = (joins[i].OperatorType == SearchConditionType.And) ? " and " : " or ";
+                    var operatorType = (joins[i].JoinType == SearchConditionType.And) ? " and " : " or ";
                     value = value + operatorType + ConvertOperator(joins[i], relationshipData);
 
                     //if (!string.IsNullOrEmpty(value))
@@ -115,15 +115,15 @@ namespace Migration.Infrastructure.CosmosDb
             if (string.IsNullOrEmpty(value))
                 return string.Empty;
 
-            switch (dataFieldsMapping.JoinType)
+            switch (dataFieldsMapping.OperatorType)
             {
-                case JoinType.ArrayContains: return $"ARRAY_CONTAINS(c.{dataFieldsMapping.DestinationField},{value})";
-                case JoinType.Eq:
+                case OperatorType.ArrayContains: return $"ARRAY_CONTAINS(c.{dataFieldsMapping.DestinationField},{value})";
+                case OperatorType.Eq:
                     if (!string.IsNullOrEmpty(upperCaseOperation))
                         return $"{upperCaseOperation.Replace("#value#", "c." + dataFieldsMapping.DestinationField)} = {upperCaseOperation.Replace("#value#", value)}";
 
                     return $"c.{dataFieldsMapping.DestinationField} = {value}";
-                case JoinType.In: return $"c.{dataFieldsMapping.DestinationField} in({value})";
+                case OperatorType.In: return $"c.{dataFieldsMapping.DestinationField} in({value})";
                 default: return string.Empty;
             }
         }

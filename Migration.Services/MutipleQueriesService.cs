@@ -28,7 +28,7 @@ namespace Migration.Services
             Dictionary<string, List<DynamicData>> result = new();
 
             var source = await _genericRepository(dataMapping.Source.Settings)
-                .Get(dataMapping.Source.Query, null, null, 10, 0);
+                .Get(dataMapping.Source.Query, dataMapping.FieldsMapping, null, 10, 0);
 
             if (!source.Any())
                 return new();

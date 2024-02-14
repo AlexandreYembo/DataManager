@@ -108,7 +108,18 @@ namespace Migration.Infrastructure.AzureTableStorage
                 string partitionKey = entity.PartitionKey;
                 string rowKey = entity.RowKey;
 
-                jo.Add("id", $"{partitionKey}");
+                string idRelationship = string.Empty;
+
+                if (fieldMappings != null && fieldMappings.Any(w => w.SourceEntity == _settings.CurrentEntity.Name && w.MappingType == MappingType.TableJoin))
+                {
+                    idRelationship = fieldMappings.Where(w => w.SourceEntity == _settings.CurrentEntity.Name && w.MappingType == MappingType.TableJoin).FirstOrDefault().SourceField;
+                }
+                else
+                {
+                    idRelationship = _settings.CurrentEntity.Attributes.Where(w => w.Key == "RecordId").FirstOrDefault().Value;
+                }
+
+                jo.Add("id", $"{entity.Properties.FirstOrDefault(f => f.Key == idRelationship).Value.PropertyAsObject}");
                 jo.Add("PartitionKey", partitionKey);
                 jo.Add("RowKey", rowKey);
                 jo.Add("ETag", entity.ETag);

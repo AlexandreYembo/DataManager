@@ -36,9 +36,9 @@ namespace Migration.Repository.Models
     {
         public string SourceEntity { get; set; }
         public string DestinationEntity { get; set; }
-        public SearchConditionType? OperatorType { get; set; }
+        public SearchConditionType? JoinType { get; set; }
         public MappingType? MappingType { get; set; }
-        public JoinType? JoinType { get; set; }
+        public OperatorType? OperatorType { get; set; }
         public bool IgnoreCaseSensitive { get; set; }
         public string? SourceField { get; set; }
         public string? DestinationField { get; set; }
@@ -79,7 +79,7 @@ namespace Migration.Repository.Models
         Destination
     }
 
-    public enum JoinType
+    public enum OperatorType
     {
         ArrayContains,
         In,

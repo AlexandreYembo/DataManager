@@ -91,7 +91,7 @@ namespace Migration.Services
 
                 do
                 {
-                    var source = await sourceRepository.Get(dataMapping.Source.Query, null, null, take, skip);
+                    var source = await sourceRepository.Get(dataMapping.Source.Query, dataMapping.FieldsMapping, null, take, skip);
                     log.TotalRecords += source.Count;
 
                     if (source.Any())
@@ -116,11 +116,17 @@ namespace Migration.Services
 
                             await Task.WhenAll(processTasks);
 
-                            skip = job.SourceProcessed;
+                            //we do not apply pagination because we are removing records from the table, should aways take the first page
+                            if (dataMapping.OperationType != OperationType.Delete)
+                            {
+                                skip = job.SourceProcessed;
+                                skip += take;
 
-                            skip += take;
-                            job.SourceProcessed = skip;
-                            await _jobService.UpdateJob(job);
+                                job.SourceProcessed = skip;
+
+                                await _jobService.UpdateJob(job);
+                            }
+
                         }
                         hasRecord = true;
                     }
@@ -139,6 +145,29 @@ namespace Migration.Services
                     ActionType = ActionEventType.Success,
                     Message = "Migration completed!"
                 });
+            }
+            catch (DbOperationException e)
+            {
+                await _actionsPublisher.PublishAsync(new Actions()
+                {
+                    ActionType = ActionEventType.Error,
+                    Message = "Error during the migration, check the logs for more details!"
+                });
+
+                LogDetails detailsError = new()
+                {
+                    LogDateTime = DateTime.Now,
+                    Title = "Error Migration - Data Base exception",
+                    Descriptions = new()
+                    {
+                        new($"Error: {e.ErrorCode} - {e.ErrorMessage}")
+                    },
+                    Display = true,
+                    JobId = job.JobId,
+                    Type = LogType.Error,
+                    OperationType = profile.DataMappings[0].OperationType
+                };
+                await _logDetailsPublisher.PublishAsync(detailsError);
             }
             catch (Exception ex)
             {
@@ -181,73 +210,60 @@ namespace Migration.Services
                 OperationType = dataMapping.OperationType
             };
 
-            try
+            JObject backup = new JObject();
+            if (dataMapping.OperationType == OperationType.Update)
             {
-                JObject backup = new JObject();
-                if (dataMapping.OperationType == OperationType.Update)
+                logDetails.Descriptions.Add(new("Creating copy of the original data"));
+
+                bool hasChange = false;
+
+                var objectToBeUpdated =
+                    UpdateDataHelper.UpdateObject(data.Value, dataMapping.FieldsMapping, ref hasChange);
+
+                backup.Add("id", originalData["id"].ToString());
+                backup.Add("Backup", originalData);
+                backup.Add("Updated", objectToBeUpdated);
+                await SaveCopyInLocal(dataMapping.Source.Settings.CurrentEntity.Name, backup, job);
+
+                if (!hasChange) return;
+
+                var differences = DifferenceHelper.FindDifferences(JObject.Parse(data.Value), objectToBeUpdated);
+
+                if (differences.Any())
                 {
-                    logDetails.Descriptions.Add(new("Creating copy of the original data"));
-
-                    bool hasChange = false;
-
-                    var objectToBeUpdated =
-                        UpdateDataHelper.UpdateObject(data.Value, dataMapping.FieldsMapping, ref hasChange);
-
-                    backup.Add("id", originalData["id"].ToString());
-                    backup.Add("Backup", originalData);
-                    backup.Add("Updated", objectToBeUpdated);
-                    await SaveCopyInLocal(dataMapping.Source.Settings.CurrentEntity.Name, backup, job);
-
-                    if (!hasChange) return;
-
-                    var differences = DifferenceHelper.FindDifferences(JObject.Parse(data.Value), objectToBeUpdated);
-
-                    if (differences.Any())
-                    {
-                        logDetails.Descriptions.Add(new("Values updated: " + string.Join(",",
-                            differences.Select(s => s.PropertyName + " = " + s.Object2Value))));
-                        await repository.Update(objectToBeUpdated, dataMapping.FieldsMapping);
-                    }
-                }
-                else if (dataMapping.OperationType == OperationType.Report)
-                {
-                    bool hasChange = false;
-
-                    var objectToBeUpdated =
-                       UpdateDataHelper.UpdateObject(data.Value, dataMapping.FieldsMapping, ref hasChange);
-
-                    if (!hasChange) return;
-
-                    backup.Add("id", originalData["id"].ToString());
-                    backup.Add("Report", objectToBeUpdated);
-                    await SaveCopyInLocal(dataMapping.Source.Settings.CurrentEntity.Name, backup, job);
-
-                    logDetails.Descriptions.Add(new("Record exported"));
-                }
-                else if (dataMapping.OperationType == OperationType.Delete)
-                {
-                    backup.Add("id", originalData["id"].ToString());
-                    backup.Add("Deleted", originalData);
-                    await SaveCopyInLocal(dataMapping.Source.Settings.CurrentEntity.Name, backup, job);
-
-                    logDetails.Descriptions.Add(new("Creating copy of the original data"));
-                    await repository.Delete(originalData);
-                    logDetails.Descriptions.Add(new("Record deleted"));
-                }
-                else if (dataMapping.OperationType == OperationType.Import)
-                {
-                    throw new Exception("Operation not supported");
+                    logDetails.Descriptions.Add(new("Values updated: " + string.Join(",",
+                        differences.Select(s => s.PropertyName + " = " + s.Object2Value))));
+                    await repository.Update(objectToBeUpdated, dataMapping.FieldsMapping);
                 }
             }
-            catch (DbOperationException e)
+            else if (dataMapping.OperationType == OperationType.Report)
             {
-                logDetails.Type = LogType.Error;
-                logDetails.Descriptions.Add(new($"Error: {e.ErrorCode} - {e.ErrorMessage}"));
+                bool hasChange = false;
+
+                var objectToBeUpdated =
+                   UpdateDataHelper.UpdateObject(data.Value, dataMapping.FieldsMapping, ref hasChange);
+
+                if (!hasChange) return;
+
+                backup.Add("id", originalData["id"].ToString());
+                backup.Add("Report", objectToBeUpdated);
+                await SaveCopyInLocal(dataMapping.Source.Settings.CurrentEntity.Name, backup, job);
+
+                logDetails.Descriptions.Add(new("Record exported"));
             }
-            catch (Exception e)
+            else if (dataMapping.OperationType == OperationType.Delete)
             {
-                logDetails.Type = LogType.Error;
-                logDetails.Descriptions.Add(new($"Error: {e.Message}"));
+                backup.Add("id", originalData["id"].ToString());
+                backup.Add("Deleted", originalData);
+                await SaveCopyInLocal(dataMapping.Source.Settings.CurrentEntity.Name, backup, job);
+
+                logDetails.Descriptions.Add(new("Creating copy of the original data"));
+                await repository.Delete(originalData);
+                logDetails.Descriptions.Add(new("Record deleted"));
+            }
+            else if (dataMapping.OperationType == OperationType.Import)
+            {
+                throw new Exception("Operation not supported");
             }
 
             await _logDetailsPublisher.PublishAsync(logDetails);
@@ -289,10 +305,12 @@ namespace Migration.Services
 
                     await Task.WhenAll(processTasks);
 
-                    skip += take;
-                    job.DestinationProcessed = skip;
-                    await _jobService.UpdateJob(job);
-
+                    if (dataMapping.OperationType != OperationType.Delete)
+                    {
+                        skip += take;
+                        job.DestinationProcessed = skip;
+                        await _jobService.UpdateJob(job);
+                    }
                 } while (hasRecord);
             }
 
@@ -305,15 +323,13 @@ namespace Migration.Services
             await _jobService.UpdateJob(job);
         }
 
-        private async Task<bool> UpdateDestinationRecordsAsync(DataMapping dataMapping, JObject destinationData, JObject sourceObj, IGenericRepository repository, Jobs job)
+        private async Task UpdateDestinationRecordsAsync(DataMapping dataMapping, JObject destinationData, JObject sourceObj, IGenericRepository repository, Jobs job)
         {
             string id = string.Empty;
 
             if (!destinationData.Properties().Any())
             {
-                id = sourceObj.SelectToken("id") != null
-                    ? sourceObj["id"].ToString()
-                    : sourceObj.SelectToken(dataMapping.Destination.Settings.CurrentEntity.Attributes.FirstOrDefault().Value.Replace("/", string.Empty)).ToString();
+                id = Guid.NewGuid().ToString();
             }
             else
             {
@@ -332,79 +348,71 @@ namespace Migration.Services
 
             JObject backup = new JObject();
 
-            try
+
+            if (dataMapping.OperationType == OperationType.Update)
             {
-                if (dataMapping.OperationType == OperationType.Update)
-                {
-                    logDetails.Descriptions.Add(new("Creating copy of the original data"));
+                logDetails.Descriptions.Add(new("Creating copy of the original data"));
 
-                    bool hasChange = false;
+                bool hasChange = false;
 
-                    var objectToBeUpdated = UpdateDataHelper.UpdateObject(destinationData.ToString(), dataMapping.FieldsMapping, sourceObj, ref hasChange);
+                var objectToBeUpdated = UpdateDataHelper.UpdateObject(destinationData.ToString(), dataMapping.FieldsMapping, sourceObj, ref hasChange);
 
-                    if (!hasChange) return true;
+                if (!hasChange) return;
 
-                    backup.Add("id", destinationData["id"].ToString());
-                    backup.Add("Backup", destinationData);
-                    backup.Add("Updated", objectToBeUpdated);
+                backup.Add("id", destinationData["id"].ToString());
+                backup.Add("Backup", destinationData);
+                backup.Add("Updated", objectToBeUpdated);
 
-                    await SaveCopyInLocal(dataMapping.Destination.Settings.CurrentEntity.Name, backup, job);
+                await SaveCopyInLocal(dataMapping.Destination.Settings.CurrentEntity.Name, backup, job);
 
-                    logDetails.Descriptions.Add(new("Creating copy of the changes"));
+                logDetails.Descriptions.Add(new("Creating copy of the changes"));
 
-                    var differences = DifferenceHelper.FindDifferences(destinationData, objectToBeUpdated);
-                    logDetails.Descriptions.Add(new("Values updated: " +
-                                                string.Join(",", differences.Select(s => s.PropertyName + " = " + s.Object2Value))));
+                var differences = DifferenceHelper.FindDifferences(destinationData, objectToBeUpdated);
+                logDetails.Descriptions.Add(new("Values updated: " +
+                                            string.Join(",", differences.Select(s => s.PropertyName + " = " + s.Object2Value))));
 
-                    await repository.Update(objectToBeUpdated, dataMapping.FieldsMapping);
-                }
-                else if (dataMapping.OperationType == OperationType.Report)
-                {
-                    backup.Add("id", destinationData["id"].ToString());
-                    backup.Add("Report", destinationData);
-
-                    await SaveCopyInLocal(dataMapping.Destination.Settings.CurrentEntity.Name, backup, job);
-                    logDetails.Descriptions.Add(new("Record exported for analyse"));
-                }
-                else if (dataMapping.OperationType == OperationType.Delete)
-                {
-                    logDetails.Descriptions.Add(new("Creating copy of the original data"));
-
-                    backup.Add("id", destinationData["id"].ToString());
-                    backup.Add("Deleted", destinationData);
-                    await SaveCopyInLocal(dataMapping.Destination.Settings.CurrentEntity.Name, backup, job);
-
-                    await repository.Delete(destinationData);
-                    logDetails.Descriptions.Add(new("Record deleted"));
-                }
-                else if (dataMapping.OperationType == OperationType.Import)
-                {
-                    bool hasChange = false;
-
-                    var propertyId = dataMapping.Destination.Settings.CurrentEntity.Attributes.FirstOrDefault(f => f.Key == TableAttributesType.RecordId.ToString()).Value;
-                    destinationData[propertyId] = id;
-
-                    var objectToBeImported = UpdateDataHelper.UpdateObject(destinationData.ToString(), dataMapping.FieldsMapping, sourceObj, ref hasChange);
-
-                    if (!hasChange) return true;
-
-                    backup.Add("id", id);
-                    backup.Add("Inserted", objectToBeImported);
-                    await SaveCopyInLocal(dataMapping.Destination.Settings.CurrentEntity.Name, backup, job);
-
-                    await repository.Insert(objectToBeImported, dataMapping.FieldsMapping);
-
-                    logDetails.Descriptions.Add("Record imported");
-                }
+                await repository.Update(objectToBeUpdated, dataMapping.FieldsMapping);
             }
-            catch (DbOperationException e)
+            else if (dataMapping.OperationType == OperationType.Report)
             {
-                logDetails.Descriptions.Add(new($"Error: {e.ErrorCode} - {e.ErrorMessage}"));
-                logDetails.Type = LogType.Error;
+                backup.Add("id", destinationData["id"].ToString());
+                backup.Add("Report", destinationData);
+
+                await SaveCopyInLocal(dataMapping.Destination.Settings.CurrentEntity.Name, backup, job);
+                logDetails.Descriptions.Add(new("Record exported for analyse"));
+            }
+            else if (dataMapping.OperationType == OperationType.Delete)
+            {
+                logDetails.Descriptions.Add(new("Creating copy of the original data"));
+
+                backup.Add("id", destinationData["id"].ToString());
+                backup.Add("Deleted", destinationData);
+                await SaveCopyInLocal(dataMapping.Destination.Settings.CurrentEntity.Name, backup, job);
+
+                await repository.Delete(destinationData);
+                logDetails.Descriptions.Add(new("Record deleted"));
+            }
+            else if (dataMapping.OperationType == OperationType.Import)
+            {
+                bool hasChange = false;
+
+                var propertyId = dataMapping.Destination.Settings.CurrentEntity.Attributes.FirstOrDefault(f => f.Key == TableAttributesType.RecordId.ToString()).Value;
+                destinationData[propertyId] = id;
+
+                var objectToBeImported = UpdateDataHelper.UpdateObject(destinationData.ToString(), dataMapping.FieldsMapping, sourceObj, ref hasChange);
+
+                if (!hasChange) return;
+
+                backup.Add("id", id);
+                backup.Add("Inserted", objectToBeImported);
+                await SaveCopyInLocal(dataMapping.Destination.Settings.CurrentEntity.Name, backup, job);
+
+                await repository.Insert(objectToBeImported, dataMapping.FieldsMapping);
+
+                logDetails.Descriptions.Add("Record imported");
             }
 
             await _logDetailsPublisher.PublishAsync(logDetails);
-            return false;
         }
 
         private async Task SaveCopyInLocal(string entity, JObject data, Jobs job)
