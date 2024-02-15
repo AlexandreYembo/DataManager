@@ -1,4 +1,4 @@
-﻿using Migration.Repository.Models;
+﻿using Migration.Models;
 using Migration.Services.Models;
 using Newtonsoft.Json.Linq;
 
@@ -11,7 +11,7 @@ namespace Migration.Services.Extensions
             return dictionary.Select(s => new DynamicData()
             {
                 Id = s.Key,
-                Data = s.Value,
+                Data = JObject.Parse(s.Value),
                 DataType = type
             }).ToList();
         }
@@ -23,14 +23,14 @@ namespace Migration.Services.Extensions
                 new()
                 {
                     Id = GetId(keyValue.Key),
-                    Data = keyValue.Value.ToString(),
+                    Data = keyValue.Value,
                     DataType = type,
                     Entity = GetEntity(keyValue.Key)
                 }
             };
         }
 
-        public static List<DynamicData> ToDynamicDataList(this Dictionary<string, IEnumerable<JObject>> destination, KeyValuePair<string, string> source, string sourceEntity, OperationType operationType)
+        public static List<DynamicData> ToDynamicDataList(this Dictionary<string, IEnumerable<JObject>> destination, KeyValuePair<string, JObject> source, string sourceEntity, OperationType operationType)
         {
             List<ActionType> actionTypes = new();
 
@@ -46,7 +46,7 @@ namespace Migration.Services.Extensions
             List<DynamicData> result = new();
             result.Add(new DynamicData()
             {
-                Id = JObject.Parse(source.Value)["id"] != null ? JObject.Parse(source.Value)["id"].ToString() : source.Key,
+                Id = source.Value["id"] != null ? source.Value["id"].ToString() : source.Key,
                 Data = source.Value,
                 DataType = DataType.Source,
                 Entity = sourceEntity
@@ -55,7 +55,7 @@ namespace Migration.Services.Extensions
             result.AddRange(destination.SelectMany(s => s.Value.Select((v => new DynamicData()
             {
                 Id = v["id"].ToString(),
-                Data = v.ToString(),
+                Data = v,
                 DataType = DataType.Destination,
                 Entity = GetEntity(s.Key),
                 Actions = actionTypes

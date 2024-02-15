@@ -1,11 +1,12 @@
-﻿using Migration.Repository.Models;
+﻿using Migration.Models;
+using Migration.Models.Profile;
 
 namespace Migration.Services
 {
     public interface IJobService
     {
-        Task<Jobs> GetOrCreateJob(Profile profile, int jobId);
+        Task<Jobs> GetOrCreateJob(ProfileConfiguration profile, int jobId);
         Task UpdateJob(Jobs job);
-        Task CreateAndAddToTheQueue(Profile profile);
+        Task CreateAndAddToTheQueue(ProfileConfiguration profile);
     }
 }

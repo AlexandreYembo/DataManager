@@ -1,4 +1,4 @@
-﻿@using Migration.Repository.Models
+﻿@using Migration.Models
 @using Newtonsoft.Json
 @using Newtonsoft.Json.Linq
 <div class="modal fade show" id="dataDifferenceModal" style="display:block" aria-modal="true" role="dialog">
@@ -54,10 +54,10 @@
                                                         @switch (difference.OperationType)
                                                         {
                                                             case OperationType.Delete:
-                                                                <td style="color:red"> <i style="color:red" class="nav-icon fas fa-trash"></i> Destination record will be deleted</td>
+                                                                <td style="color:red"> <i style="color:red" class="nav-icon fas fa-trash"></i> Target record will be deleted</td>
                                                                 break;
                                                             case OperationType.Import:
-                                                                <td style="color:blue"> <i style="color:blue" class="nav-icon fas fa-plus"></i> Destination record will be Imported</td>
+                                                                <td style="color:blue"> <i style="color:blue" class="nav-icon fas fa-plus"></i> Target record will be Imported</td>
                                                                 break;
                                                             default:
                                                                 break;

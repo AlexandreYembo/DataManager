@@ -1,14 +1,15 @@
 ﻿@page "/manageJobs"
+@using Migration.EventHandlers.Publishers
 @using Migration.Infrastructure.Redis
 @using Migration.Infrastructure.Redis.Entities
-@using Migration.Repository.LogModels
-@using Migration.Repository.Models
-@using Migration.Repository.Publishers
+@using Migration.Models
+@using Migration.Models.Logs
+@using Migration.Models.Profile
 @using Migration.Services
 @using Migration.Services.Subscribers
 @using Newtonsoft.Json
 @inherits CustomComponents;
-@inject IRepository<Profile> _profileRepository;
+@inject IRepository<ProfileConfiguration> _profileRepository;
 @inject IRepository<Jobs> _repository;
 @inject IRepository<LogResult> _logRepository;
 @inject IJSRuntime jsRuntime
@@ -56,7 +57,7 @@
                             <th>Profile</th>
                             <th>Operation Type</th>
                             <th>Source Pagination (Skip)</th>
-                            <th>Destination Pagination (Skip)</th>
+                            <th>Target Pagination (Skip)</th>
                             <th>
                                 Status
                             </th>
@@ -84,7 +85,7 @@
                                         @job.SourceProcessed
                                     </td>
                                     <td>
-                                        @job.DestinationProcessed
+                                        @job.TargetProcessed
                                     </td>
                                     <td>
                                         @if (job.Status == JobStatus.InProgress)
@@ -143,7 +144,7 @@
             {
                 job.Status = args.Job.Status;
                 job.SourceProcessed = args.Job.SourceProcessed;
-                job.DestinationProcessed = args.Job.DestinationProcessed;
+                job.TargetProcessed = args.Job.TargetProcessed;
             }
 
             InvokeAsync(StateHasChanged);
@@ -174,13 +175,13 @@
 
     private async Task CreateJob()
     {
-        var redisValue = await _profileRepository.FindByKeyAsync(new RedisData<Profile>
+        var redisValue = await _profileRepository.FindByKeyAsync(new RedisData<ProfileConfiguration>
             {
                 RedisKey = _jobCategory.CategoryName,
                 RedisValue = _profileId
             });
 
-        var profile = JsonConvert.DeserializeObject<Profile>(redisValue);
+        var profile = JsonConvert.DeserializeObject<ProfileConfiguration>(redisValue);
 
         await _jobService.CreateAndAddToTheQueue(profile);
 
@@ -198,13 +199,13 @@
         }
         else
         {
-            var redisValue = await _profileRepository.FindByKeyAsync(new RedisData<Profile>()
+            var redisValue = await _profileRepository.FindByKeyAsync(new RedisData<ProfileConfiguration>()
                 {
                     RedisKey = job.JobCategory,
                     RedisValue = job.ProfileId
                 });
 
-            var profileToMigrate = JsonConvert.DeserializeObject<Profile>(redisValue);
+            var profileToMigrate = JsonConvert.DeserializeObject<ProfileConfiguration>(redisValue);
 
             await _migrateService.Migrate(profileToMigrate, job);
         }
@@ -212,17 +213,17 @@
 
     public async Task GetLog(Jobs job)
     {
-         var redisValue = await _profileRepository.FindByKeyAsync(new RedisData<Profile>
+        var redisValue = await _profileRepository.FindByKeyAsync(new RedisData<ProfileConfiguration>
             {
                 RedisKey = job.JobCategory,
                 RedisValue = job.ProfileId
             });
 
-        var profile = JsonConvert.DeserializeObject<Profile>(redisValue);
+        var profile = JsonConvert.DeserializeObject<ProfileConfiguration>(redisValue);
 
         var log = JsonConvert.DeserializeObject<LogResult>(await _logRepository.FindByKeyAsync(new RedisData<LogResult>()
             {
-                RedisValue = "Job:" + job.JobId + "_Operation:" + profile.DataMappings[0].OperationType
+                RedisValue = "Job:" + job.JobId + "_Operation:" + profile.OperationType
             }));
 
         await _logPublisher.PublishAsync(log);

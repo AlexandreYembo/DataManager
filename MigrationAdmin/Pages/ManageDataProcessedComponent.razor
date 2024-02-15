@@ -1,5 +1,6 @@
 ﻿@page "/ManageDataProcessed"
-@using Migration.Repository.Publishers
+@using Migration.Models
+@using Migration.Models.Profile
 @using Migration.Services.Subscribers
 @using Newtonsoft.Json.Linq
 @using Migration.Infrastructure.Redis
@@ -7,14 +8,13 @@
 @using Migration.Infrastructure.Redis.Entities
 @using Newtonsoft.Json
 @using System.Text
-@using Migration.Repository.Models
 @using Migration.Services
 @inherits CustomComponents;
 @inject IJSRuntime jsRuntime
 @inject IRepository<JObject> _localRepository
 @inject IRepository<Jobs> _jobRepository
 @inject IRevertMigrationService _revertMigrateService;
-@inject IRepository<Profile> _profileRepository;
+@inject IRepository<ProfileConfiguration> _profileRepository;
 
 <div class="card card-default">
     <div class="card-header">
@@ -309,13 +309,13 @@
 
         Loading = true;
 
-        var redisValue = await _profileRepository.FindByKeyAsync(new RedisData<Profile>()
+        var redisValue = await _profileRepository.FindByKeyAsync(new RedisData<ProfileConfiguration>()
             {
                 RedisKey = _jobCategory,
                 RedisValue = _job.ProfileId
             });
 
-        var profile = JsonConvert.DeserializeObject<Profile>(redisValue);
+        var profile = JsonConvert.DeserializeObject<ProfileConfiguration>(redisValue);
 
         await _revertMigrateService.Revert(profile, _data, _job.JobId);
 

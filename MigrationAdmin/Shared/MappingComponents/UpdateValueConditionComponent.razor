@@ -1,5 +1,5 @@
 ﻿@using Microsoft.AspNetCore.Components
-@using Migration.Repository.Models
+@using Migration.Models
 @inherits MigrationAdmin.CustomComponents
 
 <div class="card card-default">
@@ -78,8 +78,8 @@
             </div>
             <div class="col-sm-12">
                 <div class="form-group">
-                    <label>[@DataFieldsMapping.DestinationEntity]</label>[Field]
-                    <input class="form-control" data-keeper-edited="yes" @bind="DataFieldsMapping.DestinationField" />
+                    <label>[@DataFieldsMapping.TargetEntity]</label>[Field]
+                    <input class="form-control" data-keeper-edited="yes" @bind="DataFieldsMapping.TargetField" />
                 </div>
             </div>
         </div>

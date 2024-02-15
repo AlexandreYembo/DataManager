@@ -1,7 +1,8 @@
-﻿using Migration.Infrastructure.Redis;
+﻿using Migration.EventHandlers.Publishers;
+using Migration.Infrastructure.Redis;
 using Migration.Infrastructure.Redis.Entities;
-using Migration.Repository.Models;
-using Migration.Repository.Publishers;
+using Migration.Models;
+using Migration.Models.Profile;
 using Newtonsoft.Json;
 
 namespace Migration.Services
@@ -17,7 +18,7 @@ namespace Migration.Services
             _jobPublisher = jobPublisher;
         }
 
-        public async Task<Jobs> GetOrCreateJob(Profile profile, int jobId)
+        public async Task<Jobs> GetOrCreateJob(ProfileConfiguration profile, int jobId)
         {
             if (jobId > 0)
             {
@@ -47,16 +48,16 @@ namespace Migration.Services
             }
         }
 
-        private static Jobs NewObject(Profile profile, JobStatus status, int jobId)
+        private static Jobs NewObject(ProfileConfiguration profile, JobStatus status, int jobId)
         {
             var job = new Jobs();
 
             job.JobId = jobId;
-            job.ProfileId = profile.DataMappings[0].Id;
-            job.OperationType = profile.DataMappings[0].OperationType;
+            job.ProfileId = profile.Id;
+            job.OperationType = profile.OperationType;
             job.Status = status;
             job.SourceProcessed = 0;
-            job.DestinationProcessed = 0;
+            job.TargetProcessed = 0;
             job.JobCategory = profile.JobCategoryId;
 
             return job;
@@ -73,7 +74,7 @@ namespace Migration.Services
             await _jobPublisher.PublishAsync(job);
         }
 
-        public async Task CreateAndAddToTheQueue(Profile profile)
+        public async Task CreateAndAddToTheQueue(ProfileConfiguration profile)
         {
             var jobs = await _jobRepository.CountAsync(nameof(Jobs));
             var jobId = jobs + 1;

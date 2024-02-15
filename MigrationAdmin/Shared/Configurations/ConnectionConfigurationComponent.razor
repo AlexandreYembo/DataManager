@@ -1,12 +1,12 @@
 ﻿@using Microsoft.AspNetCore.Components
+@using Migration.Core
+@using Migration.EventHandlers.Publishers
 @using Migration.Infrastructure.Redis
 @using Migration.Infrastructure.Redis.Entities
-@using Migration.Repository
 @using InputFile = Microsoft.AspNetCore.Components.Forms.InputFile
-@using Migration.Repository.Delegates
-@using Migration.Repository.Publishers
+@using Migration.Models
 @inherits CustomComponents
-@inject Func<DataSettings, ITestConnection> _testConnection;
+@inject Func<DataSettings, IGenericRepository> _testConnection;
 @inject IRepository<DataSettings> _redis;
 @inject ActionsPublisher _actionsPublisher;
 
@@ -172,7 +172,7 @@
 
         try
         {
-            DataSettings = await _testConnection(DataSettings).Test();
+            DataSettings = await _testConnection(DataSettings).TestConnection();
 
             var redisData = new RedisData<DataSettings>()
                 {

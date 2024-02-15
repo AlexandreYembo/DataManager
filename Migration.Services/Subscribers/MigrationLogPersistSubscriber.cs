@@ -1,7 +1,8 @@
 ﻿using Migration.Infrastructure.Redis.Entities;
 using Migration.Infrastructure.Redis;
-using Migration.Repository.LogModels;
 using Newtonsoft.Json;
+using Migration.EventHandlers.CustomEventArgs;
+using Migration.Models.Logs;
 
 namespace Migration.Services.Subscribers
 {
@@ -14,7 +15,7 @@ namespace Migration.Services.Subscribers
             _logRepository = logRepository;
         }
 
-        public void LogResultPublisher_OnEntityChanged(object? sender, Repository.Delegates.LogResultEventArgs e)
+        public void LogResultPublisher_OnEntityChanged(object? sender, LogResultEventArgs e)
         {
             var redisValue = _logRepository.FindByKeyAsync(new RedisData<LogResult>()
             {
@@ -44,7 +45,7 @@ namespace Migration.Services.Subscribers
             }
         }
 
-        public void LogDetailsPublisher_OnEntityChanged(object? sender, Repository.Delegates.LogDetailsEventArgs e)
+        public void LogDetailsPublisher_OnEntityChanged(object? sender, LogDetailsEventArgs e)
         {
             e.LogDetail.LogDateTime = DateTime.Now;
 

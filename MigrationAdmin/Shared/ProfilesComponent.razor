@@ -1,6 +1,7 @@
-﻿@using Migration.Repository.Models
+﻿@using Migration.Models
+@using Migration.Models.Profile
 @using Migration.Infrastructure.Redis
-@inject IRepository<Profile> _profileRepository;
+@inject IRepository<ProfileConfiguration> _profileRepository;
 
 <label>Profiles</label>
 <select class="form-control" id="profile" data-keeper-edited="yes" @onchange="ChangeProfile">
@@ -8,13 +9,13 @@
     {
         foreach (var profile in _listProfiles)
         {
-            <option value="@profile.DataMappings[0].Id">@profile.Name</option>
+            <option value="@profile.Id">@profile.Name</option>
         }
     }
 </select>
 
 @code {
-    private List<Profile> _listProfiles;
+    private List<ProfileConfiguration> _listProfiles;
 
     [Parameter]
     public JobsCategory JobsCategory { get; set; }
@@ -30,7 +31,7 @@
 
         if (_listProfiles.Any())
         {
-            var profileId = _listProfiles.FirstOrDefault().DataMappings[0].Id;
+            var profileId = _listProfiles.FirstOrDefault().Id;
 
             await OnProfileSelected.InvokeAsync(profileId);
         }

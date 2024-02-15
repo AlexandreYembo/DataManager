@@ -1,9 +1,9 @@
-﻿@using Migration.Repository
+﻿@using Migration.Core
 @using Migration.Infrastructure.Redis.Entities
 @using Migration.Infrastructure.Redis
-@using Migration.Repository.Models
+@using Migration.Models
 @inject IRepository<DataSettings> _redis;
-@inject Func<DataSettings, ITestConnection> _testConnection;
+@inject Func<DataSettings, IGenericRepository> _testConnection;
 
 <div class="card card-default">
     <div class="card-header">
@@ -168,7 +168,7 @@
 
         var dataSettings = await GetDataSettings();
 
-        dataSettings = await _testConnection(dataSettings).Test();
+        dataSettings = await _testConnection(dataSettings).TestConnection();
 
         dataSettings.CurrentEntity = dataSettings.Entities.FirstOrDefault();
 
