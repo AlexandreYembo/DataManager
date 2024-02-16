@@ -18,7 +18,7 @@
                         <Loading />
                     </div>
                 }
-                @if (DataDifferences != null)
+                @if (DataDifferences != null && DataDifferences.Count > 0)
                 {
                     foreach (var differences in DataDifferences)
                     {
@@ -71,6 +71,10 @@
                             </div>
                         </div>
                     }
+                }
+                else
+                {
+                    <p>There is no change applied for this record</p>
                 }
             </div>
 

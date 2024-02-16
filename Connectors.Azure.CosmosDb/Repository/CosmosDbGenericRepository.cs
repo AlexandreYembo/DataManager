@@ -16,7 +16,9 @@ namespace Connectors.Azure.CosmosDb.Repository
         public CosmosDbGenericRepository(DataSettings settings)
         {
             if (string.IsNullOrEmpty(settings.CurrentEntity.Name))
-                return;
+            {
+                settings.CurrentEntity = settings.Entities.FirstOrDefault();
+            }
 
             _settings = settings;
 
@@ -36,7 +38,7 @@ namespace Connectors.Azure.CosmosDb.Repository
 
         public async Task CreateTableAsync()
         {
-            var partitionKey = _settings.CurrentEntity.Attributes.FirstOrDefault(w => w.Key == "PartitionKey")?.Value?.Replace("/", string.Empty);
+            var partitionKey = _settings.CurrentEntity.Attributes.FirstOrDefault(w => w.Key == Constants.PARTITION_KEY)?.Value?.Replace("/", string.Empty);
 
             var throughput = ThroughputProperties.CreateManualThroughput(400);
 
@@ -218,7 +220,7 @@ namespace Connectors.Azure.CosmosDb.Repository
 
                             JToken jToken = JToken.FromObject(record);
 
-                            if (rawQuery.Contains("distinct", StringComparison.CurrentCultureIgnoreCase))
+                            if (rawQuery.Contains(" distinct ", StringComparison.CurrentCultureIgnoreCase))
                             {
                                 dictionary[Guid.NewGuid().ToString()] = JObject.Parse(jToken.ToString());
                             }
@@ -258,7 +260,7 @@ namespace Connectors.Azure.CosmosDb.Repository
                     {
                         new()
                         {
-                            Key = "PartitionKey",
+                            Key = Constants.PARTITION_KEY,
                             Value = container.PartitionKeyPath
                         }
                     }

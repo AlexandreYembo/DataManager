@@ -25,10 +25,10 @@
 	  </EmbeddedResource>
 	</ItemGroup>
 	<ItemGroup>
+	  <ProjectReference Include="..\Connectors.Azure.CosmosDb\Connectors.Azure.CosmosDb.csproj" />
 	  <ProjectReference Include="..\Connectors.Azure.TableStorage\Connectors.Azure.TableStorage.csproj" />
 	  <ProjectReference Include="..\Migration.Core\Migration.Core.csproj" />
 	  <ProjectReference Include="..\Migration.EventHandlers\Migration.EventHandlers.csproj" />
-	  <ProjectReference Include="..\Migration.Infrastructure.CosmosDb\Migration.Infrastructure.CosmosDb.csproj" />
 	  <ProjectReference Include="..\Migration.Infrastructure.Redis\Migration.Infrastructure.Redis.csproj" />
 	  <ProjectReference Include="..\Migration.Models\Migration.Models.csproj" />
 	  <ProjectReference Include="..\Migration.Services\Migration.Services.csproj" />

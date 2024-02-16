@@ -26,17 +26,18 @@ namespace Connectors.Azure.TableStorage.Repository
 
         public WindowsAzureGenericRepository(DataSettings settings)
         {
-            if (!string.IsNullOrEmpty(settings.CurrentEntity.Name))
+            if (string.IsNullOrEmpty(settings.CurrentEntity.Name))
             {
-                _settings = settings;
-
-                _storageAccount = settings.Parameters.Any(p => p.Key == "Is Emulator" && p.Value == "True") ?
-                    CloudStorageAccount.DevelopmentStorageAccount :
-                    CloudStorageAccount.Parse(CreateConnectionString(settings));
-
-                _tableClient = _storageAccount.CreateCloudTableClient();
-                _table = _tableClient.GetTableReference(settings.CurrentEntity.Name);
+                settings.CurrentEntity = settings.Entities.FirstOrDefault();
             }
+            _settings = settings;
+
+            _storageAccount = settings.Parameters.Any(p => p.Key == "Is Emulator" && p.Value == "True") ?
+                CloudStorageAccount.DevelopmentStorageAccount :
+                CloudStorageAccount.Parse(CreateConnectionString(settings));
+
+            _tableClient = _storageAccount.CreateCloudTableClient();
+            _table = _tableClient.GetTableReference(settings.CurrentEntity.Name);
 
             requestOptions = new TableRequestOptions()
             {
@@ -58,11 +59,11 @@ namespace Connectors.Azure.TableStorage.Repository
                     {
                         new()
                         {
-                            Key = "PartitionKey"
+                            Key = Constants.PARTITION_KEY
                         },
                         new()
                         {
-                            Key = "RowKey"
+                            Key = Constants.ROW_KEY
                         }
                     }
                 });
@@ -175,12 +176,11 @@ namespace Connectors.Azure.TableStorage.Repository
                 JObject jObject = new JObject();
 
                 string partitionKey = entity.PartitionKey;
-                string rowKey = entity.RowKey;
 
-                jObject.Add("id", $"{partitionKey}");
-                jObject.Add("PartitionKey", partitionKey);
-                jObject.Add("RowKey", rowKey);
-                jObject.Add("ETag", entity.ETag);
+                jObject.Add("id", partitionKey);
+                jObject.Add(Constants.PARTITION_KEY, entity.PartitionKey);
+                jObject.Add(Constants.ROW_KEY, entity.RowKey);
+                jObject.Add(Constants.E_TAG, entity.ETag);
 
                 foreach (KeyValuePair<string, EntityProperty> property in entity.Properties)
                 {
@@ -210,7 +210,7 @@ namespace Connectors.Azure.TableStorage.Repository
             currentEntityIndex = skip; //apply pagination to the next query to skip and go to the next items
 
             Dictionary<string, JObject> dictionary = new();
-            
+
             var query = _table.BuildCustomQuery(rawQuery, fieldMappings, data, take);
 
             var currentSegment = await GetRecordByPage(query, take, cancellation);
@@ -224,9 +224,6 @@ namespace Connectors.Azure.TableStorage.Repository
                 // Access properties dynamically
                 JObject jObject = new JObject();
 
-                string partitionKey = entity.PartitionKey;
-                string rowKey = entity.RowKey;
-
                 string idRelationship = string.Empty;
 
                 if (fieldMappings != null && fieldMappings.Any(w => w.SourceEntity == _settings.CurrentEntity.Name && w.MappingType == MappingType.TableJoin))
@@ -239,9 +236,9 @@ namespace Connectors.Azure.TableStorage.Repository
                 }
 
                 jObject.Add("id", $"{entity.Properties.FirstOrDefault(f => f.Key == idRelationship).Value.PropertyAsObject}");
-                jObject.Add("PartitionKey", partitionKey);
-                jObject.Add("RowKey", rowKey);
-                jObject.Add("ETag", entity.ETag);
+                jObject.Add(Constants.PARTITION_KEY, entity.PartitionKey);
+                jObject.Add(Constants.ROW_KEY, entity.RowKey);
+                jObject.Add(Constants.E_TAG, entity.ETag);
 
                 foreach (KeyValuePair<string, EntityProperty> property in entity.Properties)
                 {

@@ -1,3 +1,4 @@
+using Connectors.Azure.CosmosDb.Repository;
 using Connectors.Azure.TableStorage.Repository;
 using Migration.Core;
 using Migration.EventHandlers;
@@ -50,7 +51,7 @@ builder.Services.RegisterRedis();
 builder.Services.AddTransient<Func<DataSettings, IGenericRepository>>(_ => settings =>
      settings?.ConnectionType switch
 {
-    //ConnectionType.CosmosDb => new CosmosDbGenericRepository(settings),
+    ConnectionType.CosmosDb => new CosmosDbGenericRepository(settings),
     //ConnectionType.File => new FileRepository(settings),
     ConnectionType.TableStorage => new WindowsAzureGenericRepository(settings),
     _ => throw new ArgumentException(string.Empty, "Invalid Db Type")

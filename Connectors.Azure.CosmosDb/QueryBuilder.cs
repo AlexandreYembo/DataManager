@@ -43,16 +43,12 @@ namespace Connectors.Azure.CosmosDb
                 var value = " (" + ConvertOperator(joins[0], relationshipData);
 
                 if (!string.IsNullOrEmpty(value))
-                    query = query.Replace("where", $"where #joins# ");
-                //query = query.Replace("where", $"where {value} #joins# ");
+                    query = query.Replace("where", "where #joins# ");
 
                 for (int i = 1; i < joins.Count; i++)
                 {
                     var operatorType = (joins[i].JoinType == SearchConditionType.And) ? " and " : " or ";
                     value = value + operatorType + ConvertOperator(joins[i], relationshipData);
-
-                    //if (!string.IsNullOrEmpty(value))
-                    //    query = query.Replace("#joins#", $"{operatorType} {value} #joins# ");
                 }
 
                 if (!string.IsNullOrEmpty(value))
@@ -60,9 +56,6 @@ namespace Connectors.Azure.CosmosDb
                     value += ") ";
                     query = query.Replace("#joins#", value);
                 }
-
-                //Remove the mark after resolving all the joins from the Source table to the dynamic table
-                //  query = query.Replace("#joins#", string.Empty);
             }
 
             if (take > 0) //pagination query
