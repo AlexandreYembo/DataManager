@@ -27,6 +27,7 @@ builder.Services.AddScoped<LogDetailsPublisher>();
 builder.Services.AddScoped<GetLogPublisher>();
 builder.Services.AddScoped<ActionsPublisher>();
 builder.Services.AddScoped<JobsPublisher>();
+builder.Services.AddScoped<ValidationMessagePublisher>();
 
 builder.Services.AddScoped<LogSubscriber>();
 builder.Services.AddScoped<MigrationLogPersistSubscriber>();

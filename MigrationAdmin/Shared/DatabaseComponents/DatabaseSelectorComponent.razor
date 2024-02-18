@@ -140,22 +140,10 @@
 
             DataSettings = redisData.FirstOrDefault();
         }
-        // var redisData = await _redis.FindAsync(typeof(DataSettings).Name);
-
-        // var dataSettings = redisData.Select(s => s.Data).ToList();
-
-        // if (dataSettings != null && dataSettings.Any())
-        // {
-        //     ConnectionStrings = dataSettings.ToDictionary(k => k.FullName, v => v.FullName);
-        //     DataSettings = dataSettings.FirstOrDefault();
         _connectionName = DataSettings.FullName;
 
         if (DataSettings.CurrentEntity != null && string.IsNullOrEmpty(DataSettings.CurrentEntity.Name) && DataSettings.Entities.Any())
             DataSettings.CurrentEntity = DataSettings.Entities.FirstOrDefault();
-      
-        //     await OnDbSettingsChanged.InvokeAsync(DataSettings);
-        // }
-
     }
 
     public async Task ChangeConnectionString(ChangeEventArgs e)

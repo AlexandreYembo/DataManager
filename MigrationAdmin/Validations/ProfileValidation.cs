@@ -1,4 +1,5 @@
-﻿using Migration.Models;
+﻿using Migration.EventHandlers;
+using Migration.Models;
 using Migration.Models.Profile;
 using OperationType = Migration.Models.OperationType;
 
@@ -6,30 +7,44 @@ namespace MigrationAdmin.Validations
 {
     public class ProfileValidation
     {
+        private readonly ValidationMessagePublisher _publisher;
+
+        public ProfileValidation(ValidationMessagePublisher publisher)
+        {
+            _publisher = publisher;
+        }
+
         public bool IsValid(ProfileConfiguration profile, int step)
         {
             ValidationMessages = new();
             switch (step)
             {
-                case 1:
-                    ValidationMessages = new();
-                    return true;
                 case 2: // DataSettings
-                    return HasDataSettingValid(profile);
+                    HasDataSettingValid(profile);
+                    break;
                 case 3: // Mappings
-                    return HasValidMapping(profile);
+                    HasValidMapping(profile);
+                    break;
                 case 4:
                     if (profile.OperationType == OperationType.Import)
                     {
-                        return HasValidAttributesConfiguration(profile);
+                        HasValidAttributesConfiguration(profile);
                     }
-                    return true;
+                    break;
                 default:
-                    return true;
+                    break;
             }
+
+            if (ValidationMessages.Any())
+            {
+                _publisher.Publish(ValidationMessages);
+                return false;
+            }
+
+            return true;
         }
 
-        private bool HasValidAttributesConfiguration(ProfileConfiguration profile)
+        private void HasValidAttributesConfiguration(ProfileConfiguration profile)
         {
             if (profile.Target.Settings.ConnectionType == ConnectionType.CosmosDb)
             {
@@ -66,12 +81,9 @@ namespace MigrationAdmin.Validations
                     ValidationMessages.Add(new() { Message = "Specify the id of the record" });
                 }
             }
-
-
-            return ValidationMessages.Count == 0;
         }
 
-        private bool HasDataSettingValid(ProfileConfiguration profile)
+        private void HasDataSettingValid(ProfileConfiguration profile)
         {
             bool hasSourceData = !string.IsNullOrEmpty(profile.Source.Settings.CurrentEntity.Name);
 
@@ -94,14 +106,10 @@ namespace MigrationAdmin.Validations
 
                 if (!hasTargetQuery)
                     ValidationMessages.Add(new() { Message = "Query for Target must be provided" });
-
-                return (hasSourceData && hasTargetData && hasSourceQuery && hasTargetQuery);
             }
-
-            return hasSourceData;
         }
 
-        private bool HasValidMapping(ProfileConfiguration profile)
+        private void HasValidMapping(ProfileConfiguration profile)
         {
             if (profile.DataQueryMappingType == DataQueryMappingType.SourceToTarget)
             {
@@ -122,8 +130,6 @@ namespace MigrationAdmin.Validations
                     ValidationMessages.Add(new() { Message = "At least one type of mapping you need to provide in order to update the record." });
                 }
             }
-
-            return !ValidationMessages.Any();
         }
 
         public List<ValidationMessage> ValidationMessages { get; set; } = new();
@@ -132,5 +138,20 @@ namespace MigrationAdmin.Validations
     public class ValidationMessage
     {
         public string Message { get; set; }
+    }
+
+    public class ValidationMessageEventArgs : EventArgs
+    {
+        public readonly List<ValidationMessage> ValidationMessages;
+
+        public ValidationMessageEventArgs(List<ValidationMessage> validationMessages)
+        {
+            ValidationMessages = validationMessages;
+        }
+    }
+
+    public class ValidationMessagePublisher : Publisher<List<ValidationMessage>, ValidationMessageEventArgs>
+    {
+
     }
 }
