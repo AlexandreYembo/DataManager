@@ -1,13 +1,15 @@
-﻿@using Migration.Repository.LogModels
-@using Migration.Repository.Publishers
-@using Migration.Repository.Subscribers
-@using Migration.Repository.Delegates
+﻿@using Migration.EventHandlers.CustomEventArgs
+@using Migration.EventHandlers.Publishers
+@using Migration.EventHandlers.Subscribers
+@using Migration.Models
+@using Migration.Models.Logs
 @using Migration.Services.Subscribers
 @inherits LayoutComponentBase
-@inject LogResultSubscriber LogSubscriber
-@inject LogPublisher LogPublisher
-@inject LogDetailsPublisher LogDetailsPublisher
-@inject MigrationLogPersistSubscriber _LogPersistSubscriber;
+@inject LogSubscriber _logSubscriber
+@inject LogPublisher _logPublisher
+@inject LogDetailsPublisher _logDetailsPublisher
+@inject GetLogPublisher _getLogPublisher;
+@inject MigrationLogPersistSubscriber _logPersistSubscriber;
 @inject ActionsPublisher _actionsPublisher;
 @inject IJSRuntime jsRuntime
 
@@ -16,6 +18,7 @@
     <NavMenu />
     <div class="content-wrapper">
         @Body
+        <ValidationComponent></ValidationComponent>
     </div>
     <footer class="main-footer">
         <Log LogResult="_logResult"></Log>
@@ -32,12 +35,13 @@
 
     protected override async Task OnInitializedAsync()
     {
-        LogPublisher.OnEventPublished += LogSubscriber.OnEventChanged;
-        LogPublisher.OnEventPublished += OnLogUpdated;
-        LogDetailsPublisher.OnEventPublished += LogSubscriber.OnEventChanged;
+        _logPublisher.OnEventPublished += _logSubscriber.OnEventChanged;
+        _logPublisher.OnEventPublished += OnLogUpdated;
+        _logDetailsPublisher.OnEventPublished += _logSubscriber.OnEventChanged;
 
-        LogPublisher.OnEventPublished += _LogPersistSubscriber.LogResultPublisher_OnEntityChanged;
-        LogDetailsPublisher.OnEventPublished += _LogPersistSubscriber.LogDetailsPublisher_OnEntityChanged;
+        _logPublisher.OnEventPublished += _logPersistSubscriber.LogResultPublisher_OnEntityChanged;
+
+        _getLogPublisher.OnEventPublished += OnLogUpdated;
 
         _actionsPublisher.OnEventPublished += OnActionCompleted;
     }

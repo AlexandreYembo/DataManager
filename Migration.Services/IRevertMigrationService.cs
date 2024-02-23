@@ -1,10 +1,10 @@
-﻿using Migration.Repository.Models;
+﻿using Migration.Models.Profile;
 using Newtonsoft.Json.Linq;
 
 namespace Migration.Services
 {
     public interface IRevertMigrationService
     {
-        Task Revert(Profile profile, List<JObject> listData, int jobId);
+        Task Revert(ProfileConfiguration profile, List<JObject> listData, int jobId);
     }
 }

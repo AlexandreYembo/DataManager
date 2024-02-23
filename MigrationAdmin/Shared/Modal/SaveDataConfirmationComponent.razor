@@ -1,6 +1,6 @@
-﻿@inject IJSRuntime jsRuntime
-@using Migration.Infrastructure.Redis.Entities
-@using Migration.Infrastructure.Redis
+﻿@using Connectors.Redis
+@using Connectors.Redis.Models
+@inject IJSRuntime jsRuntime
 @inject IRepository<object> _redis;
 
 <div class="modal fade show" id="logDetailsModal" style="display:block" aria-modal="true" role="dialog">
@@ -50,7 +50,7 @@
 
     public async Task SaveOk()
     {
-        var redisData = new RedisData<object>()
+        var redisData = new HashKeyRedisData<object>()
         {
             Data = Data,
             RedisValue = _name

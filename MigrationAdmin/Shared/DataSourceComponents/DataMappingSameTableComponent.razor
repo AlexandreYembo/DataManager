@@ -1,5 +1,5 @@
-﻿@using Migration.Repository.DbOperations
-@using Migration.Repository.Models
+﻿@using Migration.Models
+@using Migration.Models.Profile
 @inherits MigrationAdmin.CustomComponents
 <div class="card card-default">
     <div class="card-header">
@@ -19,7 +19,7 @@
         </div>
         <div class="row">
             <div class="col-sm-12">
-                @if (DataMapping.OperationType == OperationType.Update || DataMapping.OperationType == OperationType.Import)
+                @if (Profile.OperationType == OperationType.Update || Profile.OperationType == OperationType.Import)
                 {
                     @switch (_dataFieldsMapping.MappingType)
                     {
@@ -47,7 +47,7 @@
 </div>
 <div class="row">
     <div class="col-sm-12">
-        <MappingListComponent DataMapping="DataMapping"
+        <MappingListComponent Profile="Profile"
                               OnDataFieldsMappingEditing="(dataFieldsMapping) => _dataFieldsMapping = dataFieldsMapping "></MappingListComponent>
     </div>
 </div>
@@ -55,25 +55,25 @@
 @code
 {
     [Parameter]
-    public DataMapping DataMapping { get; set; } = new();
+    public ProfileConfiguration Profile { get; set; } = new();
 
     [Parameter]
-    public EventCallback<DataMapping> OnDataMappingChanged { get; set; }
+    public EventCallback<ProfileConfiguration> OnDataMappingChanged { get; set; }
 
     private DataFieldsMapping _dataFieldsMapping = new();
 
     private async Task AddFieldsMapping(DataFieldsMapping dataFieldMapping)
     {
-        DataMapping.FieldsMapping.Remove(dataFieldMapping);
-        DataMapping.FieldsMapping.Add(dataFieldMapping);
+        Profile.FieldsMapping.Remove(dataFieldMapping);
+        Profile.FieldsMapping.Add(dataFieldMapping);
         _dataFieldsMapping = new DataFieldsMapping();
 
-        await OnDataMappingChanged.InvokeAsync(DataMapping);
+        await OnDataMappingChanged.InvokeAsync(Profile);
     }
 
     private void Remove(DataFieldsMapping dataFieldsMapping)
     {
-        DataMapping.FieldsMapping.Remove(dataFieldsMapping);
+        Profile.FieldsMapping.Remove(dataFieldsMapping);
     }
 
     private void ChangeMappingType(ChangeEventArgs e)

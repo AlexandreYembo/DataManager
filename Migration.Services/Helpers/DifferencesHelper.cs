@@ -1,4 +1,5 @@
-﻿using Migration.Repository.Models;
+﻿using Migration.Models;
+using Migration.Models.Profile;
 using Newtonsoft.Json.Linq;
 
 namespace Migration.Services.Helpers
@@ -44,9 +45,9 @@ namespace Migration.Services.Helpers
                 {
                     propertyName = fieldsMappings.FirstOrDefault(a => a.SourceField == property.Name).SourceField;
                 }
-                else if (fieldsMappings.Any(a => a.DestinationField == property.Name))
+                else if (fieldsMappings.Any(a => a.TargetField == property.Name))
                 {
-                    propertyName = fieldsMappings.FirstOrDefault(a => a.SourceField == property.Name).DestinationField;
+                    propertyName = fieldsMappings.FirstOrDefault(a => a.SourceField == property.Name).TargetField;
                 }
                 else
                 {

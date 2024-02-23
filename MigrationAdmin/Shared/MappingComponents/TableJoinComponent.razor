@@ -1,5 +1,5 @@
 ﻿@using Microsoft.AspNetCore.Components
-@using Migration.Repository.Models
+@using Migration.Models
 @inherits MigrationAdmin.CustomComponents
 
 <div class="card card-default">
@@ -8,6 +8,17 @@
     </div>
     <div class="card-body">
         <div class="row">
+            <div class="col-sm-1">
+                <div class="form-group">
+                    <label>Join Type</label>
+                    <select class="form-control" id="fieldType" data-keeper-edited="yes" @bind="@DataFieldsMapping.JoinType">
+                        @foreach (var fieldType in Enum.GetValues<SearchConditionType>())
+                        {
+                            <option value="@fieldType">@fieldType</option>
+                        }
+                    </select>
+                </div>
+            </div>
             <div class="col-sm-1">
                 <div class="form-group">
                     <label>Operator Type</label>
@@ -33,8 +44,8 @@
             </div>
             <div class="col-sm-4">
                 <div class="form-group">
-                    <label>[@DataFieldsMapping.DestinationEntity]</label>[Field]
-                    <input class="form-control" data-keeper-edited="yes" @bind="DataFieldsMapping.DestinationField"/>
+                    <label>[@DataFieldsMapping.TargetEntity]</label>[Field]
+                    <input class="form-control" data-keeper-edited="yes" @bind="DataFieldsMapping.TargetField"/>
                 </div>
             </div>
         </div>

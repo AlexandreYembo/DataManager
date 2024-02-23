@@ -1,47 +1,45 @@
 ﻿@page "/profileConfiguration"
-@using Migration.Repository.Models
+@using Connectors.Redis
+@using Connectors.Redis.Models
+@using Migration.Models
+@using Migration.Models.Profile
 @using Migration.Services
 @using Migration.Services.Models
 @using Migration.Services.Helpers
+@using MigrationAdmin.Validations
 @using Newtonsoft.Json
 @using Newtonsoft.Json.Linq
-@using Migration.Repository
-@using Migration.Infrastructure.Redis
-@using Migration.Infrastructure.Redis.Entities
-@using Migration.Repository.Validations
 @inherits CustomComponents;
 @inject IJSRuntime jsRuntime
 @inject IQueryService _queryService;
 @inject IRepository<DataSettings> _dataSettingsRepository;
-@inject IRepository<Profile> _profileRepository;
+@inject IRepository<ProfileConfiguration> _profileRepository;
 @inject ProfileValidation _profileValidation;
 
 <div class="card card-default card-tabs">
     <div class="card-header p-0 pt-1">
         <ul class="nav nav-tabs" id="custom-tabs-one-tab" role="tablist">
             <li class="nav-item">
-                <a class="nav-link @GetStep("active", 1)" id="custom-tabs-one-database-tab" role="tab" aria-controls="custom-tabs-one-database" aria-selected="true"><i class="nav-icon fas fa-database"></i> Database</a>
+                <a class="nav-link @GetStep("active", 1)" id="custom-tabs-one-profiles-tab" role="tab" aria-controls="custom-tabs-one-profiles" aria-selected="true"><i class="nav-icon fas fa-object-group"></i> Profiles</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link  @GetStep("active", 2)" id="custom-tabs-one-sourceData-tab" role="tab" aria-controls="custom-tabs-one-sourceData" aria-selected="false"><i class="nav-icon fas fa-query"></i> Queries</a>
+                <a class="nav-link  @GetStep("active", 2)" id="custom-tabs-one-sourceData-tab" role="tab" aria-controls="custom-tabs-one-sourceData" aria-selected="false"><i class="nav-icon fas fa-table"></i> Profile Type</a>
             </li>
-            @if (Profile.DataMappings[0].OperationType == OperationType.Import)
+            <li class="nav-item">
+                <a class="nav-link  @GetStep("active", 3)" id="custom-tabs-one-mapping-tab" role="tab" aria-controls="custom-tabs-one-mapping" aria-selected="false"><i class="nav-icon fas fa-map"></i> Mapping</a>
+            </li>
+            @if (Profile.OperationType == OperationType.Import)
             {
                 <li class="nav-item">
-                    <a class="nav-link  @GetStep("active", 3)" id="custom-tabs-one-dataAttributes-tab" role="tab" aria-controls="custom-tabs-one-dataAttributes" aria-selected="false"><i class="nav-icon fas fa-key"></i> Data Attributes</a>
+                    <a class="nav-link  @GetStep("active", 4)" id="custom-tabs-one-dataAttributes-tab" role="tab" aria-controls="custom-tabs-one-dataAttributes" aria-selected="false"><i class="nav-icon fas fa-key"></i> Data Attributes</a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link  @GetStep("active", 4)" id="custom-tabs-one-mapping-tab" role="tab" aria-controls="custom-tabs-one-mapping" aria-selected="false"><i class="nav-icon fas fa-map"></i> Mapping</a>
-                </li>
+
                 <li class="nav-item">
                     <a class="nav-link  @GetStep("active", 5)" id="custom-tabs-one-preview-tab" role="tab" aria-controls="custom-tabs-one-preview" aria-selected="false"><i class="nav-icon fas fa-list"></i> Summary</a>
                 </li>
             }
             else
             {
-                <li class="nav-item">
-                    <a class="nav-link  @GetStep("active", 3)" id="custom-tabs-one-mapping-tab" role="tab" aria-controls="custom-tabs-one-mapping" aria-selected="false"><i class="nav-icon fas fa-map"></i> Mapping</a>
-                </li>
                 <li class="nav-item">
                     <a class="nav-link  @GetStep("active", 4)" id="custom-tabs-one-preview-tab" role="tab" aria-controls="custom-tabs-one-preview" aria-selected="false"><i class="nav-icon fas fa-list"></i> Summary</a>
                 </li>
@@ -51,37 +49,71 @@
     <div class="card-body">
         <div class="tab-content" id="custom-tabs-one-tabContent">
             <div class="tab-pane fade  @GetStep("show active", 1)" id="custom-tabs-one-database" role="tabpanel" aria-labelledby="custom-tabs-one-database-tab">
-                <ConnectionConfigurationComponent OnConnectionSuccessfully="UpdateDataSettings">
-                </ConnectionConfigurationComponent>
-            </div>
-
-            <div class="tab-pane fade @GetStep("show active", 2)" id="custom-tabs-one-sourceData" role="tabpanel" aria-labelledby="custom-tabs-one-sourceData-tab">
-                <DataQueryComponent DataMapping="Profile.DataMappings[0]"
-                                    DataSettings="_dataSettings"
-                                    DataQueryMappingTypeChangedCallback="(dataType) => _dataQueryType = dataType"></DataQueryComponent>
-            </div>
-
-            @if (Profile.DataMappings[0].OperationType == OperationType.Import)
-            {
-                <div class="tab-pane fade @GetStep("show active", 3)" id="custom-tabs-one-dataAttributes" role="tabpanel" aria-labelledby="custom-tabs-one-dataAttributes-tab">
-                    <DataImportConfigurationComponent DataAttributes="Profile.DataMappings[0].Destination.Settings.CurrentEntity.Attributes"
-                        OnCustomAttributesAdded="(customAttributes) => Profile.DataMappings[0].Destination.Settings.CurrentEntity.Attributes = UpdateCustomAttribute(Profile.DataMappings[0].Destination.Settings.CurrentEntity.Attributes, customAttributes) "></DataImportConfigurationComponent>
+                <div class="row">
+                    <div class="col-sm-12">
+                        <JobCategoryComponent OnJobCategorySelected="(jobCategory) => Search(jobCategory.CategoryName)"></JobCategoryComponent>
+                    </div>
                 </div>
-            }
+                <div class="row">
+                    <div class="col-sm-12">
+                        <table id="profiles" class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Profile</th>
+                                    <th>Description</th>
+                                    <th>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (_profiles != null)
+                                {
+                                    foreach (var profile in _profiles)
+                                    {
+                                        <tr>
+                                            <td>
+                                                @profile.Name
+                                            </td>
+                                            <td>
+                                                @profile.Description
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-default" @onclick="() => EditProfile(profile)"> <i class="nav-icon fas fa-edit"></i> Edit</button>
+                                                <button class="btn btn-default" @onclick="() => CloneProfile(profile)"> <i class="nav-icon fas fa-copy"></i> Clone</button>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-pane fade @GetStep("show active", 2)" id="custom-tabs-one-sourceData" role="tabpanel" aria-labelledby="custom-tabs-one-sourceData-tab">
+                <DataQueryComponent Profile="Profile"
+                                    DataSettings="_dataSettings"
+                                    DataQueryMappingTypeChangedCallback="(dataType) => Profile.DataQueryMappingType = dataType"></DataQueryComponent>
+            </div>
 
-            <div class="tab-pane fade @GetStep("show active", Profile.DataMappings[0].OperationType != OperationType.Import ? 3 : 4)" id="custom-tabs-one-mapping" role="tabpanel" aria-labelledby="custom-tabs-one-mapping-tab">
-                @if (_dataQueryType == DataQueryMappingType.UpdateAnotherCollection)
+            <div class="tab-pane fade @GetStep("show active", 3)" id="custom-tabs-one-mapping" role="tabpanel" aria-labelledby="custom-tabs-one-mapping-tab">
+                @if (Profile.DataQueryMappingType == DataQueryMappingType.SourceToTarget)
                 {
-                    <DataMappingDestinationComponent DataMapping="Profile.DataMappings[0]"
-                                                     OnDataMappingChanged="(mappingResult) => _ = mappingResult"></DataMappingDestinationComponent>
+                    <DataMappingTargetComponent Profile="Profile"></DataMappingTargetComponent>
                 }
                 else
                 {
-                    <DataMappingSameTableComponent DataMapping="Profile.DataMappings[0]"
-                                                   OnDataMappingChanged="(mappingResult) => _ = mappingResult"></DataMappingSameTableComponent>
+                    <DataMappingSameTableComponent Profile="Profile"></DataMappingSameTableComponent>
                 }
             </div>
-            <div class="tab-pane fade @GetStep("show active", Profile.DataMappings[0].OperationType != OperationType.Import ? 4 : 5)" id="custom-tabs-one-preview" role="tabpanel" aria-labelledby="custom-tabs-one-preview-tab">
+
+            @if (Profile.OperationType == OperationType.Import)
+            {
+                <div class="tab-pane fade @GetStep("show active", 4)" id="custom-tabs-one-dataAttributes" role="tabpanel" aria-labelledby="custom-tabs-one-dataAttributes-tab">
+                    <DataImportConfigurationComponent DataAttributes="Profile.Target.Settings.CurrentEntity.Attributes"
+                                                      OnCustomAttributesAdded="(customAttributes) => Profile.Target.Settings.CurrentEntity.Attributes = UpdateCustomAttribute(Profile.Target.Settings.CurrentEntity.Attributes, customAttributes) "></DataImportConfigurationComponent>
+                </div>
+            }
+            <div class="tab-pane fade @GetStep("show active", Profile.OperationType != OperationType.Import ? 4 : 5)" id="custom-tabs-one-preview" role="tabpanel" aria-labelledby="custom-tabs-one-preview-tab">
                 <div class="card card-default">
                     <div class="card-header">
                         <h3 class="card-title">Profile configuration details</h3>
@@ -89,7 +121,7 @@
                     <div class="card-body">
                         <div class="row">
                             <div class="col-sm-2">
-                                <JobCategoryComponent OnJobCategorySelected="(jobCategory) => Profile.JobCategoryId = jobCategory"></JobCategoryComponent>
+                                <JobCategoryComponent OnJobCategorySelected="(jobCategory) => Profile.JobCategoryId = jobCategory.CategoryName"></JobCategoryComponent>
                             </div>
                             <div class="col-sm-2">
                                 <label>Name</label>
@@ -149,7 +181,7 @@
                                                                         </div>
                                                                         <div class="col-sm-10">
                                                                             <pre>
-                                                                                @JValue.Parse(values.Data).ToString(Formatting.Indented) </pre>
+                                                                                @JValue.Parse(values.Data.ToString()).ToString(Formatting.Indented) </pre>
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -176,14 +208,19 @@
                     <button class="btn btn-default" @onclick="() => Previous()"><i class="nav-icon fas fa-step-backward"></i> Previous</button>
                 </div>
             }
-
-            @if ((Profile.DataMappings[0].OperationType != OperationType.Import && _step < 3) || (Profile.DataMappings[0].OperationType == OperationType.Import && _step < 4))
+            @if (_step == 1)
+            {
+                <div class="col-sm-1">
+                    <button class="btn btn-default" @onclick="() => New()"><i class="nav-icon fas fa-folder-plus"></i> New</button>
+                </div>
+            }
+            else if ((Profile.OperationType != OperationType.Import && _step < 3) || (Profile.OperationType == OperationType.Import && _step < 4))
             {
                 <div class="col-sm-1">
                     <button class="btn btn-default" @onclick="() => Next()"> <i class="nav-icon fas fa-step-forward"></i> Next</button>
                 </div>
             }
-            else if((Profile.DataMappings[0].OperationType != OperationType.Import && _step == 3) || (Profile.DataMappings[0].OperationType == OperationType.Import && _step == 4))
+            else if ((Profile.OperationType != OperationType.Import && _step == 3) || (Profile.OperationType == OperationType.Import && _step == 4))
             {
                 <div class="col-sm-1">
                     <button class="btn btn-default" @onclick="() => PreviewDataResult()"> <i class="nav-icon fas fa-forward"></i> Summary</button>
@@ -209,41 +246,80 @@
                          IsLoading="Loading"></DataDifferenceModal>
 }
 
-<ValidationComponent ValidationMessages="_profileValidation.ValidationMessages"></ValidationComponent>
+
+
+<CloneProfileComponent Profile="@Profile"
+                       ShowModal="_cloneProfileModalIsEnabled"
+                       OnProfileCloned="(profileCloned) => Search(profileCloned.JobCategoryId)"
+                       ModalOk="() => _cloneProfileModalIsEnabled = false"></CloneProfileComponent>
 
 @code {
+    private bool _cloneProfileModalIsEnabled;
+
+    private List<ProfileConfiguration> _profiles;
 
     private bool _showModalDataDifference;
 
     private int _step = 1;
 
-    private DataQueryMappingType _dataQueryType { get; set; }
-
-    public Profile Profile { get; set; } = new();
+    public ProfileConfiguration Profile { get; set; } = new();
 
     private Dictionary<string, List<DynamicData>> _resultDataFromConfiguration;
 
-    private IEnumerable<DataSettings> _dataSettings;
+    private List<DataSettings> _dataSettings;
 
     private string _message;
 
     protected override async Task OnInitializedAsync()
     {
-        Profile.DataMappings.Add(new DataMapping()
-            {
-                Id = Guid.NewGuid().ToString(),
-            });
+        Profile.Id = Guid.NewGuid().ToString();
 
         var settings = await _dataSettingsRepository.FindAsync();
 
         if (!settings.Any()) return;
 
         _dataSettings = settings;
+
+        _dataSettings.Add(new()
+            {
+                ConnectionType = ConnectionType.Redis,
+                Name = "Cache",
+                IsCacheConnection = true
+            });
+    }
+
+    public async Task EditProfile(ProfileConfiguration profile)
+    {
+        Profile = profile;
+        Next();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void CloneProfile(ProfileConfiguration profile)
+    {
+        profile.Name = "Clone-" + profile.Name;
+
+        Profile = profile;
+
+        _cloneProfileModalIsEnabled = true;
+    }
+
+    private async Task Search(string jobCategory)
+    {
+        try
+        {
+            Profile.Id = Guid.NewGuid().ToString();
+
+            _profiles = await _profileRepository.FindAsync(jobCategory);
+        }
+        catch
+        {
+        }
     }
 
     public async Task PreviewDataResult()
     {
-        if (!_profileValidation.IsValid(Profile.DataMappings[0], _step))
+        if (!_profileValidation.IsValid(Profile, _step))
         {
             return;
         }
@@ -251,15 +327,13 @@
         _step++;
         Loading = true;
 
-        Profile.DataMappings[0].DataQueryMappingType = _dataQueryType;
-
         try
         {
-            if (Profile.DataMappings[0].DataQueryMappingType == DataQueryMappingType.UpdateSameCollection)
+            if (Profile.DataQueryMappingType == DataQueryMappingType.SameCollection)
             {
-                Profile.DataMappings[0].Destination = null;
+                Profile.Target = null;
             }
-            _resultDataFromConfiguration = await _queryService.Get(Profile.DataMappings[0], take: 10); //TODO: DataMappings[0] will be a list in the future
+            _resultDataFromConfiguration = await _queryService.Get(Profile, take: 10); //TODO: DataMappings[0] will be a list in the future
         }
         catch (Exception e)
         {
@@ -281,7 +355,7 @@
 
             foreach (var data in _resultDataFromConfiguration.Where(w => w.Key == key))
             {
-                var differences = DifferencesMultipleDestinationsHelper.FindDifferences(Profile.DataMappings[0], data.Value);
+                var differences = DifferencesTargetHelper.FindDifferences(Profile, data.Value);
 
                 if (differences.Any())
                 {
@@ -321,37 +395,44 @@
     {
         _step--;
 
-        _profileValidation.IsValid(Profile.DataMappings[0], _step);
+        _profileValidation.IsValid(Profile, _step);
+    }
+
+    private void New()
+    {
+        Profile.Id = Guid.NewGuid().ToString();
+
+        Next();
     }
 
     private void Next()
     {
-        if (!_profileValidation.IsValid(Profile.DataMappings[0], _step))
+        if (!_profileValidation.IsValid(Profile, _step))
         {
             return;
         }
         _step++;
     }
 
-    private async Task UpdateDataSettings()
-    {
-        _dataSettings = await _dataSettingsRepository.FindAsync();
+    // private async Task UpdateDataSettings()
+    // {
+    //     _dataSettings = await _dataSettingsRepository.FindAsync();
 
-        Profile.DataMappings[0].Source.Settings = _dataSettings.FirstOrDefault();
-        Profile.DataMappings[0].Destination.Settings = _dataSettings.FirstOrDefault();
-    }
+    //     Profile.DataMappings[0].Source.Settings = _dataSettings.FirstOrDefault();
+    //     Profile.DataMappings[0].Target.Settings = _dataSettings.FirstOrDefault();
+    // }
 
     private async Task SaveProfile()
     {
-        if (Profile.DataMappings[0].DataQueryMappingType == DataQueryMappingType.UpdateSameCollection)
+        if (Profile.DataQueryMappingType == DataQueryMappingType.SameCollection)
         {
-            Profile.DataMappings[0].Destination = null;
+            Profile.Target = null;
         }
 
-        var redisData = new RedisData<Profile>()
+        var redisData = new HashKeyRedisData<ProfileConfiguration>()
             {
                 Data = Profile,
-                RedisValue = Profile.DataMappings[0].Id,
+                RedisValue = Profile.Id,
                 RedisKey = Profile.JobCategoryId
             };
 
@@ -359,7 +440,7 @@
 
         await ShowSuccessAlert();
     }
-   
+
 
     private async Task ShowSuccessAlert()
     {

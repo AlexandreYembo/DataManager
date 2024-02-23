@@ -2,7 +2,7 @@
 
 1. if you are using conditions you can use queries to match values in order to perform an update in case that the condition is true.
 
-2. Only during the conditions, you can define if you want to check the condition based on data from Source table or for destination.
+2. Only during the conditions, you can define if you want to check the condition based on data from Source table or for Target.
 
 3.  Conditions can be aggregated by the operation ```and``` or ```or```
 

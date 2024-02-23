@@ -1,11 +1,14 @@
-﻿@using Microsoft.AspNetCore.Components
-@using Migration.Infrastructure.Redis
-@using Migration.Infrastructure.Redis.Entities
-@using Migration.Repository
+﻿@using Connectors.Redis
+@using Connectors.Redis.Models
+@using Microsoft.AspNetCore.Components
+@using Migration.Core
+@using Migration.EventHandlers.Publishers
 @using InputFile = Microsoft.AspNetCore.Components.Forms.InputFile
+@using Migration.Models
 @inherits CustomComponents
-@inject Func<DataSettings, ITestConnection> _testConnection;
+@inject Func<DataSettings, IGenericRepository> _testConnection;
 @inject IRepository<DataSettings> _redis;
+@inject ActionsPublisher _actionsPublisher;
 
 <div class="card card-default">
     <div class="card-header">
@@ -121,7 +124,7 @@
         @if (DataSettings.ConnectionType != ConnectionType.File)
         {
             <div class="card-footer">
-                <button class="btn btn-success" @onclick="() => TestConnection()">Test and Save Connection</button>
+                <button class="btn btn-default" @onclick="() => TestConnection()">Test and Save Connection</button>
             </div>
         }
     </div>
@@ -134,20 +137,12 @@
     </div>
 }
 
-@if (ShowModal)
-{
-    <ResultModalComponent Error="@_error" Message="@_message" ModalTitle="Connection Result" ModalOk="ModalOk"></ResultModalComponent>
-}
-
 @code {
     [Parameter]
     public DataSettings DataSettings { get; set; } = new();
 
     [Parameter]
     public EventCallback OnConnectionSuccessfully { get; set; }
-
-    private bool _error;
-    private string _message;
 
     private IBrowserFile _uploadedFile;
 
@@ -177,11 +172,9 @@
 
         try
         {
-            DataSettings = await _testConnection(DataSettings).Test();
-            _error = false;
-            _message = $"Connected to {DataSettings.ConnectionType}";
+            DataSettings = await _testConnection(DataSettings).TestConnection();
 
-            var redisData = new RedisData<DataSettings>()
+            var redisData = new HashKeyRedisData<DataSettings>()
                 {
                     Data = DataSettings,
                     RedisValue = DataSettings.FullName
@@ -192,15 +185,23 @@
             await OnConnectionSuccessfully.InvokeAsync();
 
             StateHasChanged();
+
+            await _actionsPublisher.PublishAsync(new Actions
+                {
+                    ActionType = ActionEventType.Success,
+                    Message = $"Connected to {DataSettings.ConnectionType}"
+                });
         }
         catch (Exception e)
         {
-            _error = true;
-            _message = $"Error to connect to {DataSettings.ConnectionType}. Details: {e.Message}";
+            await _actionsPublisher.PublishAsync(new Actions
+                {
+                    ActionType = ActionEventType.Error,
+                    Message = $"Error to connect to {DataSettings.ConnectionType}. Details: {e.Message}"
+                });
         }
 
         Loading = false;
-        ShowModal = true;
     }
 
     private void OnFileInput(InputFileChangeEventArgs e)
@@ -230,7 +231,7 @@
                     Value = filePath
                 });
 
-            var redisData = new RedisData<DataSettings>()
+            var redisData = new HashKeyRedisData<DataSettings>()
                 {
                     Data = DataSettings,
                     RedisValue = DataSettings.FullName
@@ -238,8 +239,11 @@
 
             await _redis.SaveAsync(redisData);
 
-            _error = false;
-            _message = "File Uploaded";
+            await _actionsPublisher.PublishAsync(new Actions
+                {
+                    ActionType = ActionEventType.Success,
+                    Message = "File Uploaded"
+                });
 
             await OnConnectionSuccessfully.InvokeAsync(DataSettings);
 
@@ -247,8 +251,11 @@
         }
         catch (Exception e)
         {
-            _error = true;
-            _message = $"Error to connect to {DataSettings.ConnectionType}. Details: {e.Message}";
+            await _actionsPublisher.PublishAsync(new Actions
+                {
+                    ActionType = ActionEventType.Error,
+                    Message = $"Error to connect to {DataSettings.ConnectionType}. Details: {e.Message}"
+                });
         }
 
         Loading = false;
@@ -259,5 +266,4 @@
     {
         DataSettings.Parameters.FirstOrDefault(f => f.Key == "Is Emulator").Value = e.Value.ToString();
     }
-
 }

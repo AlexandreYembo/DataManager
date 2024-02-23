@@ -1,11 +1,85 @@
 ﻿@page "/"
+@using Connectors.Redis
+@using Migration.Models
+@inject IRepository<Jobs> _repository;
 
-<div class="card card-info">
-    <div class="card-header">
-        <h3 class="card-title">Configure your Connection string</h3>
-    </div>
-    <div class="card-body">
-        <ConnectionConfigurationComponent>
-        </ConnectionConfigurationComponent>
-    </div>
+<div class="content-header">
+    <section class="content">
+        <div class="container-fluid">
+            <!-- Small boxes (Stat box) -->
+            <div class="row">
+                <div class="col-lg-3 col-6">
+                    <!-- small box -->
+                    <div class="small-box bg-default">
+                        <div class="inner">
+                            <h3>@_totalJobs</h3>
+
+                            <p>Total Jobs</p>
+                        </div>
+                        <div class="inner">
+                            <h3>@_inprogressJobs</h3>
+
+                            <p>Pending Jobs</p>
+                        </div>
+                        <div class="inner">
+                            <h3>@_inQueueJobs</h3>
+
+                            <p>Queued Jobs</p>
+                        </div>
+                        <div class="inner">
+                            <h3>@_completedJobs</h3>
+
+                            <p>Completed Jobs</p>
+                        </div>
+                        <div class="inner">
+                            <h3>@_failedJobs</h3>
+
+                            <p>Failed Jobs</p>
+                        </div>
+                    </div>
+                </div>
+                <!-- ./col -->
+                <div class="col-lg-3 col-6">
+                    <!-- small box -->
+                    <div class="small-box bg-default">
+                        <div class="inner">
+                            <h3>@_successRate.ToString("0.00") <sup style="font-size: 20px">%</sup></h3>
+
+                            <p>Success Rate</p>
+                        </div>
+                        <div class="inner">
+                            <h3>@_failureRate.ToString("0.00") <sup style="font-size: 20px">%</sup></h3>
+
+                            <p>Failure Rate</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- /.content -->
 </div>
+
+@code {
+    private int _totalJobs;
+    private int _inprogressJobs;
+    private int _completedJobs;
+    private int _inQueueJobs;
+    private int _failedJobs;
+    private double _successRate;
+    private double _failureRate;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var jobs = await _repository.FindAsync();
+
+        _totalJobs = jobs.Count;
+        _inQueueJobs = jobs.Count(w => w.Status == JobStatus.Queued);
+        _inprogressJobs = jobs.Count(w => w.Status == JobStatus.InProgress);
+        _completedJobs = jobs.Count(w => w.Status == JobStatus.Completed);
+        _failedJobs = jobs.Count(w => w.Status == JobStatus.Error);
+
+        _successRate = (Convert.ToDouble(_completedJobs) / Convert.ToDouble(_totalJobs)) * 100;
+        _failureRate = (Convert.ToDouble(_failedJobs) / Convert.ToDouble(_totalJobs)) * 100;
+    }
+}

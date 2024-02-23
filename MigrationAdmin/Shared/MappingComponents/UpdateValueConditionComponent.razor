@@ -1,5 +1,5 @@
 ﻿@using Microsoft.AspNetCore.Components
-@using Migration.Repository.Models
+@using Migration.Models
 @inherits MigrationAdmin.CustomComponents
 
 <div class="card card-default">
@@ -15,7 +15,7 @@
                         <thead>
                             <tr>
                                 <th>Direction</th>
-                                <th>Value Type</th>
+                                <th>Operator Type</th>
                                 <th>Conditions</th>
                                 <th>
                                     <button class="btn btn-default" @onclick="() => AddCondition(DataFieldsMapping.Conditions)">+</button>
@@ -67,8 +67,19 @@
         <div class="row">
             <div class="col-sm-12">
                 <div class="form-group">
-                    <label>[@DataFieldsMapping.DestinationEntity]</label>[Field]
-                    <input class="form-control" data-keeper-edited="yes" @bind="DataFieldsMapping.DestinationField" />
+                    <label>Field Type</label>]
+                    <select class="form-control" id="fieldType" data-keeper-edited="yes" @bind="@DataFieldsMapping.ValueType">
+                        @foreach (var valueType in Enum.GetValues<FieldValueType>())
+                        {
+                            <option value="@valueType">@valueType</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="col-sm-12">
+                <div class="form-group">
+                    <label>[@DataFieldsMapping.TargetEntity]</label>[Field]
+                    <input class="form-control" data-keeper-edited="yes" @bind="DataFieldsMapping.TargetField" />
                 </div>
             </div>
         </div>

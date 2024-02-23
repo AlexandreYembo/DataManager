@@ -13,9 +13,9 @@
 
 3. You must need to provide the format in of the key as it shows in the table, it is not case sensitive
 
-4. You must need to provide in the value exactly the value configured in the destination table if already exists.
+4. You must need to provide in the value exactly the value configured in the target table if already exists.
 
-5. Partition Key also has to be defined in your mapping between Source and Destination. If you add a wrong value there will have errors during migration.
+5. Partition Key also has to be defined in your mapping between Source and Target. If you add a wrong value there will have errors during migration.
 
 
 ##### When you are using Table Storage you must need to add the extra definition for RowKey:

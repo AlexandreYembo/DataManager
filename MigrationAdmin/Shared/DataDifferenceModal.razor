@@ -1,6 +1,8 @@
-﻿@using Migration.Repository.Models
+﻿@using Migration.Models
+@using Newtonsoft.Json
+@using Newtonsoft.Json.Linq
 <div class="modal fade show" id="dataDifferenceModal" style="display:block" aria-modal="true" role="dialog">
-    <div class="modal-dialog" style="max-width:100%;">
+    <div class="modal-dialog" style="max-width:95%;">
         <div class="modal-content">
 
             <!-- Modal Header -->
@@ -9,14 +11,14 @@
             </div>
 
             <!-- Modal body -->
-            <div class="modal-body" style="height: 900px; overflow: scroll">
+            <div class="modal-body" style="height: 600px; overflow: scroll">
                 @if (IsLoading)
                 {
                     <div class="col-sm-12">
                         <Loading />
                     </div>
                 }
-                @if (DataDifferences != null)
+                @if (DataDifferences != null && DataDifferences.Count > 0)
                 {
                     foreach (var differences in DataDifferences)
                     {
@@ -30,10 +32,10 @@
                                         <table class="table table-bordered table-striped">
                                             <thead>
                                                 <tr>
-                                                    <th>Properties</th>
-                                                    <th>Original Values</th>
-                                                    <th>Values changed</th>
-                                                    <th>Actions</th>
+                                                    <th style="width:10%;">Properties</th>
+                                                    <th style="width:40%;">Original Values</th>
+                                                    <th style="width:40%;">Values changed</th>
+                                                    <th style="width:10%;">Actions</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -49,14 +51,13 @@
                                                         <td>
                                                             @((MarkupString)difference.Object2Value)
                                                         </td>
-
                                                         @switch (difference.OperationType)
                                                         {
                                                             case OperationType.Delete:
-                                                                <td style="color:red"> <i style="color:red" class="nav-icon fas fa-trash"></i> Destination record will be deleted</td>
+                                                                <td style="color:red"> <i style="color:red" class="nav-icon fas fa-trash"></i> Target record will be deleted</td>
                                                                 break;
                                                             case OperationType.Import:
-                                                                <td style="color:blue"> <i style="color:blue" class="nav-icon fas fa-plus"></i> Destination record will be Imported</td>
+                                                                <td style="color:blue"> <i style="color:blue" class="nav-icon fas fa-plus"></i> Target record will be Imported</td>
                                                                 break;
                                                             default:
                                                                 break;
@@ -70,6 +71,10 @@
                             </div>
                         </div>
                     }
+                }
+                else
+                {
+                    <p>There is no change applied for this record</p>
                 }
             </div>
 

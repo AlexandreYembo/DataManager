@@ -1,45 +1,47 @@
-﻿using Migration.Infrastructure.Redis;
-using Migration.Infrastructure.Redis.Entities;
-using Migration.Repository;
-using Migration.Repository.Delegates;
-using Migration.Repository.Exceptions;
-using Migration.Repository.Extensions;
-using Migration.Repository.LogModels;
-using Migration.Repository.Models;
-using Migration.Repository.Publishers;
-using Migration.Services.Helpers;
+﻿using Connectors.Redis;
+using Migration.Core;
+using Migration.Core.Exceptions;
+using Migration.EventHandlers.Publishers;
+using Migration.Models;
+using Migration.Models.Logs;
+using Migration.Models.Profile;
+using Migration.Services.Extensions;
+using Migration.Services.Operations;
 using Newtonsoft.Json.Linq;
 
 namespace Migration.Services
 {
     public interface IMigrationService
     {
-        Task Migrate(Profile profile, Jobs job);
+        Task Migrate(ProfileConfiguration profile, Jobs job);
         Task ImportData(List<JObject> data, DataSettings dataSettings);
     }
 
     public class MigrationService : IMigrationService
     {
         private readonly Func<DataSettings, IGenericRepository> _genericRepository;
-        private readonly IRepository<JObject> _migrationProcessRepository;
+        private readonly Func<ProfileConfiguration, IOperation> _operation;
         private readonly LogPublisher _logResultPublisher;
         private readonly LogDetailsPublisher _logDetailsPublisher;
         private readonly IJobService _jobService;
         private readonly ActionsPublisher _actionsPublisher;
+        private readonly ICacheRepository _cacheRepository;
 
         public MigrationService(Func<DataSettings, IGenericRepository> genericRepository,
-            IRepository<JObject> migrationProcessRepository,
+            Func<ProfileConfiguration, IOperation> operation,
             IJobService jobService,
             LogPublisher logPublisher,
             LogDetailsPublisher logDetailsPublisher,
+            ICacheRepository cacheRepository,
             ActionsPublisher actionsPublisher)
         {
             _genericRepository = genericRepository;
-            _migrationProcessRepository = migrationProcessRepository;
+            _operation = operation;
             _jobService = jobService;
             _logResultPublisher = logPublisher;
             _logDetailsPublisher = logDetailsPublisher;
             _actionsPublisher = actionsPublisher;
+            _cacheRepository = cacheRepository;
         }
 
         public async Task ImportData(List<JObject> listData, DataSettings dataSettings)
@@ -48,30 +50,34 @@ namespace Migration.Services
 
             foreach (var data in listData)
             {
-                await repository.Insert(data);
+                RepositoryParameters repositoryParameters = new()
+                {
+                    Data = data,
+                    //FieldMappings TODO: pass the value here
+                };
+
+                await repository.InsertAsync(repositoryParameters);
             }
         }
 
-        public async Task Migrate(Profile profile, Jobs job)
+
+        public async Task Migrate(ProfileConfiguration profile, Jobs job)
         {
-
-            List<Task> processTasks = new();
-
-            var dataMapping = profile.DataMappings[0];
-
             LogResult log = new()
             {
-                EntityName = dataMapping.DataQueryMappingType == DataQueryMappingType.UpdateAnotherCollection ? dataMapping.Destination.Settings.CurrentEntity.Name
-                    : dataMapping.Source.Settings.CurrentEntity.Name,
+                EntityName = profile.DataQueryMappingType == DataQueryMappingType.SourceToTarget ? profile.Target.Settings.CurrentEntity.Name
+                    : profile.Source.Settings.CurrentEntity.Name,
                 StartedIn = DateTime.Now,
-                Description = $"Processing migration for Operation: {dataMapping.OperationType}.",
+                Description = $"Processing migration for Operation: {profile.OperationType}.",
                 JobId = job.JobId,
-                OperationType = profile.DataMappings[0].OperationType
+                OperationType = profile.OperationType
             };
             await _logResultPublisher.PublishAsync(log);
 
             try
             {
+                var operationResolved = _operation(profile);
+
                 job.Start();
                 await _jobService.UpdateJob(job);
 
@@ -80,27 +86,61 @@ namespace Migration.Services
 
                 int take = 15;
 
-                var sourceRepository = _genericRepository(dataMapping.Source.Settings);
-                var destinationRepository = _genericRepository(dataMapping.Destination.Settings);
+                IGenericRepository sourceRepository = null;
+                var targetRepository = _genericRepository(profile.Target.Settings);
 
-                if (dataMapping.DataQueryMappingType == DataQueryMappingType.UpdateAnotherCollection && dataMapping.OperationType == OperationType.Import)
+                Dictionary<string, JObject> sourceFromCache = new();
+
+                if (profile.Source.Settings.IsCacheConnection)
                 {
-                    //Create new table for the destination
-                    await destinationRepository.CreateTable();
+                    sourceFromCache = await _cacheRepository.GetAsync(profile.Source.Settings.CurrentEntity.Name);
+                }
+                else
+                {
+                    sourceRepository = _genericRepository(profile.Source.Settings);
+                }
+
+                if (profile.DataQueryMappingType == DataQueryMappingType.SourceToTarget && profile.OperationType == OperationType.Import)
+                {
+                    //Create new table for the Target
+                    await targetRepository.CreateTableAsync();
                 }
 
                 do
                 {
-                    var source = await sourceRepository.Get(dataMapping.Source.Query, null, null, take, skip);
+                    List<Task> processTasks = new();
+
+                    RepositoryParameters repositoryParameters = new()
+                    {
+                        Query = profile.Source.Query,
+                        FieldMappings = profile.FieldsMapping,
+                        Pagination = new()
+                        {
+                            Skip = skip,
+                            Take = take
+                        }
+                    };
+
+                    Dictionary<string, JObject> source;
+
+                    if (profile.Source.Settings.IsCacheConnection)
+                    {
+                        source = sourceFromCache.Skip(skip).Take(15).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+                    }
+                    else
+                    {
+                        source = await sourceRepository.GetAsync(repositoryParameters);
+                    }
+
                     log.TotalRecords += source.Count;
 
                     if (source.Any())
                     {
-                        if (dataMapping.DataQueryMappingType == DataQueryMappingType.UpdateAnotherCollection)
+                        if (profile.DataQueryMappingType == DataQueryMappingType.SourceToTarget)
                         {
-                            foreach (var sourceData in source.Where(w => w.Value != "{}" || w.Value != "null"))
+                            foreach (var sourceData in source.Where(w => w.Value != null))
                             {
-                                await ProcessDestinationRecordsAsync(destinationRepository, dataMapping, sourceData, job);
+                                await ProcessTargetRecordsAsync(targetRepository, operationResolved, profile, sourceData, job);
                             }
 
                             skip = job.SourceProcessed;
@@ -111,16 +151,25 @@ namespace Migration.Services
                         {
                             foreach (var sourceData in source)
                             {
-                                processTasks.Add(ProcessSourceRecordsAsync(sourceRepository, dataMapping, sourceData, job));
+                                processTasks.Add(operationResolved.ProcessDataAsync(sourceRepository, new List<(EntityType entityType, string id, JObject data)>
+                                {
+                                    new (EntityType.Source, sourceData.Key, sourceData.Value)
+                                }, profile, job));
                             }
 
                             await Task.WhenAll(processTasks);
 
-                            skip = job.SourceProcessed;
+                            //we do not apply pagination because we are removing records from the table, should aways take the first page
+                            if (profile.OperationType != OperationType.Delete)
+                            {
+                                skip = job.SourceProcessed;
+                                skip += take;
 
-                            skip += take;
-                            job.SourceProcessed = skip;
-                            await _jobService.UpdateJob(job);
+                                job.SourceProcessed = skip;
+
+                                await _jobService.UpdateJob(job);
+                            }
+
                         }
                         hasRecord = true;
                     }
@@ -139,6 +188,32 @@ namespace Migration.Services
                     ActionType = ActionEventType.Success,
                     Message = "Migration completed!"
                 });
+            }
+            catch (TableOperationException e)
+            {
+                await _actionsPublisher.PublishAsync(new Actions()
+                {
+                    ActionType = ActionEventType.Error,
+                    Message = "Error during the migration, check the logs for more details!"
+                });
+
+                LogDetails detailsError = new()
+                {
+                    LogDateTime = DateTime.Now,
+                    Title = "Error Migration - Data Base exception",
+                    Descriptions = new()
+                    {
+                        new($"Error: {e.ErrorCode} - {e.ErrorMessage}")
+                    },
+                    Display = true,
+                    JobId = job.JobId,
+                    Type = LogType.Error,
+                    OperationType = profile.OperationType
+                };
+                await _logDetailsPublisher.PublishAsync(detailsError);
+
+                job.Status = JobStatus.Error;
+                await _jobService.UpdateJob(job);
             }
             catch (Exception ex)
             {
@@ -159,257 +234,90 @@ namespace Migration.Services
                     Display = true,
                     JobId = job.JobId,
                     Type = LogType.Error,
-                    OperationType = profile.DataMappings[0].OperationType
+                    OperationType = profile.OperationType
                 };
 
                 await _logDetailsPublisher.PublishAsync(detailsError);
+
+                job.Status = JobStatus.Error;
+                await _jobService.UpdateJob(job);
             }
 
             log.FinishedIn = DateTime.Now;
             await _logResultPublisher.PublishAsync(log);
         }
 
-        private async Task ProcessSourceRecordsAsync(IGenericRepository repository, DataMapping dataMapping,
-            KeyValuePair<string, string> data, Jobs job)
+
+        private async Task ProcessTargetRecordsAsync(IGenericRepository repository, IOperation operation, ProfileConfiguration profile, KeyValuePair<string, JObject> sourceData, Jobs job)
         {
-            var originalData = JObject.Parse(data.Value);
-            LogDetails logDetails = new()
-            {
-                Display = true,
-                Title = data.Key,
-                JobId = job.JobId,
-                OperationType = dataMapping.OperationType
-            };
-
-            try
-            {
-                JObject backup = new JObject();
-                if (dataMapping.OperationType == OperationType.Update)
-                {
-                    logDetails.Descriptions.Add(new("Creating copy of the original data"));
-
-                    bool hasChange = false;
-
-                    var objectToBeUpdated =
-                        UpdateDataHelper.UpdateObject(data.Value, dataMapping.FieldsMapping, ref hasChange);
-
-                    backup.Add("id", originalData["id"].ToString());
-                    backup.Add("Backup", originalData);
-                    backup.Add("Updated", objectToBeUpdated);
-                    await SaveCopyInLocal(dataMapping.Source.Settings.CurrentEntity.Name, backup, job);
-
-                    if (!hasChange) return;
-
-                    var differences = DifferenceHelper.FindDifferences(JObject.Parse(data.Value), objectToBeUpdated);
-
-                    if (differences.Any())
-                    {
-                        logDetails.Descriptions.Add(new("Values updated: " + string.Join(",",
-                            differences.Select(s => s.PropertyName + " = " + s.Object2Value))));
-                        await repository.Update(objectToBeUpdated, dataMapping.FieldsMapping);
-                    }
-                }
-                else if (dataMapping.OperationType == OperationType.Report)
-                {
-                    backup.Add("id", originalData["id"].ToString());
-                    backup.Add("Report", originalData);
-                    await SaveCopyInLocal(dataMapping.Source.Settings.CurrentEntity.Name, backup, job);
-
-                    logDetails.Descriptions.Add(new("Record exported"));
-                }
-                else if (dataMapping.OperationType == OperationType.Delete)
-                {
-                    backup.Add("id", originalData["id"].ToString());
-                    backup.Add("Deleted", originalData);
-                    await SaveCopyInLocal(dataMapping.Source.Settings.CurrentEntity.Name, backup, job);
-
-                    logDetails.Descriptions.Add(new("Creating copy of the original data"));
-                    await repository.Delete(originalData);
-                    logDetails.Descriptions.Add(new("Record deleted"));
-                }
-                else if (dataMapping.OperationType == OperationType.Import)
-                {
-                    throw new Exception("Operation not supported");
-                }
-            }
-            catch (DbOperationException e)
-            {
-                logDetails.Type = LogType.Error;
-                logDetails.Descriptions.Add(new($"Error: {e.ErrorCode} - {e.ErrorMessage}"));
-            }
-            catch (Exception e)
-            {
-                logDetails.Type = LogType.Error;
-                logDetails.Descriptions.Add(new($"Error: {e.Message}"));
-            }
-
-            await _logDetailsPublisher.PublishAsync(logDetails);
-        }
-
-        private async Task ProcessDestinationRecordsAsync(IGenericRepository repository, DataMapping dataMapping,
-            KeyValuePair<string, string> sourceData, Jobs job)
-        {
-            int skip = job.DestinationProcessed;
+            int skip = job.TargetProcessed;
             int take = 15;
             bool hasRecord;
 
-            List<string> destinationIds = new();
-
-            if (dataMapping.OperationType == OperationType.Import) // TODO: implement an interface that will have their own concrete class implementing the logic for each type of OperationType
+            if (profile.OperationType == OperationType.Import)
             {
-                var sourceObj = JObject.Parse(sourceData.Value);
-
-                await UpdateDestinationRecordsAsync(dataMapping, new JObject(), sourceObj, repository, job);
+                await operation.ProcessDataAsync(repository, new List<(EntityType entityType, string id, JObject data)>
+                                {
+                                    new (EntityType.Source, sourceData.Key, sourceData.Value),
+                                }, profile, job);
             }
             else
             {
                 do
                 {
-                    var destination = await repository.Get(dataMapping.Destination.Query, dataMapping.FieldsMapping, sourceData.Value, take, skip);
-
-                    var listDestination = destination.ApplyJoin(sourceData, dataMapping.FieldsMapping);
-
-                    hasRecord = listDestination.Any();
-
-                    var sourceObj = JObject.Parse(sourceData.Value);
-                    List<Task> processTasks = new();
-
-                    foreach (var originalData in listDestination)
+                    RepositoryParameters repositoryParameters = new()
                     {
-                        destinationIds.Add(originalData["id"].ToString());
-                        processTasks.Add(UpdateDestinationRecordsAsync(dataMapping, originalData, sourceObj, repository, job));
+                        Data = sourceData.Value,
+                        FieldMappings = profile.FieldsMapping,
+                        Query = profile.Target.Query,
+                        Pagination = new()
+                        {
+                            Skip = skip,
+                            Take = take
+                        }
+                    };
+
+                    var target = await repository.GetAsync(repositoryParameters);
+
+                    var listTarget = target.ApplyJoin(sourceData, profile.FieldsMapping);
+
+                    hasRecord = listTarget.Any();
+
+                    if (hasRecord)
+                    {
+                        List<Task> processTasks = new();
+
+                        foreach (var targetData in listTarget)
+                        {
+                            processTasks.Add(operation.ProcessDataAsync(repository, new List<(EntityType entityType, string id, JObject data)>
+                                {
+                                    new (EntityType.Source, sourceData.Key, sourceData.Value),
+                                    new (EntityType.Target, targetData.SelectToken("id").ToString(), targetData)
+                                }, profile, job));
+                        }
+
+                        await Task.WhenAll(processTasks);
+
+                        if (profile.OperationType != OperationType.Delete)
+                        {
+                            skip += take;
+                            job.TargetProcessed = skip;
+                            await _jobService.UpdateJob(job);
+                        }
                     }
 
-                    await Task.WhenAll(processTasks);
-
-                    skip += take;
-                    job.DestinationProcessed = skip;
-                    await _jobService.UpdateJob(job);
+                    hasRecord = listTarget.Count == take; // if the list of Record is less than the take, it means that there will no have any more data to be checked.
 
                 } while (hasRecord);
             }
 
-            job.DestinationProcessed = 0;
+            job.TargetProcessed = 0;
             int sourceSkip = job.SourceProcessed;
 
             sourceSkip++;
             job.SourceProcessed = sourceSkip;
 
             await _jobService.UpdateJob(job);
-        }
-
-        private async Task<bool> UpdateDestinationRecordsAsync(DataMapping dataMapping, JObject destinationData, JObject sourceObj, IGenericRepository repository, Jobs job)
-        {
-            string id = string.Empty;
-
-            if (!destinationData.Properties().Any())
-            {
-                id = sourceObj.SelectToken("id") != null
-                    ? sourceObj["id"].ToString()
-                    : sourceObj.SelectToken(dataMapping.Destination.Settings.CurrentEntity.Attributes.FirstOrDefault().Value.Replace("/", string.Empty)).ToString();
-            }
-            else
-            {
-                id = destinationData.SelectToken("id") != null
-                    ? destinationData["id"].ToString()
-                    : destinationData.SelectToken(dataMapping.Destination.Settings.CurrentEntity.Attributes.FirstOrDefault().Value.Replace("/", string.Empty)).ToString();
-            }
-
-            LogDetails logDetails = new()
-            {
-                Display = true,
-                Title = id,
-                JobId = job.JobId,
-                OperationType = dataMapping.OperationType
-            };
-
-            JObject backup = new JObject();
-
-            try
-            {
-                if (dataMapping.OperationType == OperationType.Update)
-                {
-                    logDetails.Descriptions.Add(new("Creating copy of the original data"));
-
-                    bool hasChange = false;
-
-                    var objectToBeUpdated = UpdateDataHelper.UpdateObject(destinationData.ToString(), dataMapping.FieldsMapping, sourceObj, ref hasChange);
-
-                    if (!hasChange) return true;
-
-                    backup.Add("id", destinationData["id"].ToString());
-                    backup.Add("Backup", destinationData);
-                    backup.Add("Updated", objectToBeUpdated);
-
-                    await SaveCopyInLocal(dataMapping.Destination.Settings.CurrentEntity.Name, backup, job);
-
-                    logDetails.Descriptions.Add(new("Creating copy of the changes"));
-
-                    var differences = DifferenceHelper.FindDifferences(destinationData, objectToBeUpdated);
-                    logDetails.Descriptions.Add(new("Values updated: " +
-                                                string.Join(",", differences.Select(s => s.PropertyName + " = " + s.Object2Value))));
-
-                    await repository.Update(objectToBeUpdated, dataMapping.FieldsMapping);
-                }
-                else if (dataMapping.OperationType == OperationType.Report)
-                {
-                    backup.Add("id", destinationData["id"].ToString());
-                    backup.Add("Report", destinationData);
-
-                    await SaveCopyInLocal(dataMapping.Destination.Settings.CurrentEntity.Name, backup, job);
-                    logDetails.Descriptions.Add(new("Record exported for analyse"));
-                }
-                else if (dataMapping.OperationType == OperationType.Delete)
-                {
-                    logDetails.Descriptions.Add(new("Creating copy of the original data"));
-
-                    backup.Add("id", destinationData["id"].ToString());
-                    backup.Add("Deleted", destinationData);
-                    await SaveCopyInLocal(dataMapping.Destination.Settings.CurrentEntity.Name, backup, job);
-
-                    await repository.Delete(destinationData);
-                    logDetails.Descriptions.Add(new("Record deleted"));
-                }
-                else if (dataMapping.OperationType == OperationType.Import)
-                {
-                    bool hasChange = false;
-
-                    var propertyId = dataMapping.Destination.Settings.CurrentEntity.Attributes.FirstOrDefault(f => f.Key == TableAttributesType.RecordId.ToString()).Value;
-                    destinationData[propertyId] = id;
-
-                    var objectToBeImported = UpdateDataHelper.UpdateObject(destinationData.ToString(), dataMapping.FieldsMapping, sourceObj, ref hasChange);
-
-                    if (!hasChange) return true;
-
-                    backup.Add("id", id);
-                    backup.Add("Inserted", objectToBeImported);
-                    await SaveCopyInLocal(dataMapping.Destination.Settings.CurrentEntity.Name, backup, job);
-
-                    await repository.Insert(objectToBeImported, dataMapping.FieldsMapping);
-
-                    logDetails.Descriptions.Add("Record imported");
-                }
-            }
-            catch (DbOperationException e)
-            {
-                logDetails.Descriptions.Add(new($"Error: {e.ErrorCode} - {e.ErrorMessage}"));
-                logDetails.Type = LogType.Error;
-            }
-
-            await _logDetailsPublisher.PublishAsync(logDetails);
-            return false;
-        }
-
-        private async Task SaveCopyInLocal(string entity, JObject data, Jobs job)
-        {
-            var redisData = new RedisData<JObject>()
-            {
-                RedisValue = $"{data["id"]}",
-                Data = data,
-                RedisKey = $"{entity}${job.JobCategory}${job.JobId}$"
-            };
-
-            await _migrationProcessRepository.SaveAsync(redisData);
         }
     }
 }
