@@ -1,6 +1,6 @@
-﻿using Migration.Repository.Extensions;
-using Migration.Repository.Helpers;
-using Migration.Repository.Models;
+﻿using Migration.Models;
+using Migration.Models.Profile;
+using Migration.Services.Extensions;
 using Newtonsoft.Json.Linq;
 
 namespace Migration.Services.Helpers
@@ -22,16 +22,17 @@ namespace Migration.Services.Helpers
                     if (meetCriteria)
                     {
                         var fieldArr = mappingMergeField.SourceField.Split(".").ToList();
-                        objectToBeUpdated =
-                            JObjectHelper.UpdateObject(objectToBeUpdated, fieldArr, mappingMergeField.ValueField);
+
+                        objectToBeUpdated = JObjectHelper.UpdateObject(objectToBeUpdated, fieldArr, mappingMergeField.ValueField);
+
                         hasChange = true;
                     }
                 }
                 else if (mappingMergeField.MappingType == MappingType.UpdateValue)
                 {
-                    var newValue = MapFieldTypes.GetType(mappingMergeField);
+                    var newValue = MapFieldTypesHelper.GetType(mappingMergeField);
 
-                    var fieldArr = mappingMergeField.DestinationField.Split(".").ToList();
+                    var fieldArr = mappingMergeField.TargetField.Split(".").ToList();
 
                     objectToBeUpdated = JObjectHelper.UpdateObject(objectToBeUpdated, fieldArr, newValue);
                     hasChange = true;
@@ -40,10 +41,9 @@ namespace Migration.Services.Helpers
                 {
                     var valueFromSource = JObjectHelper.GetValueFromObject(objectToBeUpdated, mappingMergeField.SourceField.Split(".").ToList());
 
-                    var fieldsFromDestinationArr = mappingMergeField.DestinationField.Split(".").ToList();
+                    var fieldsFromDestinationArr = mappingMergeField.TargetField.Split(".").ToList();
 
-                    objectToBeUpdated =
-                        JObjectHelper.UpdateObject(objectToBeUpdated, fieldsFromDestinationArr, valueFromSource);
+                    objectToBeUpdated = JObjectHelper.UpdateObject(objectToBeUpdated, fieldsFromDestinationArr, valueFromSource);
                     hasChange = true;
                 }
             }
@@ -63,21 +63,20 @@ namespace Migration.Services.Helpers
                     var sourceConditions = mappingMergeField.Conditions
                         .Where(w => w.ConditionDirection == MappingDirectionType.Source).Select(s => s);
 
-                    var destinationConditions = mappingMergeField.Conditions
-                        .Where(w => w.ConditionDirection == MappingDirectionType.Destination).Select(s => s);
+                    var targetConditions = mappingMergeField.Conditions
+                        .Where(w => w.ConditionDirection == MappingDirectionType.Target).Select(s => s);
 
 
-                    var meetCriteria =
-                        sourceConditions.Any(a => a.Type == SearchConditionType.Or) || destinationConditions.Any(a => a.Type == SearchConditionType.Or)
-                            ? sourceObj.MeetCriteriaSearch(sourceConditions) || objectToBeUpdated.MeetCriteriaSearch(destinationConditions)
-                            : sourceObj.MeetCriteriaSearch(sourceConditions) && objectToBeUpdated.MeetCriteriaSearch(destinationConditions);
+                    var meetCriteria = sourceConditions.Any(a => a.Type == SearchConditionType.Or) || targetConditions.Any(a => a.Type == SearchConditionType.Or)
+                            ? sourceObj.MeetCriteriaSearch(sourceConditions) || objectToBeUpdated.MeetCriteriaSearch(targetConditions)
+                            : sourceObj.MeetCriteriaSearch(sourceConditions) && objectToBeUpdated.MeetCriteriaSearch(targetConditions);
 
                     if (meetCriteria)
                     {
-                        var fieldsArr = mappingMergeField.DestinationField.Split(".").ToList();
+                        var fieldsArr = mappingMergeField.TargetField.Split(".").ToList();
 
                         var value = mappingMergeField.MappingType == MappingType.UpdateValueWithCondition
-                            ? MapFieldTypes.GetType(mappingMergeField)
+                            ? MapFieldTypesHelper.GetType(mappingMergeField)
                             : JObjectHelper.GetValueFromObject(sourceObj, mappingMergeField.SourceField.Split(".").ToList());
 
                         objectToBeUpdated = JObjectHelper.UpdateObject(objectToBeUpdated, fieldsArr, value);
@@ -86,12 +85,9 @@ namespace Migration.Services.Helpers
                 }
                 else if (mappingMergeField.MappingType == MappingType.UpdateValue)
                 {
-                    var newValue = MapFieldTypes.GetType(mappingMergeField);
+                    var newValue = MapFieldTypesHelper.GetType(mappingMergeField);
 
-                    var fieldsFromDestinationArr = mappingMergeField.DestinationField.Split(".").ToList();
-                    //dataQueryMappingType == DataQueryMappingType.UpdateAnotherCollection
-                    //? mappingMergeField.DestinationField.Split(".").ToList()
-                    //: mappingMergeField.SourceField.Split(".").ToList();
+                    var fieldsFromDestinationArr = mappingMergeField.TargetField.Split(".").ToList();
 
                     objectToBeUpdated = JObjectHelper.UpdateObject(objectToBeUpdated, fieldsFromDestinationArr, newValue);
                     hasChange = true;
@@ -101,10 +97,7 @@ namespace Migration.Services.Helpers
                     var valueFromSource =
                         JObjectHelper.GetValueFromObject(sourceObj, mappingMergeField.SourceField.Split(".").ToList());
 
-                    var fieldsFromDestinationArr = mappingMergeField.DestinationField.Split(".").ToList();
-                    //dataQueryMappingType == DataQueryMappingType.UpdateAnotherCollection
-                    //? mappingMergeField.DestinationField.Split(".").ToList()
-                    //    : mappingMergeField.SourceField.Split(".").ToList();
+                    var fieldsFromDestinationArr = mappingMergeField.TargetField.Split(".").ToList();
 
                     objectToBeUpdated = JObjectHelper.UpdateObject(objectToBeUpdated, fieldsFromDestinationArr, valueFromSource);
                     hasChange = true;

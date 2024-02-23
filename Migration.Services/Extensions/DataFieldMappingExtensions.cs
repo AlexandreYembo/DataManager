@@ -1,4 +1,6 @@
-﻿using Migration.Repository.Models;
+﻿
+using Migration.Models;
+using Migration.Models.Profile;
 
 namespace Migration.Services.Extensions
 {
@@ -21,21 +23,21 @@ namespace Migration.Services.Extensions
                     fieldMappings.Add(new DataFieldsMapping
                     {
                         MappingType = MappingType.MergeField,
-                        DestinationField = mapping.DestinationField,
-                        SourceField = mapping.DestinationField,
+                        TargetField = mapping.TargetField,
+                        SourceField = mapping.TargetField,
                         ValueType = mapping.ValueType,
                     });
                 }
                 else
                 {
-                    if (mapping.DestinationField != null &&
-                        !fieldMappings.Any(a => a.DestinationField == mapping.DestinationField))
+                    if (mapping.TargetField != null &&
+                        !fieldMappings.Any(a => a.TargetField == mapping.TargetField))
                     {
                         fieldMappings.Add(new DataFieldsMapping
                         {
                             MappingType = MappingType.MergeField,
-                            DestinationField = mapping.DestinationField,
-                            SourceField = mapping.DestinationField,
+                            TargetField = mapping.TargetField,
+                            SourceField = mapping.TargetField,
                             ValueType = mapping.ValueType,
                         });
                     }
@@ -46,7 +48,7 @@ namespace Migration.Services.Extensions
                         fieldMappings.Add(new DataFieldsMapping
                         {
                             MappingType = MappingType.MergeField,
-                            DestinationField = mapping.SourceField,
+                            TargetField = mapping.SourceField,
                             SourceField = mapping.SourceField,
                             ValueType = mapping.ValueType,
                         });

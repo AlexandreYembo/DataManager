@@ -1,9 +1,9 @@
-﻿@using Migration.Repository.Models
-@using Migration.Repository
-@using Migration.Infrastructure.Redis
-@using Migration.Infrastructure.Redis.Entities
+﻿@using Connectors.Redis
+@using Connectors.Redis.Models
+@using Migration.Models
+@using Migration.Models.Profile
 @inject IRepository<DataSettings> _dataSettingsRepository;
-@inject IRepository<Profile> _profileRepository;
+@inject IRepository<ProfileConfiguration> _profileRepository;
 @inject IJSRuntime jsRuntime
 
 @if (ShowModal)
@@ -53,10 +53,10 @@
     public bool ShowModal { get; set; }
 
     [Parameter]
-    public Profile Profile { get; set; }
+    public ProfileConfiguration Profile { get; set; }
 
     [Parameter]
-    public EventCallback<Profile> OnProfileCloned { get; set; }
+    public EventCallback<ProfileConfiguration> OnProfileCloned { get; set; }
 
     [Parameter]
     public EventCallback ModalOk { get; set; }
@@ -64,9 +64,9 @@
     private async Task CloneProfile()
     {
         var newId = Guid.NewGuid().ToString();
-        Profile.DataMappings[0].Id = newId;
+        Profile.Id = newId;
 
-        var redisData = new RedisData<Profile>()
+        var redisData = new HashKeyRedisData<ProfileConfiguration>()
             {
                 Data = Profile,
                 RedisValue = newId,

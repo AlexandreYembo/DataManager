@@ -1,4 +1,4 @@
-﻿using Migration.Repository.Models;
+﻿using Migration.Models.Profile;
 using Migration.Services.Models;
 using Newtonsoft.Json.Linq;
 

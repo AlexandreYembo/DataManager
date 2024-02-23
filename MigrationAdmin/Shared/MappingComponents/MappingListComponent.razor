@@ -1,16 +1,17 @@
-﻿@using Migration.Repository.Models
+﻿@using Migration.Models
+@using Migration.Models.Profile
 @inherits CustomComponents
 <div class="card card-default card-tabs">
     <div class="card-header p-0 pt-1">
         <ul class="nav nav-tabs" id="custom-tabs-one-tab" role="tablist">
-            @if (DataMapping.DataQueryMappingType == DataQueryMappingType.UpdateAnotherCollection)
+            @if (Profile.DataQueryMappingType == DataQueryMappingType.SourceToTarget)
             {
                 <li class="nav-item">
                     <a class="nav-link active" id="custom-tabs-one-TableJoin-tab" data-toggle="pill" href="#custom-tabs-one-TableJoin" role="tab" aria-controls="custom-tabs-one-TableJoin" aria-selected="true">Table Join</a>
                 </li>
             }
 
-            @if (DataMapping.OperationType != OperationType.Delete)
+            @if (Profile.OperationType != OperationType.Delete)
             {
                 <li class="nav-item">
                     <a class="nav-link" id="custom-tabs-one-ValueUpdate-tab" data-toggle="pill" href="#custom-tabs-one-ValueUpdate" role="tab" aria-controls="custom-tabs-one-ValueUpdate" aria-selected="false">Update Value</a>
@@ -29,7 +30,7 @@
     </div>
     <div class="card-body">
         <div class="tab-content" id="custom-tabs-one-tabContent">
-            @if (DataMapping.DataQueryMappingType == DataQueryMappingType.UpdateAnotherCollection)
+            @if (Profile.DataQueryMappingType == DataQueryMappingType.SourceToTarget)
             {
                 <div class="tab-pane fade show active" id="custom-tabs-one-TableJoin" role="tabpanel" aria-labelledby="custom-tabs-one-TableJoin-tab">
                     <table class="table table-bordered table-striped">
@@ -40,12 +41,12 @@
                                 <th>Operator Type</th>
                                 <th>Ignore Case Sensitive</th>
                                 <th>Source</th>
-                                <th>Destination</th>
+                                <th>Target</th>
                                 <th></th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var destMap in DataMapping.FieldsMapping.Where(w => w.MappingType == MappingType.TableJoin))
+                            @foreach (var destMap in Profile.FieldsMapping.Where(w => w.MappingType == MappingType.TableJoin))
                             {
                                 <tr>
                                     <td>
@@ -64,7 +65,7 @@
                                         @destMap.SourceEntity.@destMap.SourceField
                                     </td>
                                     <td>
-                                        @destMap.DestinationEntity.@destMap.DestinationField
+                                        @destMap.TargetEntity.@destMap.TargetField
                                     </td>
                                     <td>
                                         <a class="btn btn-app" @onclick="() => Edit(destMap)">
@@ -81,27 +82,27 @@
                 </div>
             }
 
-            @if (DataMapping.OperationType != OperationType.Delete)
+            @if (Profile.OperationType != OperationType.Delete)
             {
                 <div class="tab-pane fade" id="custom-tabs-one-ValueUpdate" role="tabpanel" aria-labelledby="custom-tabs-one-ValueUpdate-tab">
                     <table class="table table-bordered table-striped">
                         <thead>
                             <tr>
                                 <th>Mapping Type</th>
-                                <th>Destination Field</th>
-                                <th>Destination Value</th>
+                                <th>Target Field</th>
+                                <th>Target Value</th>
                                 <th></th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var destMap in DataMapping.FieldsMapping.Where(w => w.MappingType == MappingType.UpdateValue))
+                            @foreach (var destMap in Profile.FieldsMapping.Where(w => w.MappingType == MappingType.UpdateValue))
                             {
                                 <tr>
                                     <td>
                                         @destMap.MappingType
                                     </td>
                                     <td>
-                                        @destMap.DestinationEntity.@destMap.DestinationField
+                                        @destMap.TargetEntity.@destMap.TargetField
                                     </td>
                                     <td>
                                         @destMap.ValueField
@@ -126,12 +127,12 @@
                             <tr>
                                 <th>Mapping Type</th>
                                 <th>Source</th>
-                                <th>Destination</th>
+                                <th>Target</th>
                                 <th></th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var destMap in DataMapping.FieldsMapping.Where(w => w.MappingType == MappingType.MergeField))
+                            @foreach (var destMap in Profile.FieldsMapping.Where(w => w.MappingType == MappingType.MergeField))
                             {
                                 <tr>
                                     <td>
@@ -141,7 +142,7 @@
                                         @destMap.SourceEntity.@destMap.SourceField
                                     </td>
                                     <td>
-                                        @destMap.DestinationEntity.@destMap.DestinationField
+                                        @destMap.TargetEntity.@destMap.TargetField
                                     </td>
                                     <td>
                                         <a class="btn btn-app" @onclick="() => Edit(destMap)">
@@ -162,14 +163,14 @@
                             <tr>
                                 <th>Mapping Type</th>
                                 <th>Source Condition</th>
-                                <th>Destination Field</th>
-                                <th>Destination Value</th>
+                                <th>Target Field</th>
+                                <th>Target Value</th>
                                 <th>
                                 </th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var destMap in DataMapping.FieldsMapping.Where(w => w.MappingType == MappingType.UpdateValueWithCondition))
+                            @foreach (var destMap in Profile.FieldsMapping.Where(w => w.MappingType == MappingType.UpdateValueWithCondition))
                             {
                                 <tr>
                                     <td>
@@ -206,7 +207,7 @@
                                                         else
                                                         {
                                                             <td>
-                                                                @destMap.DestinationEntity.@sourceCondition.Query
+                                                                @destMap.TargetEntity.@sourceCondition.Query
                                                             </td>
                                                         }
                                                     </tr>
@@ -215,7 +216,7 @@
                                         </table>
                                     </td>
                                     <td>
-                                        @destMap.DestinationEntity.@destMap.DestinationField
+                                        @destMap.TargetEntity.@destMap.TargetField
                                     </td>
                                     <td>
                                         @destMap.ValueField
@@ -240,13 +241,13 @@
                                 <th>Mapping Type</th>
                                 <th>Source Condition</th>
                                 <th>Source</th>
-                                <th>Destination</th>
+                                <th>Target</th>
                                 <th>
                                 </th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var destMap in DataMapping.FieldsMapping.Where(w => w.MappingType == MappingType.MergeFieldWithCondition))
+                            @foreach (var destMap in Profile.FieldsMapping.Where(w => w.MappingType == MappingType.MergeFieldWithCondition))
                             {
                                 <tr>
                                     <td>
@@ -283,7 +284,7 @@
                                                         else
                                                         {
                                                             <td>
-                                                                @destMap.DestinationEntity.@sourceCondition.Query
+                                                                @destMap.TargetEntity.@sourceCondition.Query
                                                             </td>
                                                         }
                                                     </tr>
@@ -295,7 +296,7 @@
                                         @destMap.SourceEntity.@destMap.SourceField
                                     </td>
                                     <td>
-                                        @destMap.DestinationEntity.@destMap.DestinationField
+                                        @destMap.TargetEntity.@destMap.TargetField
                                     </td>
                                     <td>
                                         <a class="btn btn-app" @onclick="() => Edit(destMap)">
@@ -317,10 +318,10 @@
 
 @code {
     [Parameter]
-    public DataMapping DataMapping { get; set; } = new();
+    public ProfileConfiguration Profile { get; set; } = new();
 
     private void Remove(DataFieldsMapping dataFieldsMapping)
     {
-        DataMapping.FieldsMapping.Remove(dataFieldsMapping);
+        Profile.FieldsMapping.Remove(dataFieldsMapping);
     }
 }

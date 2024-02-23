@@ -1,6 +1,6 @@
 ﻿@page "/"
-@using Migration.Infrastructure.Redis
-@using Migration.Repository.Models
+@using Connectors.Redis
+@using Migration.Models
 @inject IRepository<Jobs> _repository;
 
 <div class="content-header">

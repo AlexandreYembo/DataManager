@@ -1,0 +1,129 @@
+﻿@using Migration.Models
+@using Migration.Models.Profile
+@inject IJSRuntime jsRuntime
+<div class="card card-default">
+    <div class="card-header">
+        <h3 class="card-title">Mapping configuration</h3>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-sm-2">
+                <label>Mapping Type</label>
+                <select class="form-control" data-keeper-edited="yes" value="@_dataFieldsMapping.MappingType" @onchange="ChangeMappingType">
+                    <option selected="selected">Select</option>
+                    @foreach (var mappingType in Enum.GetValues<MappingType>())
+                    {
+                        <option value="@mappingType">@mappingType</option>
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-12">
+                @if (_dataFieldsMapping.MappingType != null)
+                {
+                    @if (Profile.OperationType != OperationType.Delete)
+                    {
+                        @switch (_dataFieldsMapping.MappingType)
+                        {
+                            case MappingType.TableJoin:
+                                <TableJoinComponent OnDataFieldsMappingUpdated="(dataFieldMapping) => AddFieldsMapping(dataFieldMapping)"
+                                                    DataFieldsMapping="_dataFieldsMapping"></TableJoinComponent>
+                                break;
+                            case MappingType.MergeField:
+                                <MergeFieldsComponent OnDataFieldsMappingUpdated="(dataFieldMapping) => AddFieldsMapping(dataFieldMapping)"
+                                                      DataFieldsMapping="_dataFieldsMapping"></MergeFieldsComponent>
+                                break;
+                            case MappingType.UpdateValue:
+                                <UpdateValueComponent OnDataFieldsMappingUpdated="(dataFieldMapping) => AddFieldsMapping(dataFieldMapping)"
+                                                      DataFieldsMapping="_dataFieldsMapping"></UpdateValueComponent>
+                                break;
+                            case MappingType.MergeFieldWithCondition:
+                                <MergeFieldValuesConditionComponent OnDataFieldsMappingUpdated="(dataFieldMapping) => AddFieldsMapping(dataFieldMapping)"
+                                                                    DataFieldsMapping="_dataFieldsMapping"></MergeFieldValuesConditionComponent>
+                                break;
+                            case MappingType.UpdateValueWithCondition:
+                                <UpdateValueConditionComponent OnDataFieldsMappingUpdated="(dataFieldMapping) => AddFieldsMapping(dataFieldMapping)"
+                                                               DataFieldsMapping="_dataFieldsMapping"></UpdateValueConditionComponent>
+                                break;
+                        }
+                    }
+                    else
+                    {
+                        <TableJoinComponent OnDataFieldsMappingUpdated="(dataFieldMapping) => AddFieldsMapping(dataFieldMapping)"
+                                            DataFieldsMapping="_dataFieldsMapping"></TableJoinComponent>
+                    }
+                }
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-12">
+                <MappingListComponent Profile="Profile"
+                                      OnDataFieldsMappingEditing="(dataFieldsMapping) => _dataFieldsMapping = dataFieldsMapping "></MappingListComponent>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code
+{
+    [Parameter]
+    public ProfileConfiguration Profile { get; set; } = new();
+
+    private DataFieldsMapping _dataFieldsMapping = new();
+
+    [Parameter]
+    public EventCallback<ProfileConfiguration> OnProfileConfigurationChanged { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (Profile.Source.Settings.CurrentEntity != null)
+        {
+            _dataFieldsMapping.SourceEntity = Profile.Source.Settings.CurrentEntity.Name;
+        }
+
+        if (Profile.Target.Settings.CurrentEntity != null)
+        {
+            _dataFieldsMapping.TargetEntity = Profile.Target.Settings.CurrentEntity.Name;
+        }
+    }
+
+    // private void AddSourceDbSettings(DataSettings sourceSettings)
+    // {
+    //     if (Profile.Source == null) Profile.Source = new();
+
+    //     Profile.Source.Settings = sourceSettings;
+    // }
+
+    // private void AddTargetDbSettings(DataSettings targetSettings)
+    // {
+    //     if (Profile.Target == null) Profile.Target = new();
+
+    //     Profile.Target.Settings = targetSettings;
+    // }
+
+    private void ChangeMappingType(ChangeEventArgs e)
+    {
+        _dataFieldsMapping = new();
+
+        if (e.Value != null)
+        {
+            _dataFieldsMapping.MappingType = Enum.Parse<MappingType>(e.Value.ToString());
+            _dataFieldsMapping.TargetEntity = Profile.Target.Settings.CurrentEntity.Name;
+            _dataFieldsMapping.SourceEntity = Profile.Source.Settings.CurrentEntity.Name;
+        }
+    }
+
+    private async Task ShowSuccessAlert(string message)
+    {
+        await jsRuntime.InvokeAsync<object>("ShowSuccessAlert", message);
+    }
+
+    private async Task AddFieldsMapping(DataFieldsMapping dataFieldMapping)
+    {
+        Profile.FieldsMapping.Remove(dataFieldMapping);
+        Profile.FieldsMapping.Add(dataFieldMapping);
+        _dataFieldsMapping = new DataFieldsMapping();
+        await OnProfileConfigurationChanged.InvokeAsync(Profile);
+    }
+}

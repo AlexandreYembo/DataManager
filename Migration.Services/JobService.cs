@@ -1,7 +1,8 @@
-﻿using Migration.Infrastructure.Redis;
-using Migration.Infrastructure.Redis.Entities;
-using Migration.Repository.Models;
-using Migration.Repository.Publishers;
+﻿using Connectors.Redis;
+using Connectors.Redis.Models;
+using Migration.EventHandlers.Publishers;
+using Migration.Models;
+using Migration.Models.Profile;
 using Newtonsoft.Json;
 
 namespace Migration.Services
@@ -17,11 +18,11 @@ namespace Migration.Services
             _jobPublisher = jobPublisher;
         }
 
-        public async Task<Jobs> GetOrCreateJob(Profile profile, int jobId)
+        public async Task<Jobs> GetOrCreateJob(ProfileConfiguration profile, int jobId)
         {
             if (jobId > 0)
             {
-                var redisValue = await _jobRepository.FindByKeyAsync(new RedisData<Jobs>()
+                var redisValue = await _jobRepository.FindByKeyAsync(new HashKeyRedisData<Jobs>()
                 {
                     RedisValue = jobId.ToString()
                 });
@@ -37,7 +38,7 @@ namespace Migration.Services
 
                 var job = NewObject(profile, JobStatus.InProgress, jobId);
 
-                await _jobRepository.SaveAsync(new RedisData<Jobs>()
+                await _jobRepository.SaveAsync(new HashKeyRedisData<Jobs>()
                 {
                     Data = job,
                     RedisValue= jobId.ToString(),
@@ -47,16 +48,16 @@ namespace Migration.Services
             }
         }
 
-        private static Jobs NewObject(Profile profile, JobStatus status, int jobId)
+        private static Jobs NewObject(ProfileConfiguration profile, JobStatus status, int jobId)
         {
             var job = new Jobs();
 
             job.JobId = jobId;
-            job.ProfileId = profile.DataMappings[0].Id;
-            job.OperationType = profile.DataMappings[0].OperationType;
+            job.ProfileId = profile.Id;
+            job.OperationType = profile.OperationType;
             job.Status = status;
             job.SourceProcessed = 0;
-            job.DestinationProcessed = 0;
+            job.TargetProcessed = 0;
             job.JobCategory = profile.JobCategoryId;
 
             return job;
@@ -64,7 +65,7 @@ namespace Migration.Services
 
         public async Task UpdateJob(Jobs job)
         {
-            await _jobRepository.SaveAsync(new RedisData<Jobs>()
+            await _jobRepository.SaveAsync(new HashKeyRedisData<Jobs>()
             {
                 Data = job,
                 RedisValue = job.JobId.ToString(),
@@ -73,14 +74,14 @@ namespace Migration.Services
             await _jobPublisher.PublishAsync(job);
         }
 
-        public async Task CreateAndAddToTheQueue(Profile profile)
+        public async Task CreateAndAddToTheQueue(ProfileConfiguration profile)
         {
             var jobs = await _jobRepository.CountAsync(nameof(Jobs));
             var jobId = jobs + 1;
 
             var job = NewObject(profile, JobStatus.Queued, jobId);
 
-            await _jobRepository.SaveAsync(new RedisData<Jobs>()
+            await _jobRepository.SaveAsync(new HashKeyRedisData<Jobs>()
             {
                 Data = job,
                 RedisValue = jobId.ToString(),

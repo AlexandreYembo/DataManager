@@ -1,5 +1,7 @@
-﻿@using Migration.Repository.Validations
-@if (ValidationMessages.Any())
+﻿@using MigrationAdmin.Validations
+@inject ValidationMessagePublisher _validationPublisher;
+
+@if (_validationMessages.Any())
 {
     <div class="modal fade show" id="logDetailsModal" style="display:block" aria-modal="true" role="dialog">
         <div class="modal-dialog" style="max-width: 500px;">
@@ -12,7 +14,7 @@
 
                 <!-- Modal body -->
                 <div class="modal-body" style="max-height: 250px">
-                    @foreach (var validation in ValidationMessages)
+                    @foreach (var validation in _validationMessages)
                     {
                         <div class="row">
                             <div class="col-sm-12">
@@ -35,11 +37,23 @@
 }
 @code {
 
-    [Parameter]
-    public List<ValidationMessage> ValidationMessages { get; set; } = new();
+    private List<ValidationMessage> _validationMessages { get; set; } = new();
+
+    protected override void OnInitialized()
+    {
+        _validationPublisher.OnEventPublished += OnValidationError;
+    }
+
+    private void OnValidationError(object? sender, ValidationMessageEventArgs e)
+    {
+        _validationMessages = e.ValidationMessages;
+
+        InvokeAsync(StateHasChanged);
+    }
+
 
     public void ModalOk()
     {
-        ValidationMessages = new();
+        _validationMessages = new();
     }
 }

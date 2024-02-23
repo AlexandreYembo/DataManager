@@ -1,13 +1,11 @@
-﻿using Migration.Repository;
-using Migration.Repository.Delegates;
-using Migration.Repository.Helpers;
-using Migration.Repository.LogModels;
-using Migration.Repository.Models;
-using Migration.Repository.Publishers;
+﻿using Migration.Core;
+using Migration.EventHandlers.Publishers;
+using Migration.Models;
+using Migration.Models.Logs;
+using Migration.Models.Profile;
 using Migration.Services.Extensions;
 using Migration.Services.Helpers;
 using Newtonsoft.Json.Linq;
-using System;
 
 namespace Migration.Services
 {
@@ -30,14 +28,14 @@ namespace Migration.Services
             _actionsPublisher = actionsPublisher;
         }
 
-        public async Task Revert(Profile profile, List<JObject> listData, int jobId)
+        public async Task Revert(ProfileConfiguration profile, List<JObject> listData, int jobId)
         {
             LogResult log = new()
             {
-                EntityName = profile.DataMappings[0].DataQueryMappingType == DataQueryMappingType.UpdateAnotherCollection ? profile.DataMappings[0].Destination.Settings.CurrentEntity.Name
-                    : profile.DataMappings[0].Source.Settings.CurrentEntity.Name,
+                EntityName = profile.DataQueryMappingType == DataQueryMappingType.SourceToTarget ? profile.Target.Settings.CurrentEntity.Name
+                    : profile.Source.Settings.CurrentEntity.Name,
                 StartedIn = DateTime.Now,
-                Description = $"Reverting Migration: {profile.DataMappings[0].OperationType}.",
+                Description = $"Reverting Migration: {profile.OperationType}.",
                 JobId = jobId,
                 OperationType = GetOperationTypeReverting(profile)
             };
@@ -52,7 +50,7 @@ namespace Migration.Services
 
                 foreach (var data in listData)
                 {
-                    var currentEntity = profile.DataMappings[0].Destination.Settings.CurrentEntity;
+                    var currentEntity = profile.Target.Settings.CurrentEntity;
                     var idField = currentEntity.Attributes.FirstOrDefault().Value.Replace("/", string.Empty);
 
                     bool hasChange = false;
@@ -65,14 +63,14 @@ namespace Migration.Services
                         OperationType = GetOperationTypeReverting(profile)
                     };
 
-                    if (profile.DataMappings[0].OperationType == OperationType.Update)
+                    if (profile.OperationType == OperationType.Update)
                     {
                         var backupData = data.SelectToken("Backup");
                         var updatedData = data.SelectToken("Updated");
 
                         if (backupData != null && updatedData != null)
                         {
-                            var liveData = await repository.Get($"select * from c where c.{idField} = '{id}'");
+                            var liveData = await repository.GetAsync($"select * from c where c.{idField} = '{id}'");
 
                             if (!liveData.Any())
                             {
@@ -82,43 +80,55 @@ namespace Migration.Services
                                 continue;
                             }
 
-                            var liveDataObject = JObject.Parse(liveData.Values.FirstOrDefault());
-                            profile.DataMappings[0].FieldsMapping = profile.DataMappings[0].FieldsMapping.RevertMapping();
+                            var liveDataObject = liveData.Values.FirstOrDefault();
+                            profile.FieldsMapping = profile.FieldsMapping.RevertMapping();
 
                             var revertValidationResult = await CheckDifferencesAllowToRevert(profile, jobId, liveDataObject, updatedData, logDetails, backupData, hasChange, 0);
 
                             if (!revertValidationResult.allowChange) continue;
 
-                            await repository.Update(revertValidationResult.objectToBeUpdated, profile.DataMappings[0].FieldsMapping);
+                            RepositoryParameters repositoryParameter = new()
+                            {
+                                Data = revertValidationResult.objectToBeUpdated,
+                                FieldMappings = profile.FieldsMapping
+                            };
+
                             //update db
+                            await repository.UpdateAsync(repositoryParameter);
                         }
                     }
-                    else if (profile.DataMappings[0].OperationType == OperationType.Delete)
+                    else if (profile.OperationType == OperationType.Delete)
                     {
                         var deletedData = data.SelectToken("Deleted");
 
-                        var liveData = await repository.Get($"select * from c where c.{idField} = '{id}'");
+                        var liveData = await repository.GetAsync($"select * from c where c.{idField} = '{id}'");
 
                         if (liveData.Any())
                         {
-                            var liveDataObject = JObject.Parse(liveData.Values.FirstOrDefault());
+                            var liveDataObject = liveData.Values.FirstOrDefault();
 
                             await CheckDifferencesAllowToRevert(profile, jobId, liveDataObject, null, logDetails, deletedData, hasChange, 0);
                         }
                         else
                         {
-                            await repository.Insert(JObject.FromObject(deletedData), profile.DataMappings[0].FieldsMapping);
+                            RepositoryParameters repositoryParameter = new()
+                            {
+                                Data = JObject.FromObject(deletedData),
+                                FieldMappings = profile.FieldsMapping
+                            };
+
+                            await repository.InsertAsync(repositoryParameter);
 
                             logDetails.Descriptions.Add("Record inserted");
 
                             await _logDetailsPublisher.PublishAsync(logDetails);
                         }
                     }
-                    else if (profile.DataMappings[0].OperationType == OperationType.Import)
+                    else if (profile.OperationType == OperationType.Import)
                     {
                         var insertedData = data.SelectToken("Inserted");
 
-                        var liveData = await repository.Get($"select * from c where c.{idField} = '{id}'");
+                        var liveData = await repository.GetAsync($"select * from c where c.{idField} = '{id}'");
 
                         if (!liveData.Any())
                         {
@@ -130,17 +140,20 @@ namespace Migration.Services
                         {
                             await _logResultPublisher.PublishAsync(log);
 
-                            foreach (var kvp in liveData.Values)
+                            foreach (var liveDataObject in liveData.Values)
                             {
-                                var liveDataObject = JObject.Parse(kvp);
-
                                 var allowDelete = await CheckDifferencesAllowToDelete(profile, jobId, liveDataObject, insertedData, logDetails, 0);
-                              
+
                                 logDetails.Title = liveDataObject.SelectToken("id").ToString();
 
                                 if (allowDelete)
                                 {
-                                    await repository.Delete(liveDataObject);
+                                    RepositoryParameters repositoryParameter = new()
+                                    {
+                                        Data = JObject.FromObject(liveDataObject)
+                                    };
+
+                                    await repository.DeleteAsync(repositoryParameter);
 
                                     logDetails.Descriptions.Add("Record deleted");
 
@@ -179,7 +192,7 @@ namespace Migration.Services
                     Display = true,
                     JobId = jobId,
                     Type = LogType.Error,
-                    OperationType = profile.DataMappings[0].OperationType
+                    OperationType = profile.OperationType
                 };
 
                 await _logDetailsPublisher.PublishAsync(detailsError);
@@ -189,9 +202,9 @@ namespace Migration.Services
             await _logResultPublisher.PublishAsync(log);
         }
 
-        private static OperationType GetOperationTypeReverting(Profile profile)
+        private static OperationType GetOperationTypeReverting(ProfileConfiguration profile)
         {
-            switch (profile.DataMappings[0].OperationType)
+            switch (profile.OperationType)
             {
                 case OperationType.Delete:
                     return OperationType.Import;
@@ -203,7 +216,7 @@ namespace Migration.Services
 
         }
 
-        private async Task<(bool allowChange, JObject objectToBeUpdated)> CheckDifferencesAllowToRevert(Profile profile, int jobId, JObject liveDataObject, JToken? updatedData, LogDetails logDetails, JToken backupData, bool hasChange, int attempts)
+        private async Task<(bool allowChange, JObject objectToBeUpdated)> CheckDifferencesAllowToRevert(ProfileConfiguration profile, int jobId, JObject liveDataObject, JToken? updatedData, LogDetails logDetails, JToken backupData, bool hasChange, int attempts)
         {
             var differencesBackupAndLiveData =
                 DifferenceHelper.FindDifferences(liveDataObject, JObject.Parse(backupData.ToString()), false);
@@ -221,11 +234,11 @@ namespace Migration.Services
             if (updatedData != null)
             {
                 var differencesUpdatedAndLiveData =
-                    DifferenceHelper.FindDifferences(liveDataObject, JObject.Parse(updatedData.ToString()), false, profile.DataMappings[0].FieldsMapping);
+                    DifferenceHelper.FindDifferences(liveDataObject, JObject.Parse(updatedData.ToString()), false, profile.FieldsMapping);
 
                 if (!differencesUpdatedAndLiveData.Any()) // If there is no difference, double check just to make sure that there will have nothing updated in live prod
                 {
-                    foreach (var fieldMapping in profile.DataMappings[0].FieldsMapping.Where(w => liveDataObject.SelectTokens(w.SourceField).Any()))
+                    foreach (var fieldMapping in profile.FieldsMapping.Where(w => liveDataObject.SelectTokens(w.SourceField).Any()))
                     {
                         var value1 = liveDataObject.SelectToken(fieldMapping.SourceField).ToString();
                         var value2 = updatedData.SelectToken(fieldMapping.SourceField).ToString();
@@ -242,8 +255,7 @@ namespace Migration.Services
                     }
                 }
 
-                if (differencesUpdatedAndLiveData
-                    .Any()) //It means that the version that has been updated during migration is already obsolete, but offers the option to Accept the conflict and update the record
+                if (differencesUpdatedAndLiveData.Any()) //It means that the version that has been updated during migration is already obsolete, but offers the option to Accept the conflict and update the record
                 {
                     var message = "Values from migration are not the same from live data. Please check: ";
                     foreach (var item in differencesUpdatedAndLiveData)
@@ -304,7 +316,7 @@ namespace Migration.Services
 
             var objectToBeUpdated = new JObject();
 
-            if (profile.DataMappings[0].FieldsMapping.Any())
+            if (profile.FieldsMapping.Any())
             {
                 objectToBeUpdated = UpdateObjectsBasedOnMappings(profile, liveDataObject, backupData, ref hasChange);
 
@@ -327,23 +339,23 @@ namespace Migration.Services
             return (hasChange, objectToBeUpdated);
         }
 
-        private static JObject UpdateObjectsBasedOnMappings(Profile profile, JObject liveDataObject, JToken backupData, ref bool hasChange)
+        private static JObject UpdateObjectsBasedOnMappings(ProfileConfiguration profile, JObject liveDataObject, JToken backupData, ref bool hasChange)
         {
             var objectToBeUpdated = new JObject();
 
-            foreach (var fieldMappings in profile.DataMappings[0].FieldsMapping)
+            foreach (var fieldMappings in profile.FieldsMapping)
             {
-                var fieldsFromDestinationArr = fieldMappings.DestinationField.Split(".").ToList();
+                var fieldsFromTargetArr = fieldMappings.TargetField.Split(".").ToList();
 
                 var valueFromSource = JObjectHelper.GetValueFromObject(JObject.Parse(backupData.ToString()), fieldMappings.SourceField.Split(".").ToList());
-                objectToBeUpdated = JObjectHelper.UpdateObjectFromOriginal(liveDataObject, JObject.Parse(backupData.ToString()), fieldsFromDestinationArr, valueFromSource);
+                objectToBeUpdated = JObjectHelper.UpdateObjectFromOriginal(liveDataObject, JObject.Parse(backupData.ToString()), fieldsFromTargetArr, valueFromSource);
                 hasChange = true;
             }
 
             return objectToBeUpdated;
         }
 
-        private async Task<bool> CheckDifferencesAllowToDelete(Profile profile, int jobId, JObject liveDataObject, JToken insertedData, LogDetails logDetails, int attempts)
+        private async Task<bool> CheckDifferencesAllowToDelete(ProfileConfiguration profile, int jobId, JObject liveDataObject, JToken insertedData, LogDetails logDetails, int attempts)
         {
             var differencesUpdatedAndLiveData =
                 DifferenceHelper.FindDifferences(liveDataObject, JObject.Parse(insertedData.ToString()), false);
@@ -381,17 +393,17 @@ namespace Migration.Services
             return true;
         }
 
-        private static DataSettings GetDataSettings(Profile profile)
+        private static DataSettings GetDataSettings(ProfileConfiguration profile)
         {
-            var settings = profile.DataMappings[0].DataQueryMappingType == DataQueryMappingType.UpdateSameCollection
-                ? profile.DataMappings[0].Source.Settings
-                : profile.DataMappings[0].Destination.Settings;
+            var settings = profile.DataQueryMappingType == DataQueryMappingType.SameCollection
+                ? profile.Source.Settings
+                : profile.Target.Settings;
             return settings;
         }
 
-        private async Task VerifyAndAcceptToRevertData(Profile profile, JObject backupData, JObject liveDataToCheck, int jobId, int attempts)
+        private async Task VerifyAndAcceptToRevertData(ProfileConfiguration profile, JObject backupData, JObject liveDataToCheck, int jobId, int attempts)
         {
-            var currentEntity = profile.DataMappings[0].Destination.Settings.CurrentEntity;
+            var currentEntity = profile.Target.Settings.CurrentEntity;
 
             var idField = currentEntity.Attributes.FirstOrDefault().Value.Replace("/", string.Empty);
 
@@ -408,8 +420,8 @@ namespace Migration.Services
 
             var repository = _genericRepository(settings);
 
-            var liveData = await repository.Get($"select * from c where c.{idField} = '{id}'");
-            var liveDataObject = JObject.Parse(liveData.Values.FirstOrDefault());
+            var liveData = await repository.GetAsync($"select * from c where c.{idField} = '{id}'");
+            var liveDataObject = liveData.Values.FirstOrDefault();
 
             bool hasChange = false;
 
@@ -427,19 +439,24 @@ namespace Migration.Services
                 return;
             }
 
-            //update the data
-            await repository.Update(revertValidationResult.objectToBeUpdated, profile.DataMappings[0].FieldsMapping);
+            RepositoryParameters repositoryParameters = new()
+            {
+                Data = revertValidationResult.objectToBeUpdated,
+                FieldMappings = profile.FieldsMapping
+            };
 
-            //update the db
+            //update the table
+            await repository.UpdateAsync(repositoryParameters);
+
             await _actionsPublisher.PublishAsync(new Actions()
             {
                 Message = "Record updated"
             });
         }
 
-        private async Task VerifyAndAcceptToDeleteData(Profile profile, JObject backupData, JObject liveDataToCheck, int jobId, int attempts)
+        private async Task VerifyAndAcceptToDeleteData(ProfileConfiguration profile, JObject backupData, JObject liveDataToCheck, int jobId, int attempts)
         {
-            var currentEntity = profile.DataMappings[0].Destination.Settings.CurrentEntity;
+            var currentEntity = profile.Target.Settings.CurrentEntity;
             var idField = currentEntity.Attributes.FirstOrDefault().Value.Replace("/", string.Empty);
 
             var id = backupData.SelectToken(idField).ToString();
@@ -456,9 +473,9 @@ namespace Migration.Services
             var repository = _genericRepository(settings);
 
 
-            var liveData = await repository.Get($"select * from c where c.{idField} = '{id}'");
+            var liveData = await repository.GetAsync($"select * from c where c.{idField} = '{id}'");
 
-            var liveDataObject = JObject.Parse(liveData.Values.FirstOrDefault());
+            var liveDataObject = liveData.Values.FirstOrDefault();
 
             //Check again because if the user delays to resolve it and there was already another change the validation should be performed against
             var allowDelete = await CheckDifferencesAllowToDelete(profile, jobId, liveDataObject, liveDataToCheck, logDetails, attempts);
@@ -474,8 +491,13 @@ namespace Migration.Services
                 return;
             }
 
+            RepositoryParameters repositoryParameters = new()
+            {
+                Data = liveDataObject
+            };
+
             //update the data
-            await repository.Delete(liveDataObject);
+            await repository.DeleteAsync(repositoryParameters);
 
             //update the db
 

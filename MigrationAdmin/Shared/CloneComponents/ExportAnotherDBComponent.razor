@@ -1,8 +1,7 @@
-﻿@using Newtonsoft.Json.Linq
-@using Migration.Repository.Models
-@using Migration.Repository
+﻿@using Connectors.Redis
+@using Migration.Models
+@using Newtonsoft.Json.Linq
 @using Migration.Services
-@using Migration.Infrastructure.Redis
 @inject IMigrationService _migrateService;
 @inject IRepository<DataSettings> _redis;
 
