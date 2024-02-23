@@ -23,6 +23,7 @@
         Import,
         Update,
         Delete,
+        CacheData,
         Report
     }
 
@@ -70,5 +71,11 @@
         PartitionKey,
         RowKey,
         RecordId
+    }
+
+    public enum EntityType
+    {
+        Source,
+        Target
     }
 }

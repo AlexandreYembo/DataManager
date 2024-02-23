@@ -1,6 +1,6 @@
-﻿using Migration.EventHandlers.Publishers;
-using Migration.Infrastructure.Redis;
-using Migration.Infrastructure.Redis.Entities;
+﻿using Connectors.Redis;
+using Connectors.Redis.Models;
+using Migration.EventHandlers.Publishers;
 using Migration.Models;
 using Migration.Models.Profile;
 using Newtonsoft.Json;
@@ -22,7 +22,7 @@ namespace Migration.Services
         {
             if (jobId > 0)
             {
-                var redisValue = await _jobRepository.FindByKeyAsync(new RedisData<Jobs>()
+                var redisValue = await _jobRepository.FindByKeyAsync(new HashKeyRedisData<Jobs>()
                 {
                     RedisValue = jobId.ToString()
                 });
@@ -38,7 +38,7 @@ namespace Migration.Services
 
                 var job = NewObject(profile, JobStatus.InProgress, jobId);
 
-                await _jobRepository.SaveAsync(new RedisData<Jobs>()
+                await _jobRepository.SaveAsync(new HashKeyRedisData<Jobs>()
                 {
                     Data = job,
                     RedisValue= jobId.ToString(),
@@ -65,7 +65,7 @@ namespace Migration.Services
 
         public async Task UpdateJob(Jobs job)
         {
-            await _jobRepository.SaveAsync(new RedisData<Jobs>()
+            await _jobRepository.SaveAsync(new HashKeyRedisData<Jobs>()
             {
                 Data = job,
                 RedisValue = job.JobId.ToString(),
@@ -81,7 +81,7 @@ namespace Migration.Services
 
             var job = NewObject(profile, JobStatus.Queued, jobId);
 
-            await _jobRepository.SaveAsync(new RedisData<Jobs>()
+            await _jobRepository.SaveAsync(new HashKeyRedisData<Jobs>()
             {
                 Data = job,
                 RedisValue = jobId.ToString(),

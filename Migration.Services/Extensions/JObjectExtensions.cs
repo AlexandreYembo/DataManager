@@ -25,21 +25,32 @@ namespace Migration.Services.Extensions
 
             var op = string.Empty;
 
-            //add in the future a switch case
-            if (split.Any(a => a.Contains("==")))
-            {
-                op = " == ";
-            }
+            ////add in the future a switch case
+            //if (split.Any(a => a.Contains("==")))
+            //{
+            //    op = " == ";
+            //}
 
-            if (split.Any(a => a.Contains("!=")))
-            {
-                op = " != ";
-            }
+            //if (split.Any(a => a.Contains("!=")))
+            //{
+            //    op = " != ";
+            //}
 
             List<bool> conditionResults = new();
 
             foreach (var condition in split)
             {
+                //add in the future a switch case
+                if (condition.Contains("=="))
+                {
+                    op = " == ";
+                }
+
+                if (condition.Contains("!="))
+                {
+                    op = " != ";
+                }
+
                 if (condition.Contains("Any"))
                 {
                     var newCondition = "$." + condition.Replace("\"", "'").Trim()
@@ -65,7 +76,15 @@ namespace Migration.Services.Extensions
                     var property = condition.Split(op).FirstOrDefault();
                     var leftValue = condition.Split(op).LastOrDefault().Replace("\"", "").Replace("'", "");
                     var rightValue = GetValueByType(data, property.Trim());
-                    conditionResults.Add(leftValue == rightValue);
+
+                    if (condition.Contains("=="))
+                    {
+                        conditionResults.Add(leftValue == rightValue);
+                    }
+                    else
+                    {
+                        conditionResults.Add(leftValue != rightValue);
+                    }
                 }
             }
 

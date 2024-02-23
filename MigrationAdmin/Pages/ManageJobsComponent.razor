@@ -1,7 +1,7 @@
 ﻿@page "/manageJobs"
+@using Connectors.Redis
+@using Connectors.Redis.Models
 @using Migration.EventHandlers.Publishers
-@using Migration.Infrastructure.Redis
-@using Migration.Infrastructure.Redis.Entities
 @using Migration.Models
 @using Migration.Models.Logs
 @using Migration.Models.Profile
@@ -27,13 +27,22 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-sm-6">
-                        <JobCategoryComponent OnJobCategorySelected="(jobCategory) => _jobCategory = jobCategory"></JobCategoryComponent>
+                        <JobCategoryComponent OnJobCategorySelected="(jobCategory) => UpdateJobCategory(jobCategory)"></JobCategoryComponent>
                     </div>
                     <div class="col-sm-6">
                         @if (_jobCategory != null)
                         {
-                            <ProfilesComponent JobsCategory="_jobCategory"
-                                               OnProfileSelected="(profileId) => _profileId = profileId"></ProfilesComponent>
+                            <label>Profiles</label>
+                            <select class="form-control" id="profile" data-keeper-edited="yes" @bind="_profileId">
+                                @if (_listProfiles != null)
+                                {
+                                    foreach (var profile in _listProfiles)
+                                    {
+                                        <option value="@profile.Id">@profile.Name</option>
+                                    }
+                                }
+                            </select>
+
                         }
                     </div>
                 </div>
@@ -135,6 +144,7 @@
     private Jobs _currentJob;
     private JobsCategory _jobCategory;
     private string _profileId;
+    private List<ProfileConfiguration> _listProfiles;
 
     protected override async Task OnInitializedAsync()
     {
@@ -175,10 +185,10 @@
 
     private async Task CreateJob()
     {
-        var redisValue = await _profileRepository.FindByKeyAsync(new RedisData<ProfileConfiguration>
+        var redisValue = await _profileRepository.FindByKeyAsync(new HashKeyRedisData<ProfileConfiguration>
             {
                 RedisKey = _jobCategory.CategoryName,
-                RedisValue = _profileId
+                RedisValue = _profileId ?? _listProfiles.FirstOrDefault(f => f.JobCategoryId == _jobCategory.CategoryName).Id
             });
 
         var profile = JsonConvert.DeserializeObject<ProfileConfiguration>(redisValue);
@@ -188,6 +198,7 @@
         await ShowSuccessAlert("Job created and add to the queue.");
 
         _jobs = await _repository.FindAsync();
+
     }
 
     public async Task Migrate(Jobs job)
@@ -199,7 +210,7 @@
         }
         else
         {
-            var redisValue = await _profileRepository.FindByKeyAsync(new RedisData<ProfileConfiguration>()
+            var redisValue = await _profileRepository.FindByKeyAsync(new HashKeyRedisData<ProfileConfiguration>()
                 {
                     RedisKey = job.JobCategory,
                     RedisValue = job.ProfileId
@@ -213,7 +224,7 @@
 
     public async Task GetLog(Jobs job)
     {
-        var redisValue = await _profileRepository.FindByKeyAsync(new RedisData<ProfileConfiguration>
+        var redisValue = await _profileRepository.FindByKeyAsync(new HashKeyRedisData<ProfileConfiguration>
             {
                 RedisKey = job.JobCategory,
                 RedisValue = job.ProfileId
@@ -221,7 +232,7 @@
 
         var profile = JsonConvert.DeserializeObject<ProfileConfiguration>(redisValue);
 
-        var log = JsonConvert.DeserializeObject<LogResult>(await _logRepository.FindByKeyAsync(new RedisData<LogResult>()
+        var log = JsonConvert.DeserializeObject<LogResult>(await _logRepository.FindByKeyAsync(new HashKeyRedisData<LogResult>()
             {
                 RedisValue = "Job:" + job.JobId + "_Operation:" + profile.OperationType
             }));
@@ -234,6 +245,22 @@
         await jsRuntime.InvokeAsync<object>("ShowSuccessAlert", message);
     }
 
+    private async Task UpdateJobCategory(JobsCategory jobCategory)
+    {
+        _jobCategory = jobCategory;
+        _jobs = await _repository.FindAsync();
+
+        if (_jobCategory == null) return;
+
+        _listProfiles = await _profileRepository.FindAsync(_jobCategory.CategoryName);
+
+        if (_listProfiles.Any())
+        {
+            var profileId = _listProfiles.FirstOrDefault().Id;
+
+        }
+    }
+
     private async Task OnJobAlreadyExistingConfirmed(bool confirmed)
     {
         _confirmJobAlreadyInProgress = false;
@@ -242,7 +269,7 @@
 
         _currentJob.Waiting();
 
-        await _repository.SaveAsync(new RedisData<Jobs>()
+        await _repository.SaveAsync(new HashKeyRedisData<Jobs>()
             {
                 Data = _currentJob,
                 RedisValue = _currentJob.JobId.ToString()

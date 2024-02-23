@@ -1,11 +1,11 @@
 ﻿@page "/ManageDataProcessed"
+@using Connectors.Redis
+@using Connectors.Redis.Models
 @using Migration.Models
 @using Migration.Models.Profile
 @using Migration.Services.Subscribers
 @using Newtonsoft.Json.Linq
-@using Migration.Infrastructure.Redis
 @using Microsoft.AspNetCore.Components
-@using Migration.Infrastructure.Redis.Entities
 @using Newtonsoft.Json
 @using System.Text
 @using Migration.Services
@@ -79,7 +79,7 @@
                 }
             </div>
         </div>
-        <div class="row">
+        <div class="row" style="overflow: scroll; height:700px">
             @if (_data != null)
             {
                 foreach (var values in _data.Where(w => !string.IsNullOrEmpty(_filterName) && !string.IsNullOrEmpty(_filterValue) ? w.SelectToken(_filterName).ToString() == _filterValue : true))
@@ -182,12 +182,12 @@
     {
         _entityName = _entity + "$" + _jobCategory + "$" + _jobId + "$";
 
-        _data = await _localRepository.FindAsync(new RedisData<JObject>()
+        _data = await _localRepository.FindAsync(new HashKeyRedisData<JObject>()
             {
                 RedisKey = _entityName
             });
 
-        var redisValue = await _jobRepository.FindByKeyAsync(new RedisData<Jobs>()
+        var redisValue = await _jobRepository.FindByKeyAsync(new HashKeyRedisData<Jobs>()
             {
                 RedisValue = _jobId
             });
@@ -309,7 +309,7 @@
 
         Loading = true;
 
-        var redisValue = await _profileRepository.FindByKeyAsync(new RedisData<ProfileConfiguration>()
+        var redisValue = await _profileRepository.FindByKeyAsync(new HashKeyRedisData<ProfileConfiguration>()
             {
                 RedisKey = _jobCategory,
                 RedisValue = _job.ProfileId

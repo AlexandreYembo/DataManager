@@ -3,8 +3,8 @@
     public class DataSettings
     {
         public string Name { get; set; }
+        public bool IsCacheConnection { get; set; }
         public ConnectionType ConnectionType { get; set; }
-
         public List<CustomAttributes> Parameters { get; set; } = new();
 
         public List<Entity> Entities { get; set; } = new();
@@ -96,6 +96,7 @@
     {
         CosmosDb,
         File,
-        TableStorage
+        TableStorage,
+        Redis
     }
 }

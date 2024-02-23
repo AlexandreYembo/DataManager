@@ -145,7 +145,7 @@ namespace Migration.Services.Helpers
                         // It's an object, so you can safely cast it to JObject
                         JObject obj = (JObject)newData[firstProp];
 
-                        if (originalData[firstProp] == null)
+                        if (originalData[firstProp] == null && newData[firstProp] == null)
                         {
                             if (!originalData.SelectTokens(firstProp).Any())
                             {
@@ -159,6 +159,11 @@ namespace Migration.Services.Helpers
                         else
                         {
                             newData[firstProp] = UpdateObjectFromOriginal(obj, originalData, fieldArr, value);
+
+                            if (!newData.SelectToken(firstProp).Any())
+                            {
+                                newData.Remove(firstProp);
+                            }
                         }
 
                         break;

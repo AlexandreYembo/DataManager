@@ -40,7 +40,6 @@
         _logDetailsPublisher.OnEventPublished += _logSubscriber.OnEventChanged;
 
         _logPublisher.OnEventPublished += _logPersistSubscriber.LogResultPublisher_OnEntityChanged;
-        _logDetailsPublisher.OnEventPublished += _logPersistSubscriber.LogDetailsPublisher_OnEntityChanged;
 
         _getLogPublisher.OnEventPublished += OnLogUpdated;
 

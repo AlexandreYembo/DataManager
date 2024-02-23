@@ -1,4 +1,6 @@
 ﻿@page "/profileConfiguration"
+@using Connectors.Redis
+@using Connectors.Redis.Models
 @using Migration.Models
 @using Migration.Models.Profile
 @using Migration.Services
@@ -7,8 +9,6 @@
 @using MigrationAdmin.Validations
 @using Newtonsoft.Json
 @using Newtonsoft.Json.Linq
-@using Migration.Infrastructure.Redis
-@using Migration.Infrastructure.Redis.Entities
 @inherits CustomComponents;
 @inject IJSRuntime jsRuntime
 @inject IQueryService _queryService;
@@ -266,7 +266,7 @@
 
     private Dictionary<string, List<DynamicData>> _resultDataFromConfiguration;
 
-    private IEnumerable<DataSettings> _dataSettings;
+    private List<DataSettings> _dataSettings;
 
     private string _message;
 
@@ -279,6 +279,13 @@
         if (!settings.Any()) return;
 
         _dataSettings = settings;
+
+        _dataSettings.Add(new()
+            {
+                ConnectionType = ConnectionType.Redis,
+                Name = "Cache",
+                IsCacheConnection = true
+            });
     }
 
     public async Task EditProfile(ProfileConfiguration profile)
@@ -422,7 +429,7 @@
             Profile.Target = null;
         }
 
-        var redisData = new RedisData<ProfileConfiguration>()
+        var redisData = new HashKeyRedisData<ProfileConfiguration>()
             {
                 Data = Profile,
                 RedisValue = Profile.Id,

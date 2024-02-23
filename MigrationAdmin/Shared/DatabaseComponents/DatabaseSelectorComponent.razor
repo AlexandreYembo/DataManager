@@ -1,9 +1,9 @@
-﻿@using Migration.Core
-@using Migration.Infrastructure.Redis.Entities
-@using Migration.Infrastructure.Redis
+﻿@using Connectors.Redis
+@using Migration.Core
 @using Migration.Models
 @inject IRepository<DataSettings> _redis;
 @inject Func<DataSettings, IGenericRepository> _testConnection;
+@inject ICacheRepository _cacheRepository;
 
 <div class="card card-default">
     <div class="card-header">
@@ -39,7 +39,7 @@
                         <div class="col-sm-2">
                             <div class="form-group">
                                 Is new container
-                                <input type="checkbox" @bind="isNewContainer"/>
+                                <input type="checkbox" @bind="isNewContainer" />
                             </div>
                         </div>
                     }
@@ -156,7 +156,15 @@
 
         var dataSettings = await GetDataSettings();
 
-        dataSettings = await _testConnection(dataSettings).TestConnection();
+        if (dataSettings.IsCacheConnection)
+        {
+            dataSettings = await _cacheRepository.TestConnection(dataSettings);
+        }
+        else
+        {
+            dataSettings = await _testConnection(dataSettings).TestConnection();
+        }
+
 
         dataSettings.CurrentEntity = dataSettings.Entities.FirstOrDefault();
 
@@ -169,9 +177,17 @@
 
     private async Task<DataSettings?> GetDataSettings()
     {
+        DataSettings dataSettings = new();
+
+        if (_connectionName == "Redis-Cache")
+        {
+            dataSettings.IsCacheConnection = true;
+            return dataSettings;
+        }
+
         var redisData = await _redis.FindAsync(_connectionName, string.Empty);
 
-        var dataSettings = redisData.FirstOrDefault();
+        dataSettings = redisData.FirstOrDefault();
         return dataSettings;
     }
 

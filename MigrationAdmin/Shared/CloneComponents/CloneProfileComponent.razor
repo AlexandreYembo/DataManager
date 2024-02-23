@@ -1,5 +1,5 @@
-﻿@using Migration.Infrastructure.Redis
-@using Migration.Infrastructure.Redis.Entities
+﻿@using Connectors.Redis
+@using Connectors.Redis.Models
 @using Migration.Models
 @using Migration.Models.Profile
 @inject IRepository<DataSettings> _dataSettingsRepository;
@@ -66,7 +66,7 @@
         var newId = Guid.NewGuid().ToString();
         Profile.Id = newId;
 
-        var redisData = new RedisData<ProfileConfiguration>()
+        var redisData = new HashKeyRedisData<ProfileConfiguration>()
             {
                 Data = Profile,
                 RedisValue = newId,

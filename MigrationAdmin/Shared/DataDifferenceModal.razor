@@ -2,7 +2,7 @@
 @using Newtonsoft.Json
 @using Newtonsoft.Json.Linq
 <div class="modal fade show" id="dataDifferenceModal" style="display:block" aria-modal="true" role="dialog">
-    <div class="modal-dialog" style="max-width:100%;">
+    <div class="modal-dialog" style="max-width:95%;">
         <div class="modal-content">
 
             <!-- Modal Header -->
@@ -11,7 +11,7 @@
             </div>
 
             <!-- Modal body -->
-            <div class="modal-body" style="height: 900px; overflow: scroll">
+            <div class="modal-body" style="height: 600px; overflow: scroll">
                 @if (IsLoading)
                 {
                     <div class="col-sm-12">
@@ -32,10 +32,10 @@
                                         <table class="table table-bordered table-striped">
                                             <thead>
                                                 <tr>
-                                                    <th>Properties</th>
-                                                    <th>Original Values</th>
-                                                    <th>Values changed</th>
-                                                    <th>Actions</th>
+                                                    <th style="width:10%;">Properties</th>
+                                                    <th style="width:40%;">Original Values</th>
+                                                    <th style="width:40%;">Values changed</th>
+                                                    <th style="width:10%;">Actions</th>
                                                 </tr>
                                             </thead>
                                             <tbody>

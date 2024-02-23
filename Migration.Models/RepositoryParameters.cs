@@ -6,6 +6,7 @@ namespace Migration.Models
     public class RepositoryParameters
     {
         public string Query { get; set; }
+        public string Entity { get; set; }
 
         public List<DataFieldsMapping> FieldMappings { get; set; }
         public JObject Data { get; set; }

@@ -1,4 +1,5 @@
-﻿using Migration.Core;
+﻿using Connectors.Redis;
+using Migration.Core;
 using Migration.Models;
 using Migration.Models.Profile;
 using Migration.Services.Extensions;
@@ -17,17 +18,35 @@ namespace Migration.Services
     public class ProfileDataPreviewService : IQueryService
     {
         private readonly Func<DataSettings, IGenericRepository> _genericRepository;
+        private readonly ICacheRepository _cacheRepository;
 
-        public ProfileDataPreviewService(Func<DataSettings, IGenericRepository> genericRepository)
+        public ProfileDataPreviewService(Func<DataSettings, IGenericRepository> genericRepository,
+            ICacheRepository cacheRepository)
         {
             _genericRepository = genericRepository;
+            _cacheRepository = cacheRepository;
         }
 
         public async Task<Dictionary<string, List<DynamicData>>> Get(ProfileConfiguration profile, int take)
         {
             Dictionary<string, List<DynamicData>> result = new();
 
-            var source = await _genericRepository(profile.Source.Settings)
+            Dictionary<string, JObject> sourceFromCache = new();
+
+            if (profile.Source.Settings.IsCacheConnection)
+            {
+                sourceFromCache = await _cacheRepository.GetAsync(profile.Source.Settings.CurrentEntity.Name);
+            }
+
+            Dictionary<string, JObject> source;
+
+            if (profile.Source.Settings.IsCacheConnection)
+            {
+                source = sourceFromCache.Take(10).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            }
+            else
+            {
+                source = await _genericRepository(profile.Source.Settings)
                 .GetAsync(new RepositoryParameters()
                 {
                     Query = profile.Source.Query,
@@ -38,6 +57,7 @@ namespace Migration.Services
                         Skip = 0
                     }
                 });
+            }
 
             if (!source.Any())
                 return new();
@@ -64,6 +84,7 @@ namespace Migration.Services
                         {
                             Query = profile.Target.Query,
                             FieldMappings = profile.FieldsMapping,
+                            Data = sourceData.Value,
                             Pagination = new()
                             {
                                 Take = take,

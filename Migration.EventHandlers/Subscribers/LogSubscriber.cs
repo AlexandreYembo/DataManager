@@ -14,19 +14,33 @@ namespace Migration.EventHandlers.Subscribers
 
         public void OnEventChanged(object source, LogDetailsEventArgs args)
         {
+            if (LogResult.Details == null)
+                LogResult.Details = new();
+
             args.LogDetail.LogDateTime = DateTime.Now;
 
-            if (!LogResult.Details.Any() || !LogResult.Details.Any(w => w.Title == args.LogDetail.Title))
+            var temp = LogResult.Details.ToArray();
+
+            bool addNew = true;
+            foreach (var item in temp)
             {
-                LogResult.Details.Add(args.LogDetail);
-            }
-            else
-            {
-                LogResult.Details.FirstOrDefault(w => w.Title == args.LogDetail.Title).Descriptions.AddRange(args.LogDetail.Descriptions);
-                LogResult.Details.FirstOrDefault(w => w.Title == args.LogDetail.Title).ActionsLogs = args.LogDetail.ActionsLogs;
-                LogResult.Details.FirstOrDefault(w => w.Title == args.LogDetail.Title).LogDateTime = args.LogDetail.LogDateTime;
+                if (item.Title == args.LogDetail.Title)
+                {
+                    if (args.LogDetail.Descriptions != null)
+                    {
+                        item.Descriptions.AddRange(args.LogDetail.Descriptions);
+                        item.ActionsLogs = args.LogDetail.ActionsLogs;
+                        item.LogDateTime = args.LogDetail.LogDateTime;
+                    }
+
+                    addNew = false;
+                }
             }
 
+            if (!addNew)
+                LogResult.Details = temp.ToList();
+            else
+                LogResult.Details.Add(args.LogDetail);
         }
     }
 }

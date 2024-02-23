@@ -1,9 +1,9 @@
 ﻿@page "/createJobCategory"
 @inject IRepository<JobsCategory> _jobsCategoryRepository;
 
+@using Connectors.Redis
+@using Connectors.Redis.Models
 @using Migration.Models
-@using Migration.Infrastructure.Redis
-@using Migration.Infrastructure.Redis.Entities
 <div class="card card-default">
     <div class="card-header">
         <h3 class="card-title">Create Job Category to organize your jobs</h3>
@@ -83,7 +83,7 @@
 
     private async Task Save()
     {
-        await _jobsCategoryRepository.SaveAsync(new RedisData<JobsCategory>()
+        await _jobsCategoryRepository.SaveAsync(new HashKeyRedisData<JobsCategory>()
             {
                 Data = _jobsCategory,
                 RedisValue = _jobsCategory.CategoryName

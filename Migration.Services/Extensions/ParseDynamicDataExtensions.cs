@@ -6,16 +6,6 @@ namespace Migration.Services.Extensions
 {
     public static class ParseDynamicDataExtensions
     {
-        public static List<DynamicData> ToDynamicDataList(this Dictionary<string, string> dictionary, DataType type = DataType.Source)
-        {
-            return dictionary.Select(s => new DynamicData()
-            {
-                Id = s.Key,
-                Data = JObject.Parse(s.Value),
-                DataType = type
-            }).ToList();
-        }
-
         public static List<DynamicData> ToDynamicDataList(this KeyValuePair<string, JObject> keyValue, DataType type = DataType.Source)
         {
             return new List<DynamicData>()

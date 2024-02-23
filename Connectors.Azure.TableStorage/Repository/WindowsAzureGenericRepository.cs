@@ -26,10 +26,6 @@ namespace Connectors.Azure.TableStorage.Repository
 
         public WindowsAzureGenericRepository(DataSettings settings)
         {
-            if (string.IsNullOrEmpty(settings.CurrentEntity.Name))
-            {
-                settings.CurrentEntity = settings.Entities.FirstOrDefault();
-            }
             _settings = settings;
 
             _storageAccount = settings.Parameters.Any(p => p.Key == "Is Emulator" && p.Value == "True") ?
@@ -37,12 +33,18 @@ namespace Connectors.Azure.TableStorage.Repository
                 CloudStorageAccount.Parse(CreateConnectionString(settings));
 
             _tableClient = _storageAccount.CreateCloudTableClient();
-            _table = _tableClient.GetTableReference(settings.CurrentEntity.Name);
 
             requestOptions = new TableRequestOptions()
             {
                 RetryPolicy = new ExponentialRetry(TimeSpan.FromSeconds(3), 3)
             };
+
+            if (settings.CurrentEntity == null || string.IsNullOrEmpty(settings.CurrentEntity.Name))
+            {
+                settings.CurrentEntity = settings.Entities.FirstOrDefault();
+            }
+
+            _table = _tableClient.GetTableReference(settings.CurrentEntity.Name);
         }
 
         public Task<DataSettings> TestConnection()
@@ -216,7 +218,20 @@ namespace Connectors.Azure.TableStorage.Repository
             var currentSegment = await GetRecordByPage(query, take, cancellation);
 
             if (currentSegment == null)
+            {
+                segmentDownloadTask = null;
                 return dictionary;
+            }
+
+            if (currentSegment.Results.Count == 0)
+            {
+                segmentDownloadTask = null;
+            }
+
+            if (currentSegment.Results.Count < take) // clean the segment to be able to perform next segment
+            {
+                segmentDownloadTask = null;
+            }
 
             // Access properties dynamically
             foreach (DynamicTableEntity entity in currentSegment.Results)
@@ -230,12 +245,27 @@ namespace Connectors.Azure.TableStorage.Repository
                 {
                     idRelationship = fieldMappings.FirstOrDefault(w => w.SourceEntity == _settings.CurrentEntity.Name && w.MappingType == MappingType.TableJoin).SourceField;
                 }
+                else if  (fieldMappings != null && fieldMappings.Any(w => w.TargetEntity == _settings.CurrentEntity.Name && w.MappingType == MappingType.TableJoin))
+                {
+                    idRelationship = fieldMappings.FirstOrDefault(w => w.TargetEntity == _settings.CurrentEntity.Name && w.MappingType == MappingType.TableJoin).TargetField;
+                }
                 else
                 {
                     idRelationship = _settings.CurrentEntity.Attributes.FirstOrDefault(w => w.Key == "RecordId").Value;
                 }
 
-                jObject.Add("id", $"{entity.Properties.FirstOrDefault(f => f.Key == idRelationship).Value.PropertyAsObject}");
+                if(idRelationship == Constants.PARTITION_KEY)
+                {
+                    jObject.Add("id", entity.PartitionKey);
+                }
+                else if (idRelationship == Constants.ROW_KEY)
+                {
+                    jObject.Add("id", entity.RowKey);
+                }
+                else
+                {
+                    jObject.Add("id", $"{entity.Properties.FirstOrDefault(f => f.Key == idRelationship).Value.PropertyAsObject}");
+                }
                 jObject.Add(Constants.PARTITION_KEY, entity.PartitionKey);
                 jObject.Add(Constants.ROW_KEY, entity.RowKey);
                 jObject.Add(Constants.E_TAG, entity.ETag);

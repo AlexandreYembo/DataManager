@@ -7,8 +7,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MigrationAdmin", "Migration
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Migration.Services", "Migration.Services\Migration.Services.csproj", "{754DE9F6-75A8-4424-A254-9A1E1CAF7B90}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Migration.Infrastructure.Redis", "Migration.Infrastructure.Redis\Migration.Infrastructure.Redis.csproj", "{C1E8D51A-5A42-487B-BE94-C0B920A19339}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Migration.BackgroundWorker", "Migration.BackgroundWorker\Migration.BackgroundWorker.csproj", "{630EB1A4-1CBA-4E4C-BE1D-2C04F4DAA638}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Connectors", "Connectors", "{0A7CD377-6BC3-4357-BF04-FA911F5722CC}"
@@ -21,7 +19,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Migration.EventHandlers", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Migration.Models", "Migration.Models\Migration.Models.csproj", "{872C5EBF-3CCC-4E53-98E0-E4AD88BE605F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Connectors.Azure.CosmosDb", "Connectors.Azure.CosmosDb\Connectors.Azure.CosmosDb.csproj", "{5B826081-DB14-4EB2-B6A8-7F31B77434FF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Connectors.Azure.CosmosDb", "Connectors.Azure.CosmosDb\Connectors.Azure.CosmosDb.csproj", "{5B826081-DB14-4EB2-B6A8-7F31B77434FF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Connectors.Redis", "Connectors.Redis\Connectors.Redis.csproj", "{A524D9C3-6901-4E6C-A87B-29903495F17C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -37,10 +37,6 @@ Global
 		{754DE9F6-75A8-4424-A254-9A1E1CAF7B90}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{754DE9F6-75A8-4424-A254-9A1E1CAF7B90}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{754DE9F6-75A8-4424-A254-9A1E1CAF7B90}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C1E8D51A-5A42-487B-BE94-C0B920A19339}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C1E8D51A-5A42-487B-BE94-C0B920A19339}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C1E8D51A-5A42-487B-BE94-C0B920A19339}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C1E8D51A-5A42-487B-BE94-C0B920A19339}.Release|Any CPU.Build.0 = Release|Any CPU
 		{630EB1A4-1CBA-4E4C-BE1D-2C04F4DAA638}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{630EB1A4-1CBA-4E4C-BE1D-2C04F4DAA638}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{630EB1A4-1CBA-4E4C-BE1D-2C04F4DAA638}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -65,6 +61,10 @@ Global
 		{5B826081-DB14-4EB2-B6A8-7F31B77434FF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5B826081-DB14-4EB2-B6A8-7F31B77434FF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5B826081-DB14-4EB2-B6A8-7F31B77434FF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A524D9C3-6901-4E6C-A87B-29903495F17C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A524D9C3-6901-4E6C-A87B-29903495F17C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A524D9C3-6901-4E6C-A87B-29903495F17C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A524D9C3-6901-4E6C-A87B-29903495F17C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -72,6 +72,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{8ABF55EE-C406-4B8B-81B7-1283BCC9391E} = {0A7CD377-6BC3-4357-BF04-FA911F5722CC}
 		{5B826081-DB14-4EB2-B6A8-7F31B77434FF} = {0A7CD377-6BC3-4357-BF04-FA911F5722CC}
+		{A524D9C3-6901-4E6C-A87B-29903495F17C} = {0A7CD377-6BC3-4357-BF04-FA911F5722CC}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {BDBA0F9C-675D-4353-BADF-46D6A4C646D6}

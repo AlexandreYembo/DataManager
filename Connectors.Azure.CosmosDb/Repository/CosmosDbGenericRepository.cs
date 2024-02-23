@@ -15,13 +15,6 @@ namespace Connectors.Azure.CosmosDb.Repository
 
         public CosmosDbGenericRepository(DataSettings settings)
         {
-            if (string.IsNullOrEmpty(settings.CurrentEntity.Name))
-            {
-                settings.CurrentEntity = settings.Entities.FirstOrDefault();
-            }
-
-            _settings = settings;
-
             var db = settings.GetDataBase();
 
             var dbContextOptionsBuilder = new DbContextOptionsBuilder<DbContext>();
@@ -33,7 +26,15 @@ namespace Connectors.Azure.CosmosDb.Repository
             var context = new DbContext(dbContextOptionsBuilder.Options);
 
             var client = context.Database.GetCosmosClient();
+
+            if (settings.CurrentEntity == null || string.IsNullOrEmpty(settings.CurrentEntity.Name))
+            {
+                settings.CurrentEntity = settings.Entities.FirstOrDefault();
+            }
+
             container = client.GetContainer(db, settings.CurrentEntity.Name);
+
+            _settings = settings;
         }
 
         public async Task CreateTableAsync()
@@ -112,9 +113,9 @@ namespace Connectors.Azure.CosmosDb.Repository
         public async Task UpdateAsync(RepositoryParameters parameters)
         {
             var entity = parameters.Data;
-          
+
             var response = await container.UpsertItemAsync(entity);
-            
+
             if (response.StatusCode != HttpStatusCode.OK)
             {
                 throw new TableOperationException(DbOperationErrorCodeConstants.ERROR_UPDATE_OPERATION, entity.ToString());
@@ -124,7 +125,7 @@ namespace Connectors.Azure.CosmosDb.Repository
         public async Task DeleteAsync(RepositoryParameters parameters)
         {
             var entity = parameters.Data;
-          
+
             var id = entity["id"].ToString();
             ItemResponse<JObject> response;
 

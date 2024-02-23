@@ -1,8 +1,8 @@
-﻿@using Microsoft.AspNetCore.Components
+﻿@using Connectors.Redis
+@using Connectors.Redis.Models
+@using Microsoft.AspNetCore.Components
 @using Migration.Core
 @using Migration.EventHandlers.Publishers
-@using Migration.Infrastructure.Redis
-@using Migration.Infrastructure.Redis.Entities
 @using InputFile = Microsoft.AspNetCore.Components.Forms.InputFile
 @using Migration.Models
 @inherits CustomComponents
@@ -174,7 +174,7 @@
         {
             DataSettings = await _testConnection(DataSettings).TestConnection();
 
-            var redisData = new RedisData<DataSettings>()
+            var redisData = new HashKeyRedisData<DataSettings>()
                 {
                     Data = DataSettings,
                     RedisValue = DataSettings.FullName
@@ -231,7 +231,7 @@
                     Value = filePath
                 });
 
-            var redisData = new RedisData<DataSettings>()
+            var redisData = new HashKeyRedisData<DataSettings>()
                 {
                     Data = DataSettings,
                     RedisValue = DataSettings.FullName

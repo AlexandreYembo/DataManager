@@ -1,5 +1,4 @@
-﻿@using Migration.Infrastructure.Redis.Entities
-@using Migration.Infrastructure.Redis
+﻿@using Connectors.Redis
 @using Migration.Models
 @using Migration.Models.Profile
 @inject IJSRuntime jsRuntime
@@ -89,7 +88,7 @@
     public ProfileConfiguration Profile { get; set; }
 
     [Parameter]
-    public IEnumerable<DataSettings> DataSettings { get; set; }
+    public List<DataSettings> DataSettings { get; set; }
 
     [Parameter]
     public Action<ProfileConfiguration> WhenNewConnectIsAdded { get; set; }
@@ -103,6 +102,13 @@
             return;
 
         DataSettings = redisData;
+
+        DataSettings.Add(new ()
+        {
+            ConnectionType = ConnectionType.Redis,
+            Name =  "Cache",
+            IsCacheConnection = true
+        });
 
         // if (DataMapping.Source.Settings == null)
         // {
