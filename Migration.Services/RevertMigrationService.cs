@@ -51,7 +51,9 @@ namespace Migration.Services
                 foreach (var data in listData)
                 {
                     var currentEntity = profile.Target.Settings.CurrentEntity;
-                    var idField = currentEntity.Attributes.FirstOrDefault().Value.Replace("/", string.Empty);
+                    var idField = currentEntity.Attributes.Any(f => f.Key == "RecordId")
+                        ? currentEntity.Attributes.FirstOrDefault(f => f.Key == "RecordId").Value
+                        : currentEntity.Attributes.FirstOrDefault().Value.Replace("/", string.Empty);
 
                     bool hasChange = false;
                     var id = data.SelectToken("id").ToString();

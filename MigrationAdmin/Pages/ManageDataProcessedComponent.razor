@@ -153,6 +153,8 @@
 
 
 <ExportAnotherDBComponent Data="@_data" ShowPopup="_exportAnotherDb" ModalOk="ModalOk"></ExportAnotherDBComponent>
+<ExportToJsonComponent Data="@_data" ShowPopup="_exportToJson" EntityName="@_entity"></ExportToJsonComponent>
+
 
 
 <ConfirmComponent Title="Revert Migration" ShowPopup="_confirmRevertMigration" Description="Do you want to revert the records to the original version? This will apply the version that was at the time this job was processed."
@@ -171,6 +173,7 @@
     private ElementReference diffResultAfter;
 
     private bool _exportAnotherDb;
+    private bool _exportToJson;
 
     private bool _confirmRevertMigration;
 
@@ -233,18 +236,20 @@
 
     private async Task DownloadJsonData()
     {
-        // Convert the JSON string to bytes
-        byte[] jsonBytes = Encoding.UTF8.GetBytes(String.Join(",", _data.Select(s => s.ToString())));
+        // // Convert the JSON string to bytes
+        // byte[] jsonBytes = Encoding.UTF8.GetBytes(String.Join(",", _data.Select(s => s.ToString())));
 
-        // Generate a unique filename (you can customize this as needed)
-        string fileName = $"{_entityName}.json";
+        // // Generate a unique filename (you can customize this as needed)
+        // string fileName = $"{_entityName}.json";
 
-        // Create a memory stream from the JSON bytes
-        using (MemoryStream ms = new MemoryStream(jsonBytes))
-        {
-            // Trigger the download
-            await jsRuntime.InvokeAsync<object>("saveAsFile", fileName, Convert.ToBase64String(ms.ToArray()));
-        }
+        // // Create a memory stream from the JSON bytes
+        // using (MemoryStream ms = new MemoryStream(jsonBytes))
+        // {
+        //     // Trigger the download
+        //     await jsRuntime.InvokeAsync<object>("saveAsFile", fileName, Convert.ToBase64String(ms.ToArray()));
+        // }
+
+        _exportToJson = true;
     }
 
 

@@ -177,6 +177,8 @@ namespace Migration.Services
                     {
                         hasRecord = false;
                     }
+
+                    hasRecord = source.Count == take; // if the list of Record is less than the take, it means that there will no have any more data to be checked.
                 } while (hasRecord);
 
                 job.Complete();
@@ -248,7 +250,8 @@ namespace Migration.Services
         }
 
 
-        private async Task ProcessTargetRecordsAsync(IGenericRepository repository, IOperation operation, ProfileConfiguration profile, KeyValuePair<string, JObject> sourceData, Jobs job)
+        private async Task ProcessTargetRecordsAsync(IGenericRepository repository, IOperation operation, ProfileConfiguration profile, 
+            KeyValuePair<string, JObject> sourceData, Jobs job)
         {
             int skip = job.TargetProcessed;
             int take = 15;
@@ -277,7 +280,27 @@ namespace Migration.Services
                         }
                     };
 
-                    var target = await repository.GetAsync(repositoryParameters);
+                    Dictionary<string, JObject> target;
+
+                    if (profile.Target.Settings.IsCacheConnection)
+                    {
+                        target = await _cacheRepository.GetHashAsync(new RepositoryParameters()
+                        {
+                            Query = profile.Target.Query,
+                            FieldMappings = profile.FieldsMapping,
+                            Entity = profile.Target.Settings.CurrentEntity.Name,
+                            Data = sourceData.Value,
+                            Pagination = new()
+                            {
+                                Take = take,
+                                Skip = 0
+                            }
+                        });
+                    }
+                    else
+                    {
+                        target = await repository.GetAsync(repositoryParameters);
+                    }
 
                     var listTarget = target.ApplyJoin(sourceData, profile.FieldsMapping);
 

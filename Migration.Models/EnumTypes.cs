@@ -76,6 +76,7 @@
     public enum EntityType
     {
         Source,
-        Target
+        Target,
+        TargetCache
     }
 }

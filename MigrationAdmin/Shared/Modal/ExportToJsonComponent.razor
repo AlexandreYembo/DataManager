@@ -1,0 +1,106 @@
+﻿@using Connectors.Redis
+@using Connectors.Redis.Models
+@using System.Text
+@using Migration.Models.Profile
+@using Migration.Services.Helpers
+@using Newtonsoft.Json.Linq
+@inject IJSRuntime jsRuntime
+
+@if (ShowPopup)
+{
+    <div class="modal fade show" id="logDetailsModal" style="display:block" aria-modal="true" role="dialog">
+        <div class="modal-dialog" style="max-width: 700px;">
+            <div class="modal-content">
+
+                <!-- Modal Header -->
+                <div class="modal-header">
+                    <h4 class="modal-title">Select the properties you want to export to the json</h4>
+                </div>
+
+                <!-- Modal body -->
+                <div class="modal-body" style="overflow:scroll;max-height:500px">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div class="form-group">
+                                <label>Provide the fields separated by ";". If not informed all data will be exported</label>
+                                <input class="form-control" data-keeper-edited="yes" @bind="@_parameters" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal footer -->
+                <div class="modal-footer">
+                    <button type="button" style="margin-top:15px;" class="btn btn-close" @onclick=SaveOk>Save</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private string _parameters;
+
+    [Parameter]
+    public List<JObject> Data { get; set; }
+
+    [Parameter]
+    public bool ShowPopup { get; set; }
+
+    [Parameter]
+    public string EntityName { get; set; }
+
+    public async Task SaveOk()
+    {
+        await DownloadJsonData();
+    }
+
+    private async Task DownloadJsonData()
+    {
+        byte[] jsonBytes;
+
+        if (string.IsNullOrEmpty(_parameters))
+        {
+            // Convert the JSON string to bytes
+            jsonBytes = Encoding.UTF8.GetBytes(String.Join(",", Data.Select(s => s.ToString())));
+        }
+        else
+        {
+            List<DataFieldsMapping> fieldsMapping = new();
+
+            foreach (var item in _parameters.Split(";"))
+            {
+                fieldsMapping.Add(new()
+                    {
+                        MappingType = Migration.Models.MappingType.MergeField,
+                        SourceField = item,
+                        TargetField = item
+                    });
+            }
+
+            JArray arrResult = new();
+            foreach (var item in Data)
+            {
+                var hasChange = false;
+                var objResult = UpdateDataHelper.UpdateObject(new JObject().ToString(), fieldsMapping, item, ref hasChange);
+
+                arrResult.Add(objResult);
+            }
+
+            jsonBytes = Encoding.UTF8.GetBytes(String.Join(",", arrResult.Select(s => s.ToString())));
+
+            ShowPopup = false;
+        }
+
+        // Generate a unique filename (you can customize this as needed)
+        string fileName = $"{EntityName}.json";
+
+        // Create a memory stream from the JSON bytes
+        using (MemoryStream ms = new MemoryStream(jsonBytes))
+        {
+            // Trigger the download
+            await jsRuntime.InvokeAsync<object>("saveAsFile", fileName, Convert.ToBase64String(ms.ToArray()));
+        }
+    }
+}

@@ -1,4 +1,5 @@
 ﻿using Connectors.Redis;
+using Connectors.Redis.Models;
 using Migration.Core;
 using Migration.EventHandlers.Publishers;
 using Migration.Models;
@@ -44,10 +45,18 @@ namespace Migration.Services.Operations.OperationsByType
 
             logDetails.Descriptions.Add("Data exported to the Local Redis");
 
-            RepositoryParameters rp = new()
+            var relationshipField = profile.FieldsMapping?.FirstOrDefault(f => f.MappingType == MappingType.TableJoin)?.TargetField;
+
+            if(relationshipField == null)
+            {
+                throw new ArgumentException("No Join defined");
+            }
+
+            HashKeyRedisData<JObject> rp = new()
             {
                 Data = objectToBeUpdated,
-                Entity = profile.Target.Settings.CurrentEntity.Name
+                RedisKey = profile.Target.Settings.CurrentEntity.Name,
+                RedisValue = objectToBeUpdated.SelectToken(relationshipField).ToString()
             };
 
             await _backupRepository.InsertAsync(rp);

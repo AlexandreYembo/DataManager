@@ -1,0 +1,122 @@
+﻿@page "/ImportDataToCache"
+
+@using Connectors.Redis
+@using Connectors.Redis.Models
+@using Microsoft.AspNetCore.Components
+@using Migration.Core
+@using Migration.EventHandlers.Publishers
+@using InputFile = Microsoft.AspNetCore.Components.Forms.InputFile
+@using Migration.Models
+@using Newtonsoft.Json
+@using Newtonsoft.Json.Linq
+@inherits CustomComponents
+@inject Func<DataSettings, IGenericRepository> _testConnection;
+@inject ICacheRepository _redis;
+@inject ActionsPublisher _actionsPublisher;
+
+<div class="card card-default">
+    <div class="card-header">
+        <h3 class="card-title">Import data from file to the Cache Redis</h3>
+        <div class="card-tools">
+            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                <i class="fas fa-minus"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body" style="display: block;">
+        <div class="row">
+            <div class="col-sm-12">
+                <label for="exampleInputFile">File input</label>
+                <div class="input-group">
+                    <div class="custom-file">
+                        <InputFile type="file" class="custom-file-input" OnChange="OnFileInput"></InputFile>
+                        @if (_uploadedFile != null && !string.IsNullOrEmpty(_uploadedFile.Name))
+                        {
+                            <label class="custom-file-label">@_uploadedFile.Name</label>
+                        }
+                        else
+                        {
+                            <label class="custom-file-label">Choose file</label>
+                        }
+                    </div>
+                    <div class="input-group-append">
+                        <button class="btn btn-default" @onclick="HandleFileUpload">Upload</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private IBrowserFile _uploadedFile;
+
+    private async Task HandleFileUpload()
+    {
+        try
+        {
+            int index = 0;
+            using (var sr = new StreamReader(_uploadedFile.OpenReadStream(_uploadedFile.Size)))
+            {
+                string line;
+
+                JObject jsonSchema = new();
+
+                string[] props = null;
+
+                while ((line = await sr.ReadLineAsync()) != null)
+                {
+                    if (index == 0)
+                    {
+                        props = line.Split(",");
+                    }
+
+                    if (index > 1338819)
+                    {
+                        JObject obj = new();
+
+                        var values = line.Split(",");
+
+                        for (int i = 0; i < values.Length; i++)
+                        {
+                            obj[props[i]] = values[i];
+                        }
+
+                        await _redis.InsertAsync(new HashKeyRedisData<JObject>
+                            {
+                                Data = obj,
+                                RedisKey = _uploadedFile.Name.Split(".").FirstOrDefault(),
+                                RedisValue = obj.SelectToken("IMSI").ToString() // This value needs to be parametrised in the future
+                            });
+                    }
+                    index++;
+                }
+
+                //  var jsonData = JsonSerializer.Deserialize<YourModelClass>(jsonContent);
+
+                // Now you can work with your JSON data (jsonData)
+                // For example, you can display it in the UI or process it further
+                // Here, I'm just printing it to the console
+                // Console.WriteLine(JsonSerializer.Serialize(jsonData));
+            }
+
+            //   await _redis.InsertAsync
+        }
+        catch (Exception e)
+        {
+            await _actionsPublisher.PublishAsync(new Actions
+                {
+                    ActionType = ActionEventType.Error,
+                    Message = $"Error to import data to the Redis cache"
+                });
+        }
+
+        Loading = false;
+        ShowModal = true;
+    }
+
+    private void OnFileInput(InputFileChangeEventArgs e)
+    {
+        _uploadedFile = e.File;
+    }
+}

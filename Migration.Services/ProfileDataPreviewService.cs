@@ -32,16 +32,18 @@ namespace Migration.Services
             Dictionary<string, List<DynamicData>> result = new();
 
             Dictionary<string, JObject> sourceFromCache = new();
+            Dictionary<string, JObject> targetFromCache = new();
+
+            Dictionary<string, JObject> source;
+
+            if (profile.Target.Settings.IsCacheConnection)
+            {
+                targetFromCache = await _cacheRepository.GetAsync(profile.Target.Settings.CurrentEntity.Name);
+            }
 
             if (profile.Source.Settings.IsCacheConnection)
             {
                 sourceFromCache = await _cacheRepository.GetAsync(profile.Source.Settings.CurrentEntity.Name);
-            }
-
-            Dictionary<string, JObject> source;
-
-            if (profile.Source.Settings.IsCacheConnection)
-            {
                 source = sourceFromCache.Take(10).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
             }
             else
@@ -79,8 +81,12 @@ namespace Migration.Services
 
                 if (profile.DataQueryMappingType == DataQueryMappingType.SourceToTarget && profile.OperationType != OperationType.Import)
                 {
-                    var destination = await _genericRepository(profile.Target.Settings)
-                        .GetAsync(new RepositoryParameters()
+
+                    Dictionary<string, JObject> target;
+
+                    if (profile.Target.Settings.IsCacheConnection)
+                    {
+                        target = _cacheRepository.GetFromCache(targetFromCache, new RepositoryParameters()
                         {
                             Query = profile.Target.Query,
                             FieldMappings = profile.FieldsMapping,
@@ -91,14 +97,30 @@ namespace Migration.Services
                                 Skip = 0
                             }
                         });
+                    }
+                    else
+                    {
+                        target = await _genericRepository(profile.Target.Settings)
+                       .GetAsync(new RepositoryParameters()
+                       {
+                           Query = profile.Target.Query,
+                           FieldMappings = profile.FieldsMapping,
+                           Data = sourceData.Value,
+                           Pagination = new()
+                           {
+                               Take = take,
+                               Skip = 0
+                           }
+                       });
+                    }
 
                     Dictionary<string, IEnumerable<JObject>> dataDestination = new();
-                    if (destination.Any())
+                    if (target.Any())
                     {
                         //To avoid add duplicated record
-                        if (!result.Values.Any(a => a.Any(a1 => destination.ContainsValue(a1.Data))))
+                        if (!result.Values.Any(a => a.Any(a1 => target.ContainsValue(a1.Data))))
                         {
-                            dataDestination.Add(profile.Target.Settings.CurrentEntity.Name, destination.ApplyJoin(sourceData, profile.FieldsMapping));
+                            dataDestination.Add(profile.Target.Settings.CurrentEntity.Name, target.ApplyJoin(sourceData, profile.FieldsMapping));
                             result.Add($"{profile.Source.Settings.CurrentEntity.Name}:{sourceData.Key}", dataDestination.ToDynamicDataList(sourceData, profile.Source.Settings.CurrentEntity.Name, profile.OperationType));
                         }
                     }

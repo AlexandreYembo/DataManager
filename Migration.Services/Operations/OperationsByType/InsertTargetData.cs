@@ -43,14 +43,14 @@ namespace Migration.Services.Operations.OperationsByType
 
             bool hasChange = false;
 
-            var propertyId = profile.Target.Settings.CurrentEntity.Attributes.FirstOrDefault(f => f.Key == TableAttributesType.RecordId.ToString()).Value;
+            var propertyId = profile.Target.Settings.CurrentEntity.Attributes.FirstOrDefault(f => f.Key == "RecordId").Value; //ableAttributesType.RecordId.ToString()).Value;
             targetData[propertyId] = id;
 
             var objectToBeImported = UpdateDataHelper.UpdateObject(targetData.ToString(), profile.FieldsMapping, sourceData, ref hasChange);
 
             if (!hasChange) return;
 
-            backup.Add("id", id);
+            backup.Add("id", objectToBeImported.SelectToken(propertyId).ToString());
             backup.Add("Inserted", objectToBeImported);
             await SaveCopyInLocal(profile.Target.Settings.CurrentEntity.Name, backup, job);
 

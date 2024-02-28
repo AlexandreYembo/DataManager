@@ -21,7 +21,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Migration.Models", "Migrati
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Connectors.Azure.CosmosDb", "Connectors.Azure.CosmosDb\Connectors.Azure.CosmosDb.csproj", "{5B826081-DB14-4EB2-B6A8-7F31B77434FF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Connectors.Redis", "Connectors.Redis\Connectors.Redis.csproj", "{A524D9C3-6901-4E6C-A87B-29903495F17C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Connectors.Redis", "Connectors.Redis\Connectors.Redis.csproj", "{A524D9C3-6901-4E6C-A87B-29903495F17C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -28,7 +28,22 @@ namespace Migration.Services.Subscribers
 
                 log.FinishedIn = DateTime.Now;
 
-                log.Details = e.LogResult.Details;
+                foreach (var item in e.LogResult.Details)
+                {
+                    var details = new LogDetails()
+                    {
+                        LogDateTime = item.LogDateTime,
+                        OperationType = item.OperationType,
+                        Descriptions = item.Descriptions,
+                        Display = item.Display,
+                        JobId = item.JobId,
+                        Title = item.Title,
+                        Type = item.Type
+                    };
+
+                    log.Details.Add(details);
+                }
+
                 log.TotalRecords = e.LogResult.TotalRecords;
 
                 _logRepository.SaveAsync(new HashKeyRedisData<LogResult>()

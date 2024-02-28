@@ -26,6 +26,8 @@ namespace Connectors.Azure.TableStorage.Repository
 
         public WindowsAzureGenericRepository(DataSettings settings)
         {
+            if (settings.IsCacheConnection) return; //when is cache it ignores the repo and uses the redis
+
             _settings = settings;
 
             _storageAccount = settings.Parameters.Any(p => p.Key == "Is Emulator" && p.Value == "True") ?
@@ -224,11 +226,6 @@ namespace Connectors.Azure.TableStorage.Repository
             }
 
             if (currentSegment.Results.Count == 0)
-            {
-                segmentDownloadTask = null;
-            }
-
-            if (currentSegment.Results.Count < take) // clean the segment to be able to perform next segment
             {
                 segmentDownloadTask = null;
             }

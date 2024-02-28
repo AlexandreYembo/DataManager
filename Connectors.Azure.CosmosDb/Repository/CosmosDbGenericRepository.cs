@@ -15,6 +15,8 @@ namespace Connectors.Azure.CosmosDb.Repository
 
         public CosmosDbGenericRepository(DataSettings settings)
         {
+            if (settings.IsCacheConnection) return;
+
             var db = settings.GetDataBase();
 
             var dbContextOptionsBuilder = new DbContextOptionsBuilder<DbContext>();

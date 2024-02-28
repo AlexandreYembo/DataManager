@@ -121,6 +121,7 @@ builder.Services.RegisterRedis();
 builder.Services.AddTransient<Func<DataSettings, IGenericRepository>>(_ => settings =>
      settings?.ConnectionType switch
 {
+    //TODO: also check for settings.IsCacheConnection and change the ICacheRepository to use IGenericRepository
     Migration.Models.ConnectionType.CosmosDb => new CosmosDbGenericRepository(settings),
     //ConnectionType.File => new FileRepository(settings),
     Migration.Models.ConnectionType.TableStorage => new WindowsAzureGenericRepository(settings),

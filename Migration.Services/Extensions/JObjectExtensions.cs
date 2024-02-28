@@ -93,6 +93,11 @@ namespace Migration.Services.Extensions
 
         private static string GetValueByType(JObject data, string value)
         {
+            if(data.SelectToken(value) == null)
+            {
+                return string.Empty;
+            }
+
             switch (data.SelectToken(value).Type)
             {
                 case JTokenType.Boolean:
